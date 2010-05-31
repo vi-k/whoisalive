@@ -1,0 +1,10 @@
+syntax: glob
+.svn
+pinger/Debug
+pinger/Release
+pinger/work/maps/yasat
+pinger/work/maps/yamapng
+pinger/work/*.log
+whoisalive/Debug
+whoisalive/Release
+whoisalive/work/*.log
