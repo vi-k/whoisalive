@@ -6,8 +6,6 @@ del *.ncb 2>nul
 del /A:H *.suo 2>nul
 call :delete Debug %1
 call :delete Release %1
-call :delete pinger-Debug %1
-call :delete pinger-Release %1
 exit
 
 :delete
