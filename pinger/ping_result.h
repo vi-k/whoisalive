@@ -92,7 +92,7 @@ public:
 		{ icmp_hdr_ = icmp_hdr; }
 
 	template<class Char>
-	std::basic_string<Char> info() const
+	std::basic_string<Char> brief() const
 	{
 		static const Char time_fmt[] =
 		{
