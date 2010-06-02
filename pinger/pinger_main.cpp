@@ -24,7 +24,7 @@ BOOL __stdcall CtrlHandlerRoutine(DWORD dwCtrlType);
 wofstream main_log_stream;
 void on_main_log(const wstring &text)
 {
-	main_log_stream << L"[" << my::time::to_fmt_wstring(L"%Y-%m-%d %H:%M:%S",
+	main_log_stream << L"[" << my::time::format(L"%Y-%m-%d %H:%M:%S",
 		posix_time::microsec_clock::universal_time()) << L"]\n";
 	main_log_stream << text << endl << endl;
 	main_log_stream.flush();

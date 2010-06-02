@@ -102,7 +102,7 @@ public:
 
 		std::basic_stringstream<Char> out;
 	
-		my::time::set_format(out, time_fmt);
+		my::time::set_output_format(out, time_fmt);
 		
 		out << sequence_number()
 			<< ' ' << state_
@@ -160,7 +160,7 @@ public:
 	{
 		boost::io::basic_ios_all_saver<Char> ios_saver(out);
 		
-		my::time::set_format(out);
+		my::time::set_mydef_output_format(out);
 
 		out << PING_RESULT_VER
 			<< ' ' << pr.state_
@@ -180,7 +180,7 @@ public:
 	{
 		boost::io::basic_ios_all_saver<Char> ios_saver(in);
 
-		my::time::set_input_format(in);
+		my::time::set_mydef_input_format(in);
 
 		int ver = 0;
 		in >> ver;

@@ -159,14 +159,16 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 		}
 		else
 		{
-			wstringstream ss( my::utf8::decode(reply_.body) );
+			wistringstream ss( my::utf8::decode(reply_.body) );
 			wstring host;
 			ss >> host;
 
 			pinger::ping_result ping;
 			ss >> ping;
 
-			wstringstream out;
+			wostringstream out;
+			my::time::set_output_format(out, L"[%H:%M:%S]");
+
 			wxTextAttr style;
 
 			unsigned short num = ping.sequence_number();
@@ -188,8 +190,8 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 				{
 					case pinger::ping_result::ok:
 						style = wxTextAttr(*wxGREEN);
-						out << my::time::to_fmt_wstring(L"[%H:%M:%S] ", ping.time())
-							<< ping.ipv4_hdr().header_length()
+						out << ping.time()
+							<< L' ' << ping.ipv4_hdr().header_length()
 							<< L" bytes from " << ping.ipv4_hdr().source_address()
 							<< L", icmp_seq=" << num
 							<< L", ttl=" << ping.ipv4_hdr().time_to_live()
@@ -199,8 +201,8 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 
 					case pinger::ping_result::timeout:
 						style = wxTextAttr(*wxRED);
-						out << my::time::to_fmt_wstring(L"[%H:%M:%S] ", ping.time())
-							<< L"timeout (icmp_seq=" << num
+						out << ping.time()
+							<< L" timeout (icmp_seq=" << num
 							<< L", time=" << ping.duration().total_milliseconds() << L" ms"
 							<< L")\n";
 						break;
@@ -365,10 +367,11 @@ void wx_Ping::on_pingpanel_mousemove(wxMouseEvent& event)
 
 	if (iter != pings_.end())
 	{
-		wstringstream out;
+		wostringstream out;
+		my::time::set_output_format(out, L"%Y-%m-%d %H:%M:%S");
 
 		out << iter->value().state() << endl
-			<< my::time::to_fmt_wstring(L"%Y-%m-%d %H:%M:%S", iter->value().time()) << endl
+			<< iter->value().time() << endl
 			<< L"icmp_seq=" << iter->key() << endl
 			<< L"time=" << iter->value().duration().total_milliseconds() << L" ms";
 

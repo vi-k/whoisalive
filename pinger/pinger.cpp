@@ -227,12 +227,14 @@ void host_pinger::on_receive(posix_time::ptime time,
 
 wstring host_pinger_copy::to_wstring() const
 {
-	wstringstream out;
+	wostringstream out;
+
+	my::time::set_mydef_output_format(out);
 
 	out << L"<state"
 		<< L" address=\"" << hostname << L"\""
 		<< L" state=\"" << state.to_wstring() << L"\""
-		<< L" state_changed=\"" << my::time::to_wstring(state_changed) << L"\"";
+		<< L" state_changed=\"" << state_changed << L"\"";
 		
 	if (fails)
 		out << L" fails=\"" << fails << L"\"";
@@ -269,21 +271,16 @@ void server::match(xml::wptree &pt)
 		{
 			const xml::wptree &node = p.first->second;
 
-			wstring hostname;
-			posix_time::time_duration timeout(posix_time::not_a_date_time);
-			posix_time::time_duration request_period(posix_time::not_a_date_time);
-
 			/* Адрес - обязательно! */
-			hostname = node.get_value<wstring>();
+			wstring hostname = node.get_value<wstring>();
 
-			wstring str;
-			str = node.get<wstring>(L"<xmlattr>.timeout", L"");
-			if (!str.empty())
-				timeout = my::time::to_duration(str);
+			posix_time::time_duration timeout
+				= my::time::to_duration(
+					node.get<wstring>(L"<xmlattr>.timeout", L"") );
 		
-			str = node.get<wstring>(L"<xmlattr>.request_period", L"");
-			if (!str.empty())
-				request_period = my::time::to_duration(str);
+			posix_time::time_duration request_period
+				= my::time::to_duration(
+					node.get<wstring>(L"<xmlattr>.request_period", L"") );
 
 			add_pinger(hostname, timeout, request_period);
 
