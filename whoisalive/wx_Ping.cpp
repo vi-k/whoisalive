@@ -367,7 +367,7 @@ void wx_Ping::on_pingpanel_mousemove(wxMouseEvent& event)
 	{
 		wstringstream out;
 
-		out << iter->value().state_to_wstring() << endl
+		out << iter->value().state() << endl
 			<< my::time::to_fmt_wstring(L"%Y-%m-%d %H:%M:%S", iter->value().time()) << endl
 			<< L"icmp_seq=" << iter->key() << endl
 			<< L"time=" << iter->value().duration().total_milliseconds() << L" ms";

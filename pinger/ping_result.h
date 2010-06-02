@@ -3,6 +3,7 @@
 
 #include "../common/my_time.h"
 #include "../common/my_http.h"
+#include "../common/my_str.h"
 
 #include "icmp_header.hpp"
 #include "ipv4_header.hpp"
@@ -11,6 +12,9 @@
 
 #include <string>
 #include <sstream>
+#include <ostream>
+#include <istream>
+#include <boost/io/ios_state.hpp>
 
 #define PING_RESULT_VER 1
 
@@ -33,13 +37,29 @@ public:
 	ping_result()
 		: state_(unknown) {}
 
-	ping_result(const std::wstring &str)
+	template<class Char>
+	ping_result(const std::basic_string<Char> &str)
 	{
-		std::wstringstream in(str);
+		std::basic_stringstream<Char> in(str);
 		in >> *this;
 		if (!in)
 			*this = ping_result();
 	}
+
+	template<class Char>
+	inline std::basic_string<Char> to_str() const
+	{
+		std::basic_stringstream<Char> out;
+		out << *this;
+		return out.str();
+	}
+
+	inline std::string to_string() const
+		{ return to_str<char>(); }
+
+	inline std::wstring to_wstring() const
+		{ return to_str<wchar_t>(); }
+
 
 	inline state_t state() const
 		{ return state_; }
@@ -71,99 +91,123 @@ public:
 	inline void set_icmp_hdr(const icmp_header &icmp_hdr)
 		{ icmp_hdr_ = icmp_hdr; }
 
-	std::wstring to_wstring() const
+	template<class Char>
+	std::basic_string<Char> info() const
 	{
-		std::wstringstream out;
-		out << *this;
-		return out.str();
-	}
+		static const Char time_fmt[] =
+		{
+			'%', 'Y', '-', '%', 'm', '-', '%', 'd', ' ',
+			'%', 'H', ':', '%', 'M', ':', '%', 'S', '\0'
+		};
 
-	std::wstring winfo() const
-	{
-		std::wstringstream out;
-
+		std::basic_stringstream<Char> out;
+	
+		my::time::set_format(out, time_fmt);
+		
 		out << sequence_number()
-			<< L' ' << state_to_wstring()
-			<< L' ' << my::time::to_wstring(time_)
-			<< L' ' << duration_.total_milliseconds() << L"ms";
-
+			<< ' ' << state_
+			<< ' ' << time_
+			<< ' ' << duration_.total_milliseconds() << 'm' << 's';
 		return out.str();
 	}
 
-	std::wstring state_to_wstring() const
-	{
-		return state_ == ok ? L"ok"
-			: state_ == timeout ? L"timeout"
-			: L"unknown";
-	}
-
-	inline bool operator ==(state_t st) const
+	inline bool operator==(state_t st) const
 		{ return state_ == st; }
 
-	inline bool operator !=(state_t st) const
+	inline bool operator!=(state_t st) const
 		{ return state_ != st; }
 
-	friend std::wistream& operator>>(std::wistream& in, ping_result& pr)
+	template<class Char>
+	friend std::basic_ostream<Char>& operator<<(
+		std::basic_ostream<Char>& out, state_t st)
 	{
+		static const Char ok_s[] = { 'o', 'k', 0 };
+		static const Char timeout_s[] = { 't', 'i', 'm', 'e', 'o', 'u', 't', 0};
+		static const Char unknown_s[] = { 'u', 'n', 'k', 'n', 'o', 'w', 'n', 0};
+
+		out << (st == ok ? ok_s
+			: st == timeout ? timeout_s : unknown_s);
+
+		return out;
+	}
+
+	template<class Char>
+	friend std::basic_istream<Char>& operator>>(
+		std::basic_istream<Char>& in, state_t &st)
+	{
+		static const Char ok_s[] = { 'o', 'k', 0 };
+		static const Char timeout_s[] = { 't', 'i', 'm', 'e', 'o', 'u', 't', 0};
+		static const Char unknown_s[] = { 'u', 'n', 'k', 'n', 'o', 'w', 'n', 0};
+
+		basic_string<Char> word;
+		in >> word;
+
+		if (word.compare(ok_s) == 0)
+			st = ok;
+		else if (word.compare(timeout_s) == 0)
+			st = timeout;
+		else if (word.compare(unknown_s) == 0)
+			st = unknown;
+		else
+			in.setstate(std::ios::failbit);
+
+		return in;
+	}
+
+	template<class Char>
+	friend std::basic_ostream<Char>& operator<<(
+		std::basic_ostream<Char>& out, const ping_result &pr)
+	{
+		boost::io::basic_ios_all_saver<Char> ios_saver(out);
+		
+		my::time::set_format(out);
+
+		out << PING_RESULT_VER
+			<< ' ' << pr.state_
+			<< ' ' << pr.time_
+			<< ' ' << pr.duration_
+			<< ' ' << my::str::to_hex( (const char*)pr.ipv4_hdr_.rep_,
+				sizeof(pr.ipv4_hdr_.rep_) ).c_str()
+			<< ' ' << my::str::to_hex( (const char*)pr.icmp_hdr_.rep_,
+				sizeof(pr.icmp_hdr_.rep_) ).c_str();
+
+		return out;
+	}
+
+	template<class Char>
+	friend std::basic_istream<Char>& operator>>(
+		std::basic_istream<Char>& in, ping_result &pr)
+	{
+		boost::io::basic_ios_all_saver<Char> ios_saver(in);
+
+		my::time::set_input_format(in);
+
 		int ver = 0;
 		in >> ver;
 		if (ver != PING_RESULT_VER)
 			in.setstate(std::ios::failbit);
 
-		std::wstring state_s;
-		in >> state_s;
-		if (state_s == L"ok")
-			pr.state_ = ok;
-		else if (state_s == L"timeout")
-			pr.state_ = timeout;
-		else
-			in.setstate(std::ios::failbit);
+		in >> pr.state_
+			>> pr.time_
+			>> pr.duration_;
 
-		std::wstring time_s, time2_s;
-		in >> time_s;
-		in >> time2_s;
-		time_s += std::wstring(L" ") + time2_s;
-		pr.time_ = my::time::to_time(time_s);
-		if (pr.time_.is_special())
-			in.setstate(std::ios::failbit);
-
-		std::wstring dur_s;
-		in >> dur_s;
-		pr.duration_ = my::time::to_duration(dur_s);
-		if (pr.duration_.is_special())
-			in.setstate(std::ios::failbit);
-
-		std::wstring ipv4_s;
+		std::basic_string<Char> ipv4_s;
 		in >> ipv4_s;
-		std::string ipv4_s2 = my::str::from_hex(my::str::to_string(ipv4_s));
+		std::string ipv4_s2 = my::str::from_hex(ipv4_s);
 		if (ipv4_s2.size() != sizeof(pr.ipv4_hdr_.rep_))
 			in.setstate(std::ios::failbit);
 		else
 			memcpy(pr.ipv4_hdr_.rep_, ipv4_s2.c_str(), sizeof(pr.ipv4_hdr_.rep_));
 
-		std::wstring icmp_s;
+		std::basic_string<Char> icmp_s;
 		in >> icmp_s;
-		std::string icmp_s2( my::str::from_hex(my::str::to_string(icmp_s)) );
+		std::string icmp_s2( my::str::from_hex(icmp_s) );
 		if (icmp_s2.size() != sizeof(pr.icmp_hdr_.rep_))
 			in.setstate(std::ios::failbit);
 		else
 			memcpy(pr.icmp_hdr_.rep_, icmp_s2.c_str(), sizeof(pr.icmp_hdr_.rep_));
 
 		return in;
-	}
-
-	friend std::wostream& operator<<(std::wostream& out, const ping_result &pr)
-	{
-		out << PING_RESULT_VER
-			<< L' ' << pr.state_to_wstring()
-			<< L' ' << my::time::to_wstring(pr.time_)
-			<< L' ' << my::time::to_wstring(pr.duration_)
-			<< L' ' << my::str::to_wstring( my::str::to_hex(
-				(const char*)pr.ipv4_hdr_.rep_, sizeof(pr.ipv4_hdr_.rep_) ) )
-			<< L' ' << my::str::to_wstring( my::str::to_hex(
-				(const char*)pr.icmp_hdr_.rep_, sizeof(pr.icmp_hdr_.rep_) ) );
-
-		return out;
 	}
 
 };

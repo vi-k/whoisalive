@@ -159,7 +159,7 @@ public:
 		{ return hostname + L" " + result.to_wstring(); }
 
 	std::wstring result_winfo(const ping_result &result) const
-		{ return hostname + L" " + result.winfo(); }
+		{ return hostname + L" " + result.info<wchar_t>(); }
 };
 
 /* Пингер-сервер */

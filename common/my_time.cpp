@@ -43,6 +43,26 @@ wstring to_fmt_wstring(const wchar_t *fmt, const posix_time::time_duration &time
 	return out.str();
 }
 
+string to_fmt_string(const char *fmt, const posix_time::ptime &time)
+{
+	stringstream out;
+
+	out.imbue( locale(out.getloc(), new posix_time::time_facet(fmt)) );
+	out << time;
+	
+	return out.str();
+}
+
+string to_fmt_string(const char *fmt, const posix_time::time_duration &time)
+{
+	stringstream out;
+
+	out.imbue( locale(out.getloc(), new posix_time::time_facet(fmt)) );
+	out << time;
+	
+	return out.str();
+}
+
 void throw_if_fail(const posix_time::ptime &time)
 {
 	if (time.is_special())
