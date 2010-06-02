@@ -174,7 +174,7 @@ void server::on_ping(const pinger::host_pinger_copy &pinger,
 	const pinger::ping_result &result)
 {
 #ifdef _DEBUG
-	wcout << pinger.result_winfo(result) << endl;
+	wcout << pinger.result_brief(result) << endl;
 #endif
 	ping_eventer_.add_event(pinger.address, pinger.result_to_wstring(result));
 }

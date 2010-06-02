@@ -37,8 +37,8 @@ int main()
 	wcout << pr.to_str<wchar_t>() << endl;
 	wcout << pr.to_wstring() << endl;
 
-	cout << pr.info<char>() << endl;
-	wcout << pr.info<wchar_t>() << endl;
+	cout << pr.brief<char>() << endl;
+	wcout << pr.brief<wchar_t>() << endl;
 
 	return 0;
 }

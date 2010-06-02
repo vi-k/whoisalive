@@ -158,8 +158,8 @@ public:
 	std::wstring result_to_wstring(const ping_result &result) const
 		{ return hostname + L" " + result.to_wstring(); }
 
-	std::wstring result_winfo(const ping_result &result) const
-		{ return hostname + L" " + result.info<wchar_t>(); }
+	std::wstring result_brief(const ping_result &result) const
+		{ return hostname + L' ' + result.brief<wchar_t>(); }
 };
 
 /* Пингер-сервер */
