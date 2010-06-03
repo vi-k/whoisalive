@@ -224,11 +224,11 @@ void widget::paint(Gdiplus::Graphics *canvas)
 		object *object1 = dynamic_cast<object*>(&widg);
 
 		if (object1 && object1->alpha() != 0.0f)
-		BOOST_FOREACH(const ipaddr_t &addr, object1->ipaddrs())
+		BOOST_FOREACH(const wstring &host, object1->hosts())
 		BOOST_FOREACH(widget &widg, childs_)
 		{
 			object *object2 = dynamic_cast<object*>(&widg);
-			if (object2 && addr == object2->link())
+			if (object2 && host == object2->host_link())
 			{
 				float x1 = object1->x_;
 				float y1 = object1->y_;
@@ -249,10 +249,21 @@ void widget::paint(Gdiplus::Graphics *canvas)
 					Gdiplus::Color color(a, 0, 0, 0);
 					switch (object2->state())
 					{
-						case ipstate::unknown: color = Gdiplus::Color(a, 0, 0, 255); break;
-						case ipstate::ok: color = Gdiplus::Color(a, 0, 192, 0); break;
-						case ipstate::warn: color = Gdiplus::Color(a, 192, 192, 0); break;
-						case ipstate::fail: color = Gdiplus::Color(a, 255, 0, 0); break;
+						case pinger::host_state::unknown:
+							color = Gdiplus::Color(a, 0, 0, 255);
+							break;
+
+						case pinger::host_state::ok:
+							color = Gdiplus::Color(a, 0, 192, 0);
+							break;
+
+						case pinger::host_state::warn:
+							color = Gdiplus::Color(a, 192, 192, 0);
+							break;
+
+						case pinger::host_state::fail:
+							color = Gdiplus::Color(a, 255, 0, 0);
+							break;
 					}
 
 					float thickness = 0.0f;
@@ -273,7 +284,7 @@ void widget::paint(Gdiplus::Graphics *canvas)
 					Gdiplus::Pen pen(color, thickness);
 					canvas->DrawLine(&pen, x1, y1, x2, y2);
 				} /* if (a)*/
-			} /* if (object2 && addr == object2->link()) */
+			} /* if (object2 && host == object2->host_link()) */
 		} /* if ... BOOST_FOREACH ... BOOST_FOREACH */
 	}
 

@@ -3,8 +3,8 @@
 
 #include "ipgui.h"
 #include "widget.h"
-#include "ipaddr.h"
 #include "obj_class.h"
+#include "hosts_state.h"
 
 #include "../common/my_xml.h"
 
@@ -17,11 +17,13 @@ namespace link_type { enum t {wire, optics, air}; }
 
 class object : public widget
 {
+	typedef std::list<std::wstring> hosts_list;
+
 private:
 	std::wstring name_;
-	std::list<ipaddr_t> ipaddrs_;
+	hosts_list hosts_;
 	who::obj_class::ptr class_;
-	ipgroup_state_t state_;
+	pinger::hosts_state state_;
 	Gdiplus::ColorMatrix state_matrix_;
 	Gdiplus::ColorMatrix new_state_matrix_;
 	int state_step_;
@@ -29,47 +31,49 @@ private:
 	bool flash_pause_;
 	float flash_alpha_;
 	float flash_new_alpha_;
-	ipaddr_t link_;
 	bool show_name_;
 	float offs_x_;
 	float offs_y_;
+	std::wstring host_link_;
 	link_type::t link_type_;
 
 public:
 	object(server &server, const xml::wptree *pt = NULL);
 	virtual ~object();
 
-	virtual Gdiplus::RectF own_rect( void);
-	Gdiplus::RectF rect_norm( void);
-	virtual bool animate_calc( void);
+	virtual Gdiplus::RectF own_rect();
+	Gdiplus::RectF rect_norm();
+	virtual bool animate_calc();
 	virtual void paint_self( Gdiplus::Graphics *canvas);
 	virtual widget* hittest(float x, float y);
 
-	inline const std::wstring& name(void)
+	inline const std::wstring& name()
 		{ return name_; }
 
-	virtual inline float alpha(void)
+	virtual inline float alpha()
 		{ return widget::alpha() * state_matrix_.m[3][3]; }
 
-	inline float full_alpha(void)
+	inline float full_alpha()
 		{ return alpha() * flash_alpha_; }
 
-	inline ipstate::t state(void)
+	inline pinger::host_state::state_t state()
 		{ return state_.state(); }
 
-	virtual void do_check_state(void);
+	virtual void do_check_state();
 
-	inline bool acknowledged(void)
+	inline bool acknowledged()
 		{ return state_.acknowledged(); }
-	void acknowledge(void);
-	void unacknowledge(void);
 
-	inline const std::list<ipaddr_t>& ipaddrs()
-		{ return ipaddrs_; };
-	inline ipaddr_t link(void)
-		{ return link_; }
+	void acknowledge();
+	void unacknowledge();
 
-	inline bool show_name(void)
+	inline const hosts_list& hosts()
+		{ return hosts_; };
+
+	inline std::wstring host_link()
+		{ return host_link_; }
+
+	inline bool show_name()
 		{ return show_name_; }
 	inline void set_show_name(bool show_name)
 	{
@@ -82,7 +86,7 @@ public:
 	inline float offs_y()
 		{ return offs_y_; }
 		
-	inline link_type::t link_type(void)
+	inline link_type::t link_type()
 		{ return link_type_; }
 };
 

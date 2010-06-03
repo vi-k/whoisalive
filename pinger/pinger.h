@@ -14,6 +14,7 @@
 */
 
 #include "ping_result.h"
+#include "host_state.h"
 
 #include "../common/my_thread.h"
 #include "../common/my_inet.h"
@@ -25,6 +26,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_list.hpp>
+#include <boost/circular_buffer.hpp>
 
 #include "icmp_header.hpp"
 #include "ipv4_header.hpp"
@@ -34,51 +36,20 @@ namespace pinger {
 inline posix_time::ptime now();
 inline unsigned short get_id();
 
-class host_state
-{
-public:
-	enum type {unknown, ok, warn, fail};
-private:
-	type state_;
-public:
-	host_state(type state)
-		: state_(state) {};
-
-	std::string to_string() const
-	{
-		return state_ == host_state::ok ? "ok"
-			: state_ == host_state::warn ? "warn"
-			: state_ == host_state::fail ? "fail"
-			: "unknown";
-	}
-	std::wstring to_wstring() const
-	{
-		return state_ == host_state::ok ? L"ok"
-			: state_ == host_state::warn ? L"warn"
-			: state_ == host_state::fail ? L"fail"
-			: L"unknown";
-	}
-
-	inline bool operator ==(const host_state &rhs) const
-		{ return state_ == rhs.state_; }
-	inline bool operator !=(const host_state &rhs) const
-		{ return state_ != rhs.state_; }
-};
-
 /* Пингер отдельного хоста */
 class server;
 class host_pinger
 {
 	friend class host_pinger_copy;
 
+	typedef boost::circular_buffer<host_state> states_list;
 	typedef my::mru::list<unsigned short, ping_result> results_list;
 
 private:
 	server &parent_;
 	std::wstring hostname_; /* Имя хоста */
 	icmp::endpoint endpoint_; /* ip-адрес */
-	host_state state_; /* Состояние адреса */
-	posix_time::ptime state_changed_; /* Время изменения состояния */
+	states_list states_; /* Состояния адреса */
 	int fails_; /* Кол-во таймаутов подряд */
 	results_list results_; /* Результаты пингов */
 	unsigned short sequence_number_; /* Номер последнего пинга */
@@ -99,6 +70,7 @@ public:
 		icmp::socket &socket,
 		posix_time::time_duration timeout,
 		posix_time::time_duration request_period,
+		unsigned short max_states = 100,
 		unsigned short max_results = 100);
 
 	void run();
@@ -116,6 +88,20 @@ public:
 
 	class host_pinger_copy copy();
 
+	host_state last_state()
+	{
+		scoped_lock l(pinger_mutex_);
+		return states_.empty() ? host_state() : states_.front();
+	}
+
+	void states_copy(std::vector<host_state> &v);
+
+	ping_result last_result()
+	{
+		scoped_lock l(pinger_mutex_);
+		return results_.empty() ? ping_result() : results_.front().value();
+	}
+	
 	void results_copy(std::vector<ping_result> &v);
 
 	/* Изменение параметров пингера */
@@ -138,8 +124,6 @@ class host_pinger_copy
 public:
 	std::wstring hostname;
 	ip::address_v4 address;
-	host_state state;
-	posix_time::ptime state_changed;
 	int fails;
 	posix_time::time_duration timeout;
 	posix_time::time_duration request_period;
@@ -147,19 +131,9 @@ public:
 	host_pinger_copy(host_pinger &pinger)
 		: hostname(pinger.hostname_)
 		, address(pinger.endpoint_.address().to_v4())
-		, state(pinger.state_)
-		, state_changed(pinger.state_changed_)
 		, fails(pinger.fails_)
 		, timeout(pinger.timeout_)
 		, request_period(pinger.request_period_) {}
-
-	std::wstring to_wstring() const;
-
-	std::wstring result_to_wstring(const ping_result &result) const
-		{ return hostname + L" " + result.to_wstring(); }
-
-	std::wstring result_brief(const ping_result &result) const
-		{ return hostname + L' ' + result.brief<wchar_t>(); }
 };
 
 /* Пингер-сервер */
@@ -183,7 +157,8 @@ private:
 public:
 	server();
 
-	boost::function<void (const host_pinger_copy &pinger)> on_change_state;
+	boost::function<void (const host_pinger_copy &pinger,
+		const host_state &state)> on_change_state;
 	boost::function<void (const host_pinger_copy &pinger,
 		const ping_result &result)> on_ping;
 
@@ -199,10 +174,19 @@ public:
 		posix_time::time_duration timeout = posix_time::not_a_date_time,
 		posix_time::time_duration request_period = posix_time::not_a_date_time);
 
-	void change_state_notify(host_pinger &pinger)
-		{ if (on_change_state) on_change_state(pinger.copy()); }
-	void ping_notify(host_pinger &pinger, const ping_result &result)
-		{ if (on_ping) on_ping(pinger.copy(), result); }
+	inline void change_state_notify(host_pinger &pinger,
+		const host_state &state)
+	{
+		if (on_change_state)
+			on_change_state(pinger.copy(), state);
+	}
+
+	inline void ping_notify(host_pinger &pinger,
+		const ping_result &result)
+	{
+		if (on_ping)
+			on_ping(pinger.copy(), result);
+	}
 
 	void pingers_copy(std::vector<host_pinger_copy> &v);
 	
@@ -211,6 +195,28 @@ public:
 		scoped_lock l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true);
 		return host_pinger_copy(*pinger);
+	}
+
+	host_state last_state(const ip::address_v4 &address)
+	{
+		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		host_pinger *pinger = find_pinger_(address, true);
+		return pinger->last_state();
+	}
+
+	void states_copy(const ip::address_v4 &address,
+		std::vector<host_state> &v)
+	{
+		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		host_pinger *pinger = find_pinger_(address, true);
+		pinger->states_copy(v);
+	}
+
+	ping_result last_result(const ip::address_v4 &address)
+	{
+		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		host_pinger *pinger = find_pinger_(address, true);
+		return pinger->last_result();
 	}
 
 	void results_copy(const ip::address_v4 &address,

@@ -18,7 +18,7 @@ public:
 
 private:
 	on_log_proc on_log_;
-	std::wstringstream out_;
+	std::wostringstream out_;
 
 public:
 	log(on_log_proc on_log)

@@ -6,6 +6,21 @@ using namespace std;
 #include <boost/date_time/time_parsing.hpp>
 #include "boost/date_time/c_local_time_adjustor.hpp"
 
+namespace boost {
+std::size_t hash_value(const posix_time::ptime &t)
+{
+	int size = sizeof(t) / sizeof(size_t);
+
+	size_t seed = 0;
+	size_t *ptr = (size_t*)&t;
+
+	while (size--)
+		boost::hash_combine(seed, *ptr);
+
+	return seed;
+}
+}
+
 namespace my { namespace time {
 
 posix_time::ptime utc_to_local(const posix_time::ptime &utc_time)

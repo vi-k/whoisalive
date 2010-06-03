@@ -16,7 +16,7 @@ using namespace std;
 
 wstring xmlattr_to_str(const xml::wptree::value_type &v)
 {
-	wstringstream s;
+	wostringstream s;
 
 	s << L"<" << v.first;
 
@@ -40,7 +40,7 @@ wstring xmlattr_to_str(const xml::wptree::value_type &v)
 
 wstring xmlattr_to_str(const xml::wptree &pt)
 {
-	wstringstream s;
+	wostringstream s;
 	bool first = true;
 
 	boost::optional<const xml::wptree&> opt

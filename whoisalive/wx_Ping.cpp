@@ -78,20 +78,18 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	Connect(wxID_ANY,wxEVT_CLOSE_WINDOW,(wxObjectEventFunction)&wx_Ping::OnClose);
 	//*)
 
-	if (object->ipaddrs().size() == 0)
+	if (object->hosts().empty())
 		throw my::exception(L"Объект не содержит ни один адрес");
 
-	if (object->ipaddrs().size() > 1)
+	if (object->hosts().size() > 1)
 		throw my::exception(L"Объект содержит больше одного адреса");
 
-	ipaddr_t addr = object->ipaddrs().front();
-	wstring addr_s = addr.str<wchar_t>();
-
-	wstring name = object->name() + L" / " + addr_s;
+	wstring host = object->hosts().front();
+	wstring name = object->name() + L" / " + host;
 	SetLabel(name);
 
 	server_.get_header(socket_, reply_,
-		wstring(L"/pinger/ping.log?address=") + addr_s);
+		L"/pinger/ping.log?address=" + host);
 
 	reply_.buf_.consume(reply_.buf_.size());
 	reply_.buf_.prepare(65536);

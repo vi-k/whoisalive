@@ -2,7 +2,6 @@
 #define WX_PING_H
 
 #include "server.h"
-#include "ipaddr.h"
 #include "../pinger/ping_result.h"
 
 #include "../common/my_inet.h"

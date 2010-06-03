@@ -25,7 +25,7 @@ struct param
 	param(const std::wstring &_key, const T& x, bool escape = true)
 		: key(_key)
 	{
-		std::wstringstream out;
+		std::wostringstream out;
 		out << x;
 		value = out.str();
 		if (escape)
@@ -55,7 +55,7 @@ protected:
 
 		std::wstring message() const throw()
 		{
-			std::wstringstream out;
+			std::wostringstream out;
 			out << fmt_.str();
 
 			BOOST_FOREACH(const param &p, params)

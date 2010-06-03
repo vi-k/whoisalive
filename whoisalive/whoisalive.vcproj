@@ -183,10 +183,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\ipaddr.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ipgui.cpp"
 				>
 			</File>
@@ -278,10 +274,6 @@
 			</File>
 			<File
 				RelativePath=".\host.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ipaddr.h"
 				>
 			</File>
 			<File

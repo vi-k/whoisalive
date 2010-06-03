@@ -48,17 +48,18 @@ host_pinger::host_pinger(server &parent,
 	icmp::socket &socket,
 	posix_time::time_duration timeout,
 	posix_time::time_duration request_period,
+	unsigned short max_states,
 	unsigned short max_results)
 		: parent_(parent)
 		, socket_(socket)
 		, hostname_(hostname)
 		, endpoint_(endpoint)
-		, state_(host_state::unknown)
+		, states_(max_states)
 		, fails_(0)
-		, timeout_(timeout)
-		, request_period_(request_period)
 		, results_(max_results)
 		, sequence_number_(0)
+		, timeout_(timeout)
+		, request_period_(request_period)
 		, timer_(io_service)
 {
 }
@@ -67,6 +68,17 @@ host_pinger_copy host_pinger::copy()
 {
 	scoped_lock l(pinger_mutex_); /* Блокируем пингер */
 	return host_pinger_copy(*this);
+}
+
+void host_pinger::states_copy(vector<host_state> &v)
+{
+	scoped_lock l(pinger_mutex_);
+
+	for (states_list::iterator iter = states_.begin();
+		iter != states_.end(); iter++)
+	{
+		v.push_back(*iter);
+	}
 }
 
 void host_pinger::results_copy(vector<ping_result> &v)
@@ -122,46 +134,64 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 			return;
 	}
 
-	/* Сохраняем результат (отрицательный результат - тоже результат */
+    /* Результат пинга */
 	ping_result result;
 	result.set_sequence_number(sequence_number);
 	result.set_state(ping_result::timeout);
 	result.set_time(last_ping_time_);
 	result.set_duration(time - last_ping_time_);
 
+    /* Cостояние хоста */
+	host_state prev_state;
+	host_state new_state;
+
 	{	
-		scoped_lock l(pinger_mutex_); /* Блокируем пингер */
+		scoped_lock l(pinger_mutex_);
+
+		/* Сохраняем результат (отрицательный результат - тоже результат */
 		results_[sequence_number] = result;
 
-		/* Мы имеем копию результата, поэтому дальнейшая
-			блокировка нам не нужна */
+		if (!states_.empty())
+			prev_state = states_.front();
+
+		new_state = prev_state;
+		new_state.set_time(time);
+
+		fails_++;
+
+		/* Первые 4 таймаута - warn. Далее - fail */
+		if (fails_ == 1)
+			new_state.set_state(host_state::warn);
+		else if (fails_ == 5)
+		{
+			new_state.set_state(host_state::fail);
+			new_state.set_acknowledged(false);
+		}
+
+		if ( !host_state::eq(new_state, prev_state) )
+			states_.push_front(new_state);
+
+		/* Мы имеем копии результата и состояния, поэтому
+			дальнейшая блокировка не требуется */
 	}
-	
-	/* Первый таймаут не считаем ошибочным.
-		Сразу делаем ещё 3 дополнительных запроса */
-	host_state old_state = state_;
 
-	/* Фиксируем время перехода в состояние таймаута */
-	if (fails_ == 0)
-		state_changed_ = time;
-
-	if (++fails_ <= 4)
-	{
-		state_ = host_state::warn;
+	if (fails_ <= 4)
+		/* После первого таймаута сразу делаем 3 дополнительных
+			запроса, чтоб7ы удостовериться, что это сбой */
 		timer_.expires_at(last_ping_time_ + timeout_ + posix_time::seconds(1));
-	}
 	else
-	{
-		state_ = host_state::fail;
+		/* После них торопиться уже некуда */
 		timer_.expires_at(last_ping_time_ + request_period_);
-	}
 
 	timer_.async_wait( boost::bind(&host_pinger::run, this) );
 
-	/*TODO: Сохранение результата в БД */
+	/* Оповещаем о таймауте */
 	parent_.ping_notify(*this, result);
-	if (old_state != state_)
-		parent_.change_state_notify(*this);
+
+	/* Оповещаем об изменении состояния */
+	if ( !host_state::eq(new_state, prev_state) )
+		/*TODO: Сохранение результата в БД */
+		parent_.change_state_notify(*this, new_state);
 }
 
 void host_pinger::on_receive(posix_time::ptime time,
@@ -169,10 +199,15 @@ void host_pinger::on_receive(posix_time::ptime time,
 {
 	results_list::iterator iter;
 
+	/* Результат пинга */
 	ping_result result;
 	result.set_state(ping_result::ok);
 	result.set_ipv4_hdr(ipv4_hdr);
 	result.set_icmp_hdr(icmp_hdr);
+
+	/* Cостояние хоста */
+	host_state prev_state;
+	host_state new_state;
 
 	{
 		scoped_lock l(pinger_mutex_); /* Блокируем пингер */
@@ -195,10 +230,28 @@ void host_pinger::on_receive(posix_time::ptime time,
 			result.set_duration(time - last_ping_time_);
 		}
 
+		/* Сохраняем результат */
 		results_[n] = result;
 
-		/* Мы имеем копию результата, поэтому дальнейшая
-			блокировка нам не нужна */
+		if (!states_.empty())
+			prev_state = states_.front();
+
+		new_state = prev_state;
+
+	    /* Может прийти ping из прошлого. Не обращаем на него внимания */
+		if (sequence_number_ == result.sequence_number())
+		{
+			fails_ = 0;
+			new_state.set_state(host_state::ok);
+			new_state.set_time(time);
+		}
+
+		if ( !host_state::eq(new_state, prev_state) )
+			/*TODO: Сохранение результата в БД */
+			states_.push_front(new_state);
+
+		/* Мы имеем копии результата и состояния, поэтому
+			дальнейшая блокировка не требуется */
 	}
 
 	if (iter == results_.end())
@@ -208,40 +261,12 @@ void host_pinger::on_receive(posix_time::ptime time,
 		timer_.async_wait( boost::bind(&host_pinger::run, this) );
 	}
 
-	host_state old_state = state_;
-
-	if (fails_ != 0 || state_ == host_state::unknown)
-		state_changed_ = time;
-
-	if (sequence_number_ == result.sequence_number())
-	{
-		state_ = host_state::ok;
-		fails_ = 0;
-	}
-
-	/*TODO: Сохранение результата в БД */
+	/* Оповещаем об ответе хоста */
 	parent_.ping_notify(*this, result);
-	if (old_state != state_)
-		parent_.change_state_notify(*this);
-}
 
-wstring host_pinger_copy::to_wstring() const
-{
-	wostringstream out;
-
-	my::time::set_mydef_output_format(out);
-
-	out << L"<state"
-		<< L" address=\"" << hostname << L"\""
-		<< L" state=\"" << state.to_wstring() << L"\""
-		<< L" state_changed=\"" << state_changed << L"\"";
-		
-	if (fails)
-		out << L" fails=\"" << fails << L"\"";
-		
-	out << L"/>";
-
-	return out.str();
+	/* Оповещаем об изменении состояния */
+	if ( !host_state::eq(new_state, prev_state) )
+		parent_.change_state_notify(*this, new_state);
 }
 
 server::server()

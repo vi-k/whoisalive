@@ -43,7 +43,8 @@ class server : private boost::noncopyable
 
 		void run();
 
-		void on_change_state(const pinger::host_pinger_copy &pinger);
+		void on_change_state(const pinger::host_pinger_copy &pinger,
+			const pinger::host_state &state);
 		void on_ping(const pinger::host_pinger_copy &pinger,
 			const pinger::ping_result &result);
 

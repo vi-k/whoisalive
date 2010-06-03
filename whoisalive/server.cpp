@@ -114,21 +114,28 @@ void server::state_log_thread_proc( void)
 			reply.body.resize(n);
 			reply.buf_.sgetn((char*)reply.body.c_str(), n);
 
-			xml::wptree pt;
-			reply.to_xml(pt);
+			if (reply.body == "START ARCHIVE\r\n")
+			{
+				//
+			}
+			else if (reply.body == "END ARCHIVE\r\n")
+			{
+				//
+			}
+			else
+			{
+				wistringstream ss( my::utf8::decode(reply.body) );
+				wstring host;
+				ss >> host;
 
-			wstring value = pt.get<wstring>(L"state.<xmlattr>.address");
-			ipaddr_t address(value.c_str());
+				pinger::host_state state;
+				ss >> state;
 
-			ipstate::t state;
-			value = pt.get<wstring>(L"state.<xmlattr>.state");
-			if (value == L"ok") state = ipstate::ok;
-			else if (value == L"warn") state = ipstate::warn;
-			else if (value == L"fail") state = ipstate::fail;
-			else state = ipstate::unknown;
+				if (ss)
+					hosts_[host] = state;
 
-			if ( ipaddrs_[address].set_state(state) )
 				check_state_notify();
+			}
 		}
 	}
 	catch (my::exception &e)
@@ -250,43 +257,12 @@ window* server::add_window(HWND parent_wnd)
 	return win;
 }
 
-/* Регистрация ip-адреса */
-void server::register_ipaddr(const ipaddr_t &addr)
-{
-	/* Увеличиваем счётчик, если не было адреса - будет создан */
-	ipaddrs_[addr].add_user();
-
-	/* Добавляем на сервер */
-	add_addr_(addr);
-}
-
-/* Снятие регистрации ip-адреса */
-void server::unregister_ipaddr(const ipaddr_t &addr)
-{
-	/* Уменьшаем счётчик, если больше нет пользователей, удаляем адрес из списка */
-	if ( ipaddrs_[addr].del_user() == 0 )
-		ipaddrs_.erase( ipaddrs_.find(addr) );
-}
-
-bool server::add_addr_(const ipaddr_t &ipaddr)
-{
-	/* Регистрация на сервере */
-	/*-
-	wstringstream out;
-	out << "/pinger/add?address=" << ipaddr;
-	wstring res = query(out.str().c_str());
-	if (res != L"OK") return false;
-	-*/
-	
-	return true;
-}
-
 void server::acknowledge_all(void)
 {
-	for( map<ipaddr_t,ipaddr_state_t>::iterator it = ipaddrs_.begin();
-		it != ipaddrs_.end(); it++)
+	for( hosts_list::iterator it = hosts_.begin();
+		it != hosts_.end(); it++)
 	{
-		it->second.acknowledge();
+		acknowledge(it->first);
 	}
 
 	check_state_notify();
@@ -294,10 +270,10 @@ void server::acknowledge_all(void)
 
 void server::unacknowledge_all(void)
 {
-	for( map<ipaddr_t,ipaddr_state_t>::iterator it = ipaddrs_.begin();
-		it != ipaddrs_.end(); it++)
+	for( hosts_list::iterator it = hosts_.begin();
+		it != hosts_.end(); it++)
 	{
-		it->second.unacknowledge();
+		unacknowledge(it->first);
 	}
 
 	check_state_notify();

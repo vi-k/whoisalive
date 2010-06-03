@@ -2,10 +2,11 @@
 #define WHO_SERVER_H
 
 #include "ipgui.h"
-#include "ipaddr.h"
 #include "obj_class.h"
 #include "window.h"
 #include "tiler.h"
+
+#include "../pinger/host_state.h"
 
 #include "../common/my_inet.h"
 #include "../common/my_http.h"
@@ -29,6 +30,7 @@ class server
 {
 public:
 	typedef shared_ptr<server> ptr;
+	typedef boost::unordered_map<std::wstring, pinger::host_state> hosts_list;
 
 private:
 	bool terminate_;
@@ -43,14 +45,12 @@ private:
 	boost::ptr_list<window> windows_;
 	posix_time::time_duration anim_period_;
 	int def_anim_steps_;
-	std::map<ipaddr_t, ipaddr_state_t> ipaddrs_;
+	hosts_list hosts_;
 	tiler::server tiler_;
 	int active_map_id_;
 
 	void load_classes_(void);
 	void load_maps_(void);
-
-	bool add_addr_(const ipaddr_t &ipaddr);
 
 	void state_log_thread_proc(void);
 	void io_thread_proc();
@@ -78,24 +78,18 @@ public:
 	unsigned int load_file(const std::wstring &file,
 		const std::wstring &file_local, bool throw_if_fail = true);
 
-	/* Регистрация ip-адресов */
-	void register_ipaddr(const ipaddr_t &addr);
-	void unregister_ipaddr(const ipaddr_t &addr);
-
 	/* Состояние ip-адресов, квитирование */
-	ipaddr_state_t ipaddr_state(const ipaddr_t &addr)
-		{ return ipaddrs_[addr]; }
+	pinger::host_state host_state(const std::wstring &host)
+		{ return hosts_[host]; }
 	
-	void acknowledge(const ipaddr_t &addr)
+	void acknowledge(const std::wstring &host)
 	{
-		ipaddrs_[addr].acknowledge();
-		check_state_notify();
+		//TODO: acknowledge теперь на сервере
 	}
 	
-	void unacknowledge(const ipaddr_t &addr)
+	void unacknowledge(const std::wstring &host)
 	{
-		ipaddrs_[addr].unacknowledge();
-		check_state_notify();
+		//TODO: acknowledge теперь на сервере
 	}
 	
 	void acknowledge_all(void);

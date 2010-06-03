@@ -2,7 +2,8 @@
 #define WHO_OBJ_CLASS_H
 
 #include "ipgui.h"
-#include "ipaddr.h"
+
+#include "../pinger/host_state.h"
 
 #include "../common/my_xml.h"
 #include "../common/my_ptr.h"
@@ -49,8 +50,8 @@ public:
 	inline float yc(void)
 		{ return yc_; }
 
-	inline bitmap_ptr bitmap(ipstate::t state)
-		{ return bitmap_[state]; }
+	inline bitmap_ptr bitmap(pinger::host_state::state_t st)
+		{ return bitmap_[st]; }
 
 	//void paint( Gdiplus::Graphics *canvas, float offs_x, float offs_y,
 	//		float scale, float x, float y, float w, float h);

@@ -250,13 +250,13 @@ wstring message::content_type()
 
 void message::to_xml(::xml::ptree &pt)
 {
-	stringstream ss(body);
+	istringstream ss(body);
 	my::xml::parse(ss, pt);
 }
 
 void message::to_xml(::xml::wptree &pt)
 {
-	wstringstream ss( my::utf8::decode(body) );
+	wistringstream ss( my::utf8::decode(body) );
 	my::xml::parse(ss, pt);
 }
 

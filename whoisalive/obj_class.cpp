@@ -1,6 +1,5 @@
 ﻿#include "obj_class.h"
 #include "server.h"
-#include "ipaddr.h"
 
 #include "../common/my_http.h"
 #include "../common/my_str.h"
@@ -47,31 +46,31 @@ obj_class::obj_class(server &server, const xml::wptree &config)
 
 			bitmap_ptr bitmap( image_optimize(&image) );
 			
-			wstring state = node.get<wstring>(L"<xmlattr>.state", L"");
-
-			if (state == L"ok")
-				bitmap_[ipstate::ok] = bitmap;
-			else if (state == L"warn")
-				bitmap_[ipstate::warn] = bitmap;
-			else if (state == L"fail")
-				bitmap_[ipstate::fail] = bitmap;
-			else if (state.empty())
 			{
-				bitmap_[ipstate::unknown] = bitmap;
+				wistringstream ss( node.get<wstring>(L"<xmlattr>.state",
+					L"unknown") );
+				pinger::host_state::state_t st;
+				ss >> st;
 
-				w_ = (float)bitmap->GetWidth();
-				h_ = (float)bitmap->GetHeight();
+				if (!ss)
+					throw my::exception(L"Неизвестное состояние")
+						<< my::param(L"state", ss.str());
 
-				float scale = node.get<float>(L"<xmlattr>.scale", 1.0f);
-				w_ *= scale;
-				h_ *= scale;
+				bitmap_[st] = bitmap;
 
-				xc_ = node.get<float>(L"<xmlattr>.xc", xc_);
-				yc_ = node.get<float>(L"<xmlattr>.yc", yc_);
+				if (st == pinger::host_state::unknown)
+				{
+					w_ = (float)bitmap->GetWidth();
+					h_ = (float)bitmap->GetHeight();
+
+					float scale = node.get<float>(L"<xmlattr>.scale", 1.0f);
+					w_ *= scale;
+					h_ *= scale;
+
+					xc_ = node.get<float>(L"<xmlattr>.xc", xc_);
+					yc_ = node.get<float>(L"<xmlattr>.yc", yc_);
+				}
 			}
-			else
-				throw my::exception(L"Неизвестное состояние")
-					<< my::param(L"state", state);
 
 			p.first++;
 		}

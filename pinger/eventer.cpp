@@ -38,7 +38,7 @@ void server::run()
 		}
 
 		/* Ждём, пока не появятся события */
-		if (events_copy.size() == 0)
+		if (events_copy.empty())
 		{
 			/* А пока засыпаем */
 			cond_.wait(lock);
@@ -49,7 +49,7 @@ void server::run()
 
 		BOOST_FOREACH(handler &h, handlers_)
 		{
-			wstringstream out;
+			wostringstream out;
 
 			BOOST_FOREACH(event &ev, events_copy)
 			{
@@ -74,7 +74,7 @@ void server::run()
 		}
 
 		/* Удаляем закрытые соединения */
-		if (handlers_.size())
+		if (!handlers_.empty())
 			handlers_.erase_if(handler_failed);
 	
 	} /* while (true) */

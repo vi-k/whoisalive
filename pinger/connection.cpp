@@ -105,7 +105,7 @@ void connection::run()
 					throw my::exception(L"Вне допустимого диапазона")
 						<< my::param(L"request", my::str::to_wstring(request.request_));
 
-				wstringstream filename;
+				wostringstream filename;
 				filename << L"maps/" << map
 					<< L"/z" << z
 					<< L"/" << (x >> 10) << L"/x" << x
@@ -161,15 +161,32 @@ void connection::run()
 				if (!address_s.empty())
 					address = server_.pinger().resolve(address_s).address().to_v4();
 
-				/* Блокируем отправку событий, пока
-					не передадим архив */
+				/* Блокируем отправку событий, пока не передадим архив */
 				scoped_lock lock( server_.ping_eventer().get_lock() );
 
-				wstringstream out;
+				wostringstream out;
 
-				if (address != ip::address_v4::any())
+				/* Все адреса */
+				if (address == ip::address_v4::any())
 				{
-					/* Только указанный адрес */
+					vector<pinger::host_pinger_copy> pingers;
+					server_.pinger().pingers_copy(pingers);
+
+					/* Передаём только последние результаты по каждому из адресов */
+					out << L"START ARCHIVE\r\n";
+
+					BOOST_REVERSE_FOREACH(pinger::host_pinger_copy &pinger, pingers)
+						out << pinger.hostname
+							<< L' '
+							<< server_.pinger().last_result(pinger.address)
+							<< L"\r\n";
+
+					out << L"END ARCHIVE\r\n";
+				}
+				
+				/* Только указанный адрес */
+				else
+				{
 					pinger::host_pinger_copy pinger
 						= server_.pinger().pinger_copy(address);
 
@@ -179,30 +196,10 @@ void connection::run()
 					out << L"START ARCHIVE\r\n";
 
 					BOOST_REVERSE_FOREACH(pinger::ping_result &result, results)
-						out << pinger.result_to_wstring(result)
-							<< L"\r\n";
+						out << pinger.hostname
+							<< L' ' << result << L"\r\n";
 
 					out << L"END ARCHIVE\r\n";
-				}
-				else
-				{
-					/* Все адреса */
-					vector<pinger::host_pinger_copy> pingers;
-					server_.pinger().pingers_copy(pingers);
-
-					BOOST_REVERSE_FOREACH(pinger::host_pinger_copy &pinger, pingers)
-					{
-						vector<pinger::ping_result> results;
-						server_.pinger().results_copy(pinger.address, results);
-
-						out << L"START ARCHIVE\r\n";
-
-						BOOST_FOREACH(pinger::ping_result &result, results)
-							out << pinger.result_to_wstring(result)
-								<< L"\r\n";
-						
-						out << L"END ARCHIVE\r\n";
-					}
 				}
 
 				send_ok("text/plain; charset=utf-8");
@@ -227,28 +224,46 @@ void connection::run()
 				if (!address_s.empty())
 					address = server_.pinger().resolve(address_s).address().to_v4();
 
-				/* Блокируем отправку событий, пока
-					не передадим текущее состояние */
+				/* Блокируем отправку событий, пока не передадим архив */
 				scoped_lock lock( server_.state_eventer().get_lock() );
 
-				wstringstream out;
+				wostringstream out;
 
-				if (address != ip::address_v4::any())
+				/* Все адреса */
+				if (address == ip::address_v4::any())
 				{
-					/* Только указанный адрес */
-					pinger::host_pinger_copy pinger
-						= server_.pinger().pinger_copy(address);
-
-					out << pinger.to_wstring() << L"\r\n";
-				}
-				else
-				{
-					/* Все адреса */
 					vector<pinger::host_pinger_copy> pingers;
 					server_.pinger().pingers_copy(pingers);
 
+					/* Передаём только текущие состояния адресов */
+					out << L"START ARCHIVE\r\n";
+
 					BOOST_FOREACH(pinger::host_pinger_copy &pinger, pingers)
-						out << pinger.to_wstring() << L"\r\n";
+						out << pinger.hostname
+							<< L' '
+							<< server_.pinger().last_state(pinger.address)
+							<< L"\r\n";
+					
+					out << L"END ARCHIVE\r\n";
+				}
+
+				/* Только указанный адрес */
+				else
+				{
+					pinger::host_pinger_copy pinger
+						= server_.pinger().pinger_copy(address);
+
+					vector<pinger::host_state> states;
+					server_.pinger().states_copy(address, states);
+
+					/* Передаём весь архив состояний */
+					out << L"START ARCHIVE\r\n";
+
+					BOOST_REVERSE_FOREACH(pinger::host_state &state, states)
+						out << pinger.hostname
+							<< L' ' << state << L"\r\n";
+
+					out << L"END ARCHIVE\r\n";
 				}
 
 				send_ok("text/plain; charset=utf-8");
@@ -336,8 +351,10 @@ void connection::run()
 					attr.put(L"address", address);
 					if (address != pinger.hostname)
 						attr.put(L"hostname", pinger.hostname);
+					/*-
 					attr.put(L"state", pinger.state.to_wstring());
 					attr.put(L"state_changed", my::time::to_wstring(pinger.state_changed));
+					-*/
 					if (pinger.fails)
 						attr.put(L"fails", pinger.fails);
 					if (pinger.timeout != def_timeout)
@@ -432,7 +449,7 @@ void connection::run()
 void connection::send_header(unsigned int status_code,
 	const string &status_message, const string &content_type)
 {
-	stringstream out;
+	ostringstream out;
 
 	out << "HTTP/1.1 "<< status_code << " " << status_message << "\r\n"
 		<< "Content-Type: " << content_type << "\r\n"
@@ -478,7 +495,7 @@ void connection::send_xml(xml::wptree &pt)
 	/* Минимизируем xml */
 	xml::xml_writer_settings<wchar_t> xs(L' ', 0, L"utf-8");
 
-	wstringstream out;
+	wostringstream out;
 	write_xml(out, pt, xs);
 
 	send_ok("application/xml; charset=utf-8");

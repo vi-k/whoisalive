@@ -62,8 +62,10 @@ server::server(xml::wptree &config)
 		my::time::to_duration(config.get<wstring>(L"def_timeout")) );
 	pinger_.set_def_request_period(
 		my::time::to_duration(config.get<wstring>(L"def_request_period")) );
-	pinger_.on_change_state = boost::bind(&server::on_change_state, this, _1);
-	pinger_.on_ping = boost::bind(&server::on_ping, this, _1, _2);
+	pinger_.on_change_state
+		= boost::bind(&server::on_change_state, this, _1, _2);
+	pinger_.on_ping
+		= boost::bind(&server::on_ping, this, _1, _2);
 
 	try
 	{
@@ -161,20 +163,28 @@ void server::handle_accept(const boost::system::error_code &e)
     }
 }
 
-void server::on_change_state(const pinger::host_pinger_copy &pinger)
+void server::on_change_state(const pinger::host_pinger_copy &pinger,
+	const pinger::host_state &state)
 {
-	wstring str = pinger.to_wstring();
 #ifdef _DEBUG
-	wcout << str << endl;
+	wcout << pinger.hostname
+		<< L' ' << state.brief<wchar_t>()
+		<< endl;
 #endif
-	state_eventer_.add_event(pinger.address, str);
+	wostringstream out;
+	out << pinger.hostname << L' ' << state;
+	state_eventer_.add_event( pinger.address, out.str() );
 }
 
 void server::on_ping(const pinger::host_pinger_copy &pinger,
 	const pinger::ping_result &result)
 {
 #ifdef _DEBUG
-	wcout << pinger.result_brief(result) << endl;
+	wcout << pinger.hostname
+		<< L' ' << result.brief<wchar_t>()
+		<< endl;
 #endif
-	ping_eventer_.add_event(pinger.address, pinger.result_to_wstring(result));
+	wostringstream out;
+	out << pinger.hostname << L' ' << result;
+	ping_eventer_.add_event( pinger.address, out.str() );
 }

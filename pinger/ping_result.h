@@ -2,8 +2,8 @@
 #define PING_RESULT_H
 
 #include "../common/my_time.h"
-#include "../common/my_http.h"
 #include "../common/my_str.h"
+#include "../common/my_inet.h" /* для icmp_header и ipv4_header */
 
 #include "icmp_header.hpp"
 #include "ipv4_header.hpp"
@@ -40,7 +40,7 @@ public:
 	template<class Char>
 	ping_result(const std::basic_string<Char> &str)
 	{
-		std::basic_stringstream<Char> in(str);
+		std::basic_istringstream<Char> in(str);
 		in >> *this;
 		if (!in)
 			*this = ping_result();
@@ -49,7 +49,7 @@ public:
 	template<class Char>
 	inline std::basic_string<Char> to_str() const
 	{
-		std::basic_stringstream<Char> out;
+		std::basic_ostringstream<Char> out;
 		out << *this;
 		return out.str();
 	}
@@ -100,11 +100,11 @@ public:
 			'%', 'H', ':', '%', 'M', ':', '%', 'S', '\0'
 		};
 
-		std::basic_stringstream<Char> out;
+		std::basic_ostringstream<Char> out;
 	
 		my::time::set_output_format(out, time_fmt);
 		
-		out << sequence_number()
+		out << '#' << sequence_number()
 			<< ' ' << state_
 			<< ' ' << time_
 			<< ' ' << duration_.total_milliseconds() << 'm' << 's';
@@ -183,13 +183,14 @@ public:
 		my::time::set_mydef_input_format(in);
 
 		int ver = 0;
-		in >> ver;
-		if (ver != PING_RESULT_VER)
-			in.setstate(std::ios::failbit);
 
-		in >> pr.state_
+		in >> ver
+			>> pr.state_
 			>> pr.time_
 			>> pr.duration_;
+
+		if (ver != PING_RESULT_VER)
+			in.setstate(std::ios::failbit);
 
 		std::basic_string<Char> ipv4_s;
 		in >> ipv4_s;

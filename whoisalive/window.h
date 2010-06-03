@@ -2,7 +2,6 @@
 #define WHO_WINDOW_H
 
 #include "ipgui.h"
-#include "ipaddr.h"
 #include "widget.h"
 #include "scheme.h"
 

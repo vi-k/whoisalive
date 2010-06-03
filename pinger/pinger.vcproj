@@ -251,6 +251,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\host_state.h"
+				>
+			</File>
+			<File
 				RelativePath=".\icmp_header.hpp"
 				>
 			</File>

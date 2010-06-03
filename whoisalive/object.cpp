@@ -97,7 +97,6 @@ object::object(server &server, const xml::wptree *pt)
 	, flash_pause_(false)
 	, flash_alpha_(1.0f)
 	, flash_new_alpha_(1.0f)
-	, link_()
 	, offs_x_(0.0f)
 	, offs_y_(0.0f)
 	, link_type_(link_type::wire)
@@ -120,22 +119,18 @@ object::object(server &server, const xml::wptree *pt)
 			p = attrs.equal_range(L"host");
 			while (p.first != p.second)
 			{
-				ipaddr_t addr( (*p.first).second.data().c_str() );
-				ipaddrs_.push_back(addr);
-				server_.register_ipaddr(addr);
+				hosts_.push_back( (*p.first).second.data() );
 				p.first++;
 			}
 
 			p = pt->equal_range(L"host");
 			while (p.first != p.second)
 			{
-				ipaddr_t addr( (*p.first).second.data().c_str() );
-				ipaddrs_.push_back(addr);
-				server_.register_ipaddr(addr);
+				hosts_.push_back( (*p.first).second.data() );
 				p.first++;
 			}
 
-			link_ = ipaddr_t( attrs.get<wstring>(L"link", L"").c_str() );
+			host_link_ = attrs.get<wstring>(L"link", L"");
 
 			wstring str = attrs.get<wstring>(L"link_type", L"");
 			if (str == L"wire")
@@ -147,8 +142,8 @@ object::object(server &server, const xml::wptree *pt)
 
 			name_ = attrs.get<wstring>(L"name", L"");
 			/* Если имя не задано, определяем его по первому попавшемуся ip-адресу */
-			if (name_.empty() && ipaddrs_.size() > 0)
-				name_ = (*ipaddrs_.begin()).str<wchar_t>();
+			if (name_.empty() && !hosts_.empty())
+				name_ = hosts_.front();
 
 			str = pt->get<wstring>(L"<xmlattr>.lon", L"");
 			if (!str.empty()) {
@@ -182,13 +177,11 @@ object::object(server &server, const xml::wptree *pt)
 
 object::~object()
 {
-	BOOST_FOREACH(const ipaddr_t &addr, ipaddrs_)
-		server_.unregister_ipaddr(addr);
 }
 
 /******************************************************************************
 */
-Gdiplus::RectF object::own_rect(void)
+Gdiplus::RectF object::own_rect()
 {
 	return Gdiplus::RectF(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -202,7 +195,7 @@ Gdiplus::RectF object::own_rect(void)
 
 /******************************************************************************
 */
-Gdiplus::RectF object::rect_norm( void)
+Gdiplus::RectF object::rect_norm()
 {
 	Gdiplus::RectF r;
 
@@ -217,7 +210,7 @@ Gdiplus::RectF object::rect_norm( void)
 /******************************************************************************
 * Плюс к обычной анимации анимируем состояние (меняем цвета)
 */
-bool object::animate_calc( void)
+bool object::animate_calc()
 {
 	if (state_step_) {
 		/* Плавно меняем состояние */
@@ -292,10 +285,10 @@ void object::paint_self(Gdiplus::Graphics *canvas)
 			Gdiplus::UnitPixel, &ia, NULL, NULL );
 		
 		/* Состояние объектов */
-		if (ipaddrs_.size() > 1)
+		if (hosts_.size() > 1)
 		{
 			Gdiplus::Rect rs = rectF_to_rect(rect);
-			int count = ipaddrs_.size();
+			int count = hosts_.size();
 			int count_in_row = (count < 10 ? count : 10);
 			const int hh = 5;
 			
@@ -314,9 +307,9 @@ void object::paint_self(Gdiplus::Graphics *canvas)
 			};
 
 			int index = 0;
-			BOOST_FOREACH(const ipaddr_t &addr, ipaddrs_)
+			BOOST_FOREACH(const wstring &host, hosts_)
 			{
-				ipaddr_state_t state = server_.ipaddr_state(addr);
+				pinger::host_state state = server_.host_state(host);
 
 				BYTE _alpha = state.acknowledged() ? 255
 					: (BYTE)(255 * alpha() * flash_alpha_);
@@ -375,12 +368,12 @@ void object::paint_self(Gdiplus::Graphics *canvas)
 }
 
 /* Оповещение о необходимости проверить состояние объекта */
-void object::do_check_state(void)
+void object::do_check_state()
 {
-	ipgroup_state_t new_state;
+	pinger::hosts_state new_state;
 
-	BOOST_FOREACH(ipaddr_t &addr, ipaddrs_)
-		new_state << server_.ipaddr_state(addr);
+	BOOST_FOREACH(wstring &host, hosts_)
+		new_state << server_.host_state(host);
 
 	if (new_state != state_)
 	{
@@ -406,26 +399,26 @@ void object::do_check_state(void)
 }
 
 /* Квитирование */
-void object::acknowledge(void)
+void object::acknowledge()
 {
 	{
 		scoped_lock l = create_lock();
 
-		BOOST_FOREACH(const ipaddr_t &addr, ipaddrs_)
-			server_.acknowledge(addr);
+		BOOST_FOREACH(const wstring &host, hosts_)
+			server_.acknowledge(host);
 	}
 	
 	animate();
 }
 
 /* Отмена квитирования */
-void object::unacknowledge(void)
+void object::unacknowledge()
 {
 	{
 		scoped_lock l = create_lock();
 	
-		BOOST_FOREACH(const ipaddr_t &addr, ipaddrs_)
-			server_.unacknowledge(addr);
+		BOOST_FOREACH(const wstring &host, hosts_)
+			server_.unacknowledge(host);
 	}
 
 	animate();

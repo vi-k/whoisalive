@@ -13,7 +13,7 @@ int main()
 	cout << "cout << " << pr << endl;
 	wcout << "wcout << " << pr << endl;
 
-	my::time::set_format(cout, "", "@%H:%M:%S%F");
+	my::time::set_output_format(cout, "", "@%H:%M:%S%F");
 	//cout << posix_time::milliseconds(643) << endl;
 	//cout << posix_time::milliseconds(643) << endl;
 	//cout << my::time::format("#%H:%M:%S%F", posix_time::milliseconds(643)) << endl;

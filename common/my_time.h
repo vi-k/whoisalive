@@ -16,8 +16,31 @@ namespace posix_time=boost::posix_time;
 #include "boost/date_time/local_time/local_time.hpp"
 namespace local_time=boost::local_time;
 
+#include <boost/functional/hash.hpp>
+
+/* hash_value для boost::unordered_map */
+namespace boost {
+std::size_t hash_value(const posix_time::ptime &t);
+}
 
 namespace my { namespace time {
+
+/* hash для std::unordered_map */
+struct ptime_hash : std::unary_function<posix_time::ptime, std::size_t>
+{
+	std::size_t operator()(const posix_time::ptime &t) const
+	{
+		int size = sizeof(t) / sizeof(size_t);
+
+		size_t seed = 0;
+		size_t *ptr = (size_t*)&t;
+
+		while (size--)
+			boost::hash_combine(seed, *ptr);
+
+		return seed;
+   	}
+};
 
 posix_time::ptime utc_to_local(const posix_time::ptime &utc_time);
 posix_time::ptime local_to_utc(const posix_time::ptime &local_time);
