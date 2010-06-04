@@ -1,0 +1,17 @@
+syntax: glob
+.svn
+pinger/Debug
+pinger/Release
+pinger/work/maps/yasat
+pinger/work/maps/yamapng
+pinger/work/*.log
+pinger/*.ncb
+pinger/*.suo
+whoisalive/Debug
+whoisalive/Release
+whoisalive/work/*.log
+whoisalive/work/classes
+whoisalive/work/maps/yasat
+whoisalive/work/maps/yamapng
+whoisalive/*.ncb
+whoisalive/*.suo
