@@ -5,9 +5,9 @@
 #define NAME L"pinger"
 
 /* Версия */
-#define VERSION L"0.5.1 alpha"
-#define BUILDNO L"[build 69]"
-#define BUILDDATE L"03.06.2010"
-#define BUILDTIME L"14:26:58"
+#define VERSION L"0.5.2 alpha"
+#define BUILDNO L"[build 70]"
+#define BUILDDATE L"04.06.2010"
+#define BUILDTIME L"13:47:44"
 
 #endif
