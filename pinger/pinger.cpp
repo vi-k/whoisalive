@@ -194,6 +194,8 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 void host_pinger::on_receive(posix_time::ptime time,
 	const ipv4_header &ipv4_hdr, const icmp_header &icmp_hdr)
 {
+	bool already_exist = false;
+
 	/* Результат пинга */
 	ping_result result;
 	result.set_state(ping_result::ok);
@@ -215,7 +217,12 @@ void host_pinger::on_receive(posix_time::ptime time,
 
 		results_list::iterator iter = results_.find(n);
 
-		if (iter != results_.end())
+		/* По какой-то причине проверка по итератору (!=end())
+			после добавления результата в results_ иногда (!)
+			вылетает - мол, неправильный итератор */
+		already_exist = (iter != results_.end());
+
+		if (already_exist)
 		{
 			result.set_time( iter->value().time() );
 			result.set_duration( time - result.time() );
@@ -244,17 +251,17 @@ void host_pinger::on_receive(posix_time::ptime time,
 
 		if ( !host_state::eq(new_state, prev_state) )
 			states_.push_front(new_state);
-
-		if (iter == results_.end())
-		{
-			timer_.cancel();
-			timer_.expires_at( last_ping_time_ + request_period_ );
-			timer_.async_wait( boost::bind(&host_pinger::run, this) );
-		}
 	}
 
 	/* Мы имеем копии результата и состояния, поэтому
 		дальнейшая блокировка не требуется */
+
+	if (!already_exist)
+	{
+		timer_.cancel();
+		timer_.expires_at( last_ping_time_ + request_period_ );
+		timer_.async_wait( boost::bind(&host_pinger::run, this) );
+	}
 
 	/* Оповещаем об ответе хоста */
 	parent_.ping_notify(*this, result);
