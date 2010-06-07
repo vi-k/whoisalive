@@ -122,6 +122,18 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 	/* Сразу вычисляем время - избегаем лишних погрешностей */
 	posix_time::ptime time = now();
 
+	/* Вполне может случиться так, что сначала прийдёт отклик,
+		но за время его обработки сработает таймаут и функция запустится.
+		В этом случае ничего не делаем: результат ping'а уже в списке,
+		таймер уже установлен */
+	{
+		scoped_lock l(pinger_mutex_); /* Блокируем пингер */
+
+		results_list::iterator iter = results_.find(sequence_number);
+		if (iter != results_.end())
+			return;
+	}
+
     /* Результат пинга */
 	ping_result result;
 	result.set_sequence_number(sequence_number);
@@ -133,17 +145,8 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 	host_state prev_state;
 	host_state new_state;
 
-	/* Блокируем пингер */
-	{
+	{	
 		scoped_lock l(pinger_mutex_);
-
-		/* Вполне может случиться так, что сначала прийдёт отклик,
-			но за время его обработки сработает таймаут и функция запустится.
-			В этом случае ничего не делаем: результат ping'а уже в списке,
-			таймер уже установлен */
-		results_list::iterator iter = results_.find(sequence_number);
-		if (iter != results_.end())
-			return;
 
 		/* Сохраняем результат (отрицательный результат - тоже результат */
 		results_[sequence_number] = result;
@@ -167,10 +170,10 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 
 		if ( !host_state::eq(new_state, prev_state) )
 			states_.push_front(new_state);
-	}
 
-	/* Мы имеем копии результата и состояния, поэтому
-		дальнейшая блокировка не требуется */
+		/* Мы имеем копии результата и состояния, поэтому
+			дальнейшая блокировка не требуется */
+	}
 
 	if (fails_ <= 4)
 		/* После первого таймаута сразу делаем 3 дополнительных
@@ -194,6 +197,8 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 void host_pinger::on_receive(posix_time::ptime time,
 	const ipv4_header &ipv4_hdr, const icmp_header &icmp_hdr)
 {
+	results_list::iterator iter;
+
 	/* Результат пинга */
 	ping_result result;
 	result.set_state(ping_result::ok);
@@ -204,16 +209,15 @@ void host_pinger::on_receive(posix_time::ptime time,
 	host_state prev_state;
 	host_state new_state;
 
-	/* Блокируем пингер */
 	{
-		scoped_lock l(pinger_mutex_);
+		scoped_lock l(pinger_mutex_); /* Блокируем пингер */
 
 		/* При получении отклика, результат уже может быть в списке,
-			если таймаут уже сработал. В этом случае исправляем старый
+			если ранее сработал таймаут. В этом случае исправляем старый
 			результат на новый */
 		unsigned short n = result.sequence_number();
 
-		results_list::iterator iter = results_.find(n);
+		iter = results_.find(n);
 
 		if (iter != results_.end())
 		{
@@ -243,28 +247,26 @@ void host_pinger::on_receive(posix_time::ptime time,
 		}
 
 		if ( !host_state::eq(new_state, prev_state) )
+			/*TODO: Сохранение результата в БД */
 			states_.push_front(new_state);
 
-		if (iter == results_.end())
-		{
-			timer_.cancel();
-			timer_.expires_at( last_ping_time_ + request_period_ );
-			timer_.async_wait( boost::bind(&host_pinger::run, this) );
-		}
+		/* Мы имеем копии результата и состояния, поэтому
+			дальнейшая блокировка не требуется */
 	}
 
-	/* Мы имеем копии результата и состояния, поэтому
-		дальнейшая блокировка не требуется */
+	if (iter == results_.end())
+	{
+		timer_.cancel();
+		timer_.expires_at( last_ping_time_ + request_period_ );
+		timer_.async_wait( boost::bind(&host_pinger::run, this) );
+	}
 
 	/* Оповещаем об ответе хоста */
 	parent_.ping_notify(*this, result);
 
 	/* Оповещаем об изменении состояния */
 	if ( !host_state::eq(new_state, prev_state) )
-	{
-		/*TODO: Добавить сохранение результата в БД */
 		parent_.change_state_notify(*this, new_state);
-	}
 }
 
 server::server()
