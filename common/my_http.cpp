@@ -7,7 +7,7 @@
 #include "../common/my_fs.h"
 #include "../common/my_exception.h"
 
-#define MY_STOPWATCH_DEBUG
+//#define MY_STOPWATCH_DEBUG
 #ifdef MY_STOPWATCH_DEBUG
 #include "../common/my_log.h"
 extern my::log main_log;

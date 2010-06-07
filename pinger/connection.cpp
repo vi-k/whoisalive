@@ -12,7 +12,7 @@
 #include "../common/my_log.h"
 extern my::log main_log;
 
-#define MY_STOPWATCH_DEBUG
+//#define MY_STOPWATCH_DEBUG
 #include "../common/my_debug.h"
 MY_STOPWATCH( __proc_sw(my::stopwatch::show_all & ~my::stopwatch::show_total) )
 
