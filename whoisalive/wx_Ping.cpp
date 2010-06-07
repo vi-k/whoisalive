@@ -164,6 +164,8 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 			pinger::ping_result ping;
 			ss >> ping;
 
+			ping.set_time( my::time::utc_to_local(ping.time()) );
+
 			wostringstream out;
 			my::time::set_output_format(out, L"[%H:%M:%S]");
 
