@@ -7,7 +7,7 @@
 #include "../common/my_log.h"
 extern my::log main_log;
 
-#define MY_STOPWATCH_DEBUG
+//#define MY_STOPWATCH_DEBUG
 #include "../common/my_debug.h"
 MY_STOPWATCH( __load_file_sw1(my::stopwatch::show_all & ~my::stopwatch::show_total) )
 MY_STOPWATCH( __load_file_sw2(my::stopwatch::show_all & ~my::stopwatch::show_total) )
