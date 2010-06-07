@@ -29,7 +29,7 @@ public:
 
 	void reset()
 	{
-		*this = stopwatch();
+		*this = stopwatch(show_);
 	}
 
 	inline void start()
