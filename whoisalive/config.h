@@ -5,9 +5,9 @@
 #define NAME L"whoisalive"
 
 /* Версия */
-#define VERSION L"0.5.0 alpha"
-#define BUILDNO L"[build 72]"
-#define BUILDDATE L"02.06.2010"
-#define BUILDTIME L"23:53:40"
+#define VERSION L"0.5.1 alpha"
+#define BUILDNO L"[build 73]"
+#define BUILDDATE L"07.06.2010"
+#define BUILDTIME L"17:52:43"
 
 #endif

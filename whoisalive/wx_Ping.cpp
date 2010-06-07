@@ -250,15 +250,20 @@ void wx_Ping::repaint()
 
 	wxMemoryDC dc(bitmap_);
 
-	int y = h / 2;
+	int cy = h - 4;
+
+	double timeout = 2000;
+	int timeout_y = 4;
 
 	dc.SetBrush(*wxBLACK_BRUSH);
 	dc.DrawRectangle(0, 0, w, h);
 
 	dc.SetPen(*wxGREY_PEN);
-	dc.DrawLine(0, y, w, y);
+	dc.DrawLine(0, cy, w, cy);
+	dc.DrawLine(0, timeout_y, w, timeout_y);
 
 	pinger::ping_result prev_ping;
+	int prev_y = cy;
 	int index = 0;
 
 	scoped_lock ll(pings_mutex_);
@@ -267,9 +272,10 @@ void wx_Ping::repaint()
 		iter != pings_.end(); iter++)
 	{
 		pinger::ping_result ping = iter->value();
-		int size = ping.duration().total_milliseconds() / 100;
-		if (size > y)
-			size = y;
+		int y = cy - (double)ping.duration().total_milliseconds()
+			/ timeout * (cy - timeout_y);
+		if (y < 0)
+			y = 0;
 
 		wxColour c1, c2;
 
@@ -288,30 +294,16 @@ void wx_Ping::repaint()
 
 		int x = w - index * BLOCK_W - BLOCK_W;
 
-		if (index == 0 || prev_ping.state() != ping.state())
-		{
-			/* Самостоятельный блок */
-			dc.SetPen(c1);
-			dc.SetBrush(c2);
-			dc.DrawRectangle(x, y - size, BLOCK_W, size * 2 + 1);
-		}
-		else
-		{
-			/* Блок, примыкающий к аналогичному по цвету */
-			dc.SetPen(c1);
-			dc.SetBrush(c2);
-			dc.DrawRectangle(x, y - size, BLOCK_W + 1, size * 2 + 1);
+		dc.SetPen(c1);
+		dc.SetBrush(c2);
 
-			size = min(size, prev_ping.duration().total_milliseconds() / 100);
+		dc.DrawLine(x, y, x + BLOCK_W, y);
 
-			if (size)
-			{
-				dc.SetPen(c2);
-				dc.DrawLine(x + BLOCK_W, y - size + 1, x + BLOCK_W, y + size);
-			}
-		}
+		if (index != 0)
+			dc.DrawLine(x + BLOCK_W, y, x + BLOCK_W, prev_y);
 
 		prev_ping = ping;
+		prev_y = y;
 		index++;
 	}
 
@@ -352,7 +344,7 @@ void wx_Ping::on_pingpanel_mousemove(wxMouseEvent& event)
 	int w, h;
 	m_pingpanel->GetClientSize(&w, &h);
 
-	active_index_ = (w - event.GetX() - 1) / BLOCK_W;
+	active_index_ = (w - event.GetX() + 1) / BLOCK_W;
 	m_pingpanel->Refresh();
 
 	scoped_lock l(pings_mutex_);
