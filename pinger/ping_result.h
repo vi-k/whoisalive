@@ -155,11 +155,14 @@ public:
 	}
 
 	template<class Char>
+	inline static void prepare(std::basic_ostream<Char>& out)
+		{ my::time::set_mydef_output_format(out); }
+
+	template<class Char>
 	friend std::basic_ostream<Char>& operator<<(
 		std::basic_ostream<Char>& out, const ping_result &pr)
 	{
 		boost::io::basic_ios_all_saver<Char> ios_saver(out);
-		
 		my::time::set_mydef_output_format(out);
 
 		out << PING_RESULT_VER
@@ -175,11 +178,14 @@ public:
 	}
 
 	template<class Char>
+	inline static void prepare(std::basic_istream<Char>& out)
+		{ my::time::set_mydef_input_format(out); }
+
+	template<class Char>
 	friend std::basic_istream<Char>& operator>>(
 		std::basic_istream<Char>& in, ping_result &pr)
 	{
 		boost::io::basic_ios_all_saver<Char> ios_saver(in);
-
 		my::time::set_mydef_input_format(in);
 
 		int ver = 0;
