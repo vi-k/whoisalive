@@ -1,17 +1,29 @@
 ﻿#ifndef MY_STR_H
 #define MY_STR_H
 
+#include <cstddef>
 #include <string>
 
 namespace my { namespace str {
 
 template<class Char>
-size_t length(const Char *str)
+inline const Char* end(const Char *str)
 {
-	size_t len = 0;
-	while (*str)
-		len++;
-	return len;
+	while (*str) str++;
+	return str;
+}
+
+template<class Char>
+inline Char* end(Char *str)
+{
+	while (*str) str++;
+	return str;
+}
+
+template<class Char>
+inline std::size_t length(const Char *str)
+{
+	return end(str) - str;
 }
 
 std::string to_string(const wchar_t *str, int len = -1);
