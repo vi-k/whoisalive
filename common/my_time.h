@@ -195,34 +195,16 @@ Time str_to(const std::basic_string<Char> &str)
 }
 
 template<class Char>
-inline gregorian::date to_date(const std::basic_string<Char> &str,
-	int order = 0)
-{
-    unsigned short y(0), m(0), d(0);
-
-	const Char *ptr = str.c_str();
-	const Char *end = ptr + str.size();
-
-	return gregorian::date(y, m, d);
-}
-
-template<class Char>
 inline posix_time::ptime to_time(const std::basic_string<Char> &str)
 {
-    std::basic_string<Char>::size_type sep_pos = str.find(' ');
-    std::basic_string<Char> first = s.substr(0, sep_pos);
-    std::basic_string<Char> second = s.substr(sep_pos + 1);
-
-	return posix_time::ptime( to_date(first), to_duration(second) );
+	return str_to<posix_time::ptime>(str);
 }
 
 template<class Char>
 inline posix_time::time_duration to_duration(const std::basic_string<Char> &str)
 {
-	return boost::date_time::str_from_delimited_time_duration<
-		posix_time::time_duration, Char>(str);
+	return str_to<posix_time::time_duration>(str);
 }
-
 
 }}
 

@@ -1,7 +1,7 @@
 ﻿#ifndef MY_NUM_H
 #define MY_NUM_H
 
-#include <cstddef>
+#include <cstddef> /* std::size_t */
 #include <string>
 
 namespace my { namespace num {
@@ -61,7 +61,7 @@ template<class Char>\
 inline bool to_##N##_b(const Char *str, T &res, std::size_t size = -1)\
 	{ return to_##S##_b<Char,T>(str, res, size); }\
 template<class Char>\
-inline int to_##N##_def(const std::basic_string<Char> &str, T def)\
+inline T to_##N##_def(const std::basic_string<Char> &str, T def)\
 	{ return to_##S##_def<Char,T>(str.c_str(), def, str.size()); }\
 template<class Char>\
 inline std::size_t to_##N(const std::basic_string<Char> &str, T &res)\
@@ -75,22 +75,18 @@ DEF_TO_NUM_FUNCS(signed,char,char)
 DEF_TO_NUM_FUNCS(signed,short,short)
 DEF_TO_NUM_FUNCS(signed,int,int)
 DEF_TO_NUM_FUNCS(signed,long,long)
+DEF_TO_NUM_FUNCS(signed,longlong,long long)
 
 DEF_TO_NUM_FUNCS(unsigned,uchar,unsigned char)
 DEF_TO_NUM_FUNCS(unsigned,ushort,unsigned short)
 DEF_TO_NUM_FUNCS(unsigned,uint,unsigned int)
 DEF_TO_NUM_FUNCS(unsigned,ulong,unsigned long)
+DEF_TO_NUM_FUNCS(unsigned,ulonglong,unsigned long long)
 
-float to_float(const std::string &str, float def);
-float to_float(const std::wstring &str, float def);
-float to_float(const char *str, float def);
-float to_float(const wchar_t *str, float def);
+DEF_TO_NUM_FUNCS(real,float,float)
+DEF_TO_NUM_FUNCS(real,double,double)
+DEF_TO_NUM_FUNCS(real,long_double,long double)
 
-double to_double(const std::string &str, double def);
-double to_double(const std::wstring &str, double def);
-double to_double(const char *str, double def);
-double to_double(const wchar_t *str, double def);
-
-} }
+}}
 
 #endif
