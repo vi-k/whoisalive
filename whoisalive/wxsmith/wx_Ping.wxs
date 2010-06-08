@@ -8,35 +8,93 @@
 		<handler function="OnClose" entry="EVT_CLOSE" />
 		<object class="wxFlexGridSizer" variable="FlexGridSizer1" member="no">
 			<cols>1</cols>
-			<rows>3</rows>
+			<rows>5</rows>
 			<growablecols>0</growablecols>
 			<growablerows>2</growablerows>
 			<object class="sizeritem">
-				<object class="wxPanel" name="ID_PANEL1" variable="Panel1" member="yes">
-					<size>400,24</size>
-					<object class="wxTextCtrl" name="ID_TEXTCTRL2" variable="TextCtrl2" member="yes">
-						<pos>8,0</pos>
-						<size>384,24</size>
-					</object>
+				<object class="wxPanel" name="ID_STATEPANEL" variable="StatePanel" member="yes">
+					<size>400,61</size>
 				</object>
-				<flag>wxALL|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+				<flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxPanel" name="ID_PINGPANEL" variable="m_pingpanel" member="yes">
+				<object class="wxBoxSizer" variable="BoxSizer1" member="no">
+					<object class="sizeritem">
+						<object class="wxStaticText" name="ID_STATICTEXT1" variable="StateFirstText" member="yes">
+							<label>&#x0A;</label>
+							<font>
+								<size>6</size>
+							</font>
+							<style>wxALIGN_LEFT</style>
+						</object>
+						<flag>wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxStaticText" name="ID_STATICTEXT2" variable="StateLastText" member="yes">
+							<label>&#x0A;</label>
+							<font>
+								<size>6</size>
+							</font>
+							<style>wxST_NO_AUTORESIZE|wxALIGN_RIGHT</style>
+						</object>
+						<flag>wxLEFT|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
+				</object>
+				<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+				<border>5</border>
+				<option>1</option>
+			</object>
+			<object class="sizeritem">
+				<object class="wxPanel" name="ID_PINGPANEL" variable="PingPanel" member="yes">
 					<size>400,61</size>
 					<handler function="on_pingpanel_paint" entry="EVT_PAINT" />
 					<handler function="on_pingpanel_erasebackground" entry="EVT_ERASE_BACKGROUND" />
 					<handler function="on_pingpanel_mousemove" entry="EVT_MOTION" />
 					<handler function="on_pingpanel_mouseleave" entry="EVT_LEAVE_WINDOW" />
 				</object>
-				<flag>wxALL|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+				<flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxTextCtrl" name="ID_PINGTEXTCTRL" variable="m_ping_textctrl" member="yes">
+				<object class="wxBoxSizer" variable="BoxSizer2" member="no">
+					<object class="sizeritem">
+						<object class="wxStaticText" name="ID_STATICTEXT3" variable="PingFirstText" member="yes">
+							<label>&#x0A;</label>
+							<font>
+								<size>6</size>
+							</font>
+							<style>wxALIGN_LEFT</style>
+						</object>
+						<flag>wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxStaticText" name="ID_STATICTEXT4" variable="PingLastText" member="yes">
+							<label>&#x0A;</label>
+							<font>
+								<size>6</size>
+							</font>
+							<style>wxST_NO_AUTORESIZE|wxALIGN_RIGHT</style>
+						</object>
+						<flag>wxLEFT|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
+				</object>
+				<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+				<border>5</border>
+				<option>1</option>
+			</object>
+			<object class="sizeritem">
+				<object class="wxTextCtrl" name="ID_PINGTEXTCTRL" variable="PingTextCtrl" member="yes">
 					<size>400,97</size>
 					<fg>#C0C0C0</fg>
 					<bg>#000000</bg>

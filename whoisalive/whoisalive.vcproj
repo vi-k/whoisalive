@@ -357,6 +357,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\pinger\ping_result.h"
+				>
+			</File>
+			<File
 				RelativePath=".\scheme.h"
 				>
 			</File>

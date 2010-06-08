@@ -8,6 +8,7 @@
 #include "../common/my_http.h"
 #include "../common/my_thread.h"
 #include "../common/my_mru.h"
+#include "../common/my_time.h"
 
 #include <memory>
 
@@ -17,7 +18,9 @@
 #include <wx/frame.h>
 class wxPanel;
 class wxTextCtrl;
+class wxStaticText;
 class wxFlexGridSizer;
+class wxBoxSizer;
 //*)
 
 #include <wx/textctrl.h> 
@@ -32,13 +35,13 @@ private:
 	who::server &server_;
 	tcp::socket socket_;
 	who::object *object_;
+
 	my::http::reply reply_;
 	mutex read_mutex_;
 	pings_list pings_;
+	posix_time::ptime first_ping_;
+	posix_time::ptime last_ping_;
 	mutex pings_mutex_;
-	bool archive_mode_;
-	wxTextAttr last_archive_style_;
-	std::wstring last_archive_text_;
 	wxBitmap bitmap_;
 	mutex bitmap_mutex_;
 	int active_index_;
@@ -61,9 +64,12 @@ private:
 protected:
 
 	//(*Identifiers(wx_Ping)
-	static const long ID_TEXTCTRL2;
-	static const long ID_PANEL1;
+	static const long ID_STATEPANEL;
+	static const long ID_STATICTEXT1;
+	static const long ID_STATICTEXT2;
 	static const long ID_PINGPANEL;
+	static const long ID_STATICTEXT3;
+	static const long ID_STATICTEXT4;
 	static const long ID_PINGTEXTCTRL;
 	//*)
 	
@@ -72,10 +78,13 @@ public:
 	virtual ~wx_Ping();
 
 	//(*Declarations(wx_Ping)
-	wxPanel* m_pingpanel;
-	wxPanel* Panel1;
-	wxTextCtrl* m_ping_textctrl;
-	wxTextCtrl* TextCtrl2;
+	wxPanel* StatePanel;
+	wxStaticText* StateFirstText;
+	wxStaticText* StateLastText;
+	wxStaticText* PingFirstText;
+	wxStaticText* PingLastText;
+	wxTextCtrl* PingTextCtrl;
+	wxPanel* PingPanel;
 	//*)
 };
 

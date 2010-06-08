@@ -2,8 +2,16 @@
 #define MY_STOPWATCH_H
 
 #include <ostream>
+#include <string>
 
 #include "my_time.h"
+
+#define MY_SW_COUNT my::stopwatch::show_count
+#define MY_SW_TOTAL my::stopwatch::show_total
+#define MY_SW_AVG   my::stopwatch::show_avg
+#define MY_SW_MIN   my::stopwatch::show_min
+#define MY_SW_MAX   my::stopwatch::show_max
+#define MY_SW_ALL   my::stopwatch::show_all
 
 namespace my {
 
@@ -63,6 +71,8 @@ public:
 	{
 		if (sw.count == 0)
 			out << "null";
+		else if (sw.count == 1 && (sw.show_ & show_total))
+			out << "total=" << sw.total;
 		else
 		{
 			if (sw.show_ & show_count)
@@ -79,6 +89,21 @@ public:
 
 		return out;
 	}	
+
+	template<class Char>
+	std::basic_string<Char> to_str()
+	{
+		basic_ostringstream<Char> out;
+		out << *this;
+		return out.str();
+	}
+
+	inline std::string to_string()
+		{ return to_str<char>(); }
+
+	inline std::wstring to_wstring()
+		{ return to_str<wchar_t>(); }
+
 };
 
 }

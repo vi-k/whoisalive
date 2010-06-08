@@ -173,7 +173,7 @@ void connection::run()
 					server_.pinger().pingers_copy(pingers);
 
 					/* Передаём только последние результаты по каждому из адресов */
-					out << L"START ARCHIVE\r\n";
+					out << L"START_ARCHIVE\r\n";
 
 					BOOST_REVERSE_FOREACH(pinger::host_pinger_copy &pinger, pingers)
 						out << pinger.hostname
@@ -181,7 +181,7 @@ void connection::run()
 							<< server_.pinger().last_result(pinger.address)
 							<< L"\r\n";
 
-					out << L"END ARCHIVE\r\n";
+					out << L"END_ARCHIVE\r\n";
 				}
 				
 				/* Только указанный адрес */
@@ -193,13 +193,13 @@ void connection::run()
 					vector<pinger::ping_result> results;
 					server_.pinger().results_copy(address, results);
 
-					out << L"START ARCHIVE\r\n";
+					out << L"START_ARCHIVE\r\n";
 
 					BOOST_REVERSE_FOREACH(pinger::ping_result &result, results)
 						out << pinger.hostname
 							<< L' ' << result << L"\r\n";
 
-					out << L"END ARCHIVE\r\n";
+					out << L"END_ARCHIVE\r\n";
 				}
 
 				send_ok("text/plain; charset=utf-8");
@@ -236,7 +236,7 @@ void connection::run()
 					server_.pinger().pingers_copy(pingers);
 
 					/* Передаём только текущие состояния адресов */
-					out << L"START ARCHIVE\r\n";
+					out << L"START_ARCHIVE\r\n";
 
 					BOOST_FOREACH(pinger::host_pinger_copy &pinger, pingers)
 						out << pinger.hostname
@@ -244,7 +244,7 @@ void connection::run()
 							<< server_.pinger().last_state(pinger.address)
 							<< L"\r\n";
 					
-					out << L"END ARCHIVE\r\n";
+					out << L"END_ARCHIVE\r\n";
 				}
 
 				/* Только указанный адрес */
@@ -257,13 +257,13 @@ void connection::run()
 					server_.pinger().states_copy(address, states);
 
 					/* Передаём весь архив состояний */
-					out << L"START ARCHIVE\r\n";
+					out << L"START_ARCHIVE\r\n";
 
 					BOOST_REVERSE_FOREACH(pinger::host_state &state, states)
 						out << pinger.hostname
 							<< L' ' << state << L"\r\n";
 
-					out << L"END ARCHIVE\r\n";
+					out << L"END_ARCHIVE\r\n";
 				}
 
 				send_ok("text/plain; charset=utf-8");
