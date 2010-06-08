@@ -4,10 +4,10 @@ to_int_def(cstr)=12345
 to_int_def(str)=12345
 to_int_def(wcstr)=12345
 to_int_def(wstr)=12345
-to_int_b(cstr)=1 n=12345
-to_int_b(str)=1 n=12345
-to_int_b(wcstr)=1 n=12345
-to_int_b(wstr)=1 n=12345
+to_int_b(cstr)=true n=12345
+to_int_b(str)=true n=12345
+to_int_b(wcstr)=true n=12345
+to_int_b(wstr)=true n=12345
 to_int(cstr)=5 n=12345
 to_int(str)=5 n=12345
 to_int(wcstr)=5 n=12345
@@ -19,10 +19,10 @@ to_int_def(cstr)=-999999
 to_int_def(str)=-999999
 to_int_def(wcstr)=-999999
 to_int_def(wstr)=-999999
-to_int_b(cstr)=1 n=-999999
-to_int_b(str)=1 n=-999999
-to_int_b(wcstr)=1 n=-999999
-to_int_b(wstr)=1 n=-999999
+to_int_b(cstr)=true n=-999999
+to_int_b(str)=true n=-999999
+to_int_b(wcstr)=true n=-999999
+to_int_b(wstr)=true n=-999999
 to_int(cstr)=7 n=-999999
 to_int(str)=7 n=-999999
 to_int(wcstr)=7 n=-999999
@@ -34,10 +34,10 @@ to_int_def(cstr)=0
 to_int_def(str)=0
 to_int_def(wcstr)=0
 to_int_def(wstr)=0
-to_int_b(cstr)=0 n=300000000
-to_int_b(str)=0 n=300000000
-to_int_b(wcstr)=0 n=300000000
-to_int_b(wstr)=0 n=300000000
+to_int_b(cstr)=false n=300000000
+to_int_b(str)=false n=300000000
+to_int_b(wcstr)=false n=300000000
+to_int_b(wstr)=false n=300000000
 to_int(cstr)=9 (fail) n=300000000
 to_int(str)=9 (fail) n=300000000
 to_int(wcstr)=9 (fail) n=300000000
@@ -49,10 +49,10 @@ to_uint_def(cstr)=0
 to_uint_def(str)=0
 to_uint_def(wcstr)=0
 to_uint_def(wstr)=0
-to_uint_b(cstr)=0 n=0
-to_uint_b(str)=0 n=0
-to_uint_b(wcstr)=0 n=0
-to_uint_b(wstr)=0 n=0
+to_uint_b(cstr)=false n=0
+to_uint_b(str)=false n=0
+to_uint_b(wcstr)=false n=0
+to_uint_b(wstr)=false n=0
 to_uint(cstr)=0 (fail) n=0
 to_uint(str)=0 (fail) n=0
 to_uint(wcstr)=0 (fail) n=0
@@ -64,10 +64,10 @@ to_short_def(cstr)=-32768
 to_short_def(str)=-32768
 to_short_def(wcstr)=-32768
 to_short_def(wstr)=-32768
-to_short_b(cstr)=1 n=-32768
-to_short_b(str)=1 n=-32768
-to_short_b(wcstr)=1 n=-32768
-to_short_b(wstr)=1 n=-32768
+to_short_b(cstr)=true n=-32768
+to_short_b(str)=true n=-32768
+to_short_b(wcstr)=true n=-32768
+to_short_b(wstr)=true n=-32768
 to_short(cstr)=6 n=-32768
 to_short(str)=6 n=-32768
 to_short(wcstr)=6 n=-32768
@@ -79,10 +79,10 @@ to_short_def(cstr)=0
 to_short_def(str)=0
 to_short_def(wcstr)=0
 to_short_def(wstr)=0
-to_short_b(cstr)=0 n=32760
-to_short_b(str)=0 n=32760
-to_short_b(wcstr)=0 n=32760
-to_short_b(wstr)=0 n=32760
+to_short_b(cstr)=false n=32760
+to_short_b(str)=false n=32760
+to_short_b(wcstr)=false n=32760
+to_short_b(wstr)=false n=32760
 to_short(cstr)=4 (fail) n=32760
 to_short(str)=4 (fail) n=32760
 to_short(wcstr)=4 (fail) n=32760
@@ -94,10 +94,10 @@ to_ulong_def(cstr)=123
 to_ulong_def(str)=123
 to_ulong_def(wcstr)=123
 to_ulong_def(wstr)=123
-to_ulong_b(cstr)=1 n=123
-to_ulong_b(str)=1 n=123
-to_ulong_b(wcstr)=1 n=123
-to_ulong_b(wstr)=1 n=123
+to_ulong_b(cstr)=true n=123
+to_ulong_b(str)=true n=123
+to_ulong_b(wcstr)=true n=123
+to_ulong_b(wstr)=true n=123
 to_ulong(cstr)=3 n=123
 to_ulong(str)=3 n=123
 to_ulong(wcstr)=3 n=123
@@ -109,12 +109,87 @@ to_ulong_def(cstr)=0
 to_ulong_def(str)=0
 to_ulong_def(wcstr)=0
 to_ulong_def(wstr)=0
-to_ulong_b(cstr)=0 n=123
-to_ulong_b(str)=0 n=123
-to_ulong_b(wcstr)=0 n=123
-to_ulong_b(wstr)=0 n=123
+to_ulong_b(cstr)=false n=123
+to_ulong_b(str)=false n=123
+to_ulong_b(wcstr)=false n=123
+to_ulong_b(wstr)=false n=123
 to_ulong(cstr)=3 (fail) n=123
 to_ulong(str)=3 (fail) n=123
 to_ulong(wcstr)=3 (fail) n=123
 to_ulong(wstr)=3 (fail) n=123
+
+type=longlong
+string=-9223372036854775808
+to_longlong_def(cstr)=-9223372036854775808
+to_longlong_def(str)=-9223372036854775808
+to_longlong_def(wcstr)=-9223372036854775808
+to_longlong_def(wstr)=-9223372036854775808
+to_longlong_b(cstr)=true n=-9223372036854775808
+to_longlong_b(str)=true n=-9223372036854775808
+to_longlong_b(wcstr)=true n=-9223372036854775808
+to_longlong_b(wstr)=true n=-9223372036854775808
+to_longlong(cstr)=20 n=-9223372036854775808
+to_longlong(str)=20 n=-9223372036854775808
+to_longlong(wcstr)=20 n=-9223372036854775808
+to_longlong(wstr)=20 n=-9223372036854775808
+
+type=ulonglong
+string=18446744073709551615
+to_ulonglong_def(cstr)=18446744073709551615
+to_ulonglong_def(str)=18446744073709551615
+to_ulonglong_def(wcstr)=18446744073709551615
+to_ulonglong_def(wstr)=18446744073709551615
+to_ulonglong_b(cstr)=true n=18446744073709551615
+to_ulonglong_b(str)=true n=18446744073709551615
+to_ulonglong_b(wcstr)=true n=18446744073709551615
+to_ulonglong_b(wstr)=true n=18446744073709551615
+to_ulonglong(cstr)=20 n=18446744073709551615
+to_ulonglong(str)=20 n=18446744073709551615
+to_ulonglong(wcstr)=20 n=18446744073709551615
+to_ulonglong(wstr)=20 n=18446744073709551615
+
+type=float
+string=0.123456
+to_float_def(cstr)=0.1234560
+to_float_def(str)=0.1234560
+to_float_def(wcstr)=0.1234560
+to_float_def(wstr)=0.1234560
+to_float_b(cstr)=true n=0.1234560
+to_float_b(str)=true n=0.1234560
+to_float_b(wcstr)=true n=0.1234560
+to_float_b(wstr)=true n=0.1234560
+to_float(cstr)=8 n=0.1234560
+to_float(str)=8 n=0.1234560
+to_float(wcstr)=8 n=0.1234560
+to_float(wstr)=8 n=0.1234560
+
+type=double
+string=0.123456789012345
+to_double_def(cstr)=0.1234567890123450
+to_double_def(str)=0.1234567890123450
+to_double_def(wcstr)=0.1234567890123450
+to_double_def(wstr)=0.1234567890123450
+to_double_b(cstr)=true n=0.1234567890123450
+to_double_b(str)=true n=0.1234567890123450
+to_double_b(wcstr)=true n=0.1234567890123450
+to_double_b(wstr)=true n=0.1234567890123450
+to_double(cstr)=17 n=0.1234567890123450
+to_double(str)=17 n=0.1234567890123450
+to_double(wcstr)=17 n=0.1234567890123450
+to_double(wstr)=17 n=0.1234567890123450
+
+type=long_double
+string=0.123456789012345
+to_long_double_def(cstr)=0.1234567890123450
+to_long_double_def(str)=0.1234567890123450
+to_long_double_def(wcstr)=0.1234567890123450
+to_long_double_def(wstr)=0.1234567890123450
+to_long_double_b(cstr)=true n=0.1234567890123450
+to_long_double_b(str)=true n=0.1234567890123450
+to_long_double_b(wcstr)=true n=0.1234567890123450
+to_long_double_b(wstr)=true n=0.1234567890123450
+to_long_double(cstr)=17 n=0.1234567890123450
+to_long_double(str)=17 n=0.1234567890123450
+to_long_double(wcstr)=17 n=0.1234567890123450
+to_long_double(wstr)=17 n=0.1234567890123450
 
