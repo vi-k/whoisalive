@@ -1,29 +1,85 @@
 ﻿#ifndef MY_NUM_H
 #define MY_NUM_H
 
+#include <cstddef>
 #include <string>
 
 namespace my { namespace num {
 
-int to_int(const std::string &str, int def);
-int to_int(const std::wstring &str, int def);
-int to_int(const char *str, int def);
-int to_int(const wchar_t *str, int def);
 
-unsigned int to_uint(const std::string &str, unsigned int def);
-unsigned int to_uint(const std::wstring &str, unsigned int def);
-unsigned int to_uint(const char *str, unsigned int def);
-unsigned int to_uint(const wchar_t *str, unsigned int def);
+template<class Char, class Type, class Rule>
+Type to_num_def(const Char *str, Rule rule, Type def,
+	std::size_t size = -1);
 
-short to_short(const std::string &str, short def);
-short to_short(const std::wstring &str, short def);
-short to_short(const char *str, short def);
-short to_short(const wchar_t *str, short def);
+template<class Char, class Type, class Rule>
+std::size_t to_num(const Char *str, Rule rule, Type &res,
+	std::size_t size = -1);
 
-unsigned short to_ushort(const std::string &str, unsigned short def);
-unsigned short to_ushort(const std::wstring &str, unsigned short def);
-unsigned short to_ushort(const char *str, unsigned short def);
-unsigned short to_ushort(const wchar_t *str, unsigned short def);
+template<class Char, class Type, class Rule>
+bool to_num_b(const Char *str, Rule rule, Type &res,
+	std::size_t size = -1);
+
+
+template<class Char, class Type>
+inline Type to_signed_def(const Char *str, Type def, std::size_t size = -1);
+
+template<class Char, class Type>
+inline std::size_t to_signed(const Char *str, Type &res, std::size_t size = -1);
+
+template<class Char, class Type>
+inline bool to_signed_b(const Char *str, Type &res, std::size_t size = -1);
+
+
+template<class Char, class Type>
+inline Type to_unsigned_def(const Char *str, Type def, std::size_t size = -1);
+
+template<class Char, class Type>
+inline std::size_t to_unsigned(const Char *str, Type &res, std::size_t size = -1);
+
+template<class Char, class Type>
+inline bool to_unsigned_b(const Char *str, Type &res, std::size_t size = -1);
+
+
+template<class Char, class Type>
+inline Type to_real_def(const Char *str, Type def, std::size_t size = -1);
+
+template<class Char, class Type>
+inline std::size_t to_real(const Char *str, Type &res, std::size_t size = -1);
+
+template<class Char, class Type>
+inline bool to_real_b(const Char *str, Type &res, std::size_t size = -1);
+
+
+#define DEF_TO_NUM_FUNCS(S,N,T)\
+template<class Char>\
+inline T to_##N##_def(const Char *str, T def, std::size_t size = -1)\
+	{ return to_##S##_def<Char,T>(str, def, size); }\
+template<class Char>\
+inline std::size_t to_##N(const Char *str, T &res, std::size_t size = -1)\
+	{ return to_##S##<Char,T>(str, res, size); }\
+template<class Char>\
+inline bool to_##N##_b(const Char *str, T &res, std::size_t size = -1)\
+	{ return to_##S##_b<Char,T>(str, res, size); }\
+template<class Char>\
+inline int to_##N##_def(const std::basic_string<Char> &str, T def)\
+	{ return to_##S##_def<Char,T>(str.c_str(), def, str.size()); }\
+template<class Char>\
+inline std::size_t to_##N(const std::basic_string<Char> &str, T &res)\
+	{ return to_##S##<Char,T>(str.c_str(), res, str.size()); }\
+template<class Char>\
+inline bool to_##N##_b(const std::basic_string<Char> &str, T &res)\
+	{ return to_##S##_b<Char,T>(str.c_str(), res, str.size()); }
+
+
+DEF_TO_NUM_FUNCS(signed,char,char)
+DEF_TO_NUM_FUNCS(signed,short,short)
+DEF_TO_NUM_FUNCS(signed,int,int)
+DEF_TO_NUM_FUNCS(signed,long,long)
+
+DEF_TO_NUM_FUNCS(unsigned,uchar,unsigned char)
+DEF_TO_NUM_FUNCS(unsigned,ushort,unsigned short)
+DEF_TO_NUM_FUNCS(unsigned,uint,unsigned int)
+DEF_TO_NUM_FUNCS(unsigned,ulong,unsigned long)
 
 float to_float(const std::string &str, float def);
 float to_float(const std::wstring &str, float def);

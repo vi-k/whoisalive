@@ -1,0 +1,120 @@
+type=int
+string=12345
+to_int_def(cstr)=12345
+to_int_def(str)=12345
+to_int_def(wcstr)=12345
+to_int_def(wstr)=12345
+to_int_b(cstr)=1 n=12345
+to_int_b(str)=1 n=12345
+to_int_b(wcstr)=1 n=12345
+to_int_b(wstr)=1 n=12345
+to_int(cstr)=5 n=12345
+to_int(str)=5 n=12345
+to_int(wcstr)=5 n=12345
+to_int(wstr)=5 n=12345
+
+type=int
+string=-999999
+to_int_def(cstr)=-999999
+to_int_def(str)=-999999
+to_int_def(wcstr)=-999999
+to_int_def(wstr)=-999999
+to_int_b(cstr)=1 n=-999999
+to_int_b(str)=1 n=-999999
+to_int_b(wcstr)=1 n=-999999
+to_int_b(wstr)=1 n=-999999
+to_int(cstr)=7 n=-999999
+to_int(str)=7 n=-999999
+to_int(wcstr)=7 n=-999999
+to_int(wstr)=7 n=-999999
+
+type=int
+string=3000000000
+to_int_def(cstr)=0
+to_int_def(str)=0
+to_int_def(wcstr)=0
+to_int_def(wstr)=0
+to_int_b(cstr)=0 n=300000000
+to_int_b(str)=0 n=300000000
+to_int_b(wcstr)=0 n=300000000
+to_int_b(wstr)=0 n=300000000
+to_int(cstr)=9 (fail) n=300000000
+to_int(str)=9 (fail) n=300000000
+to_int(wcstr)=9 (fail) n=300000000
+to_int(wstr)=9 (fail) n=300000000
+
+type=uint
+string=-1
+to_uint_def(cstr)=0
+to_uint_def(str)=0
+to_uint_def(wcstr)=0
+to_uint_def(wstr)=0
+to_uint_b(cstr)=0 n=0
+to_uint_b(str)=0 n=0
+to_uint_b(wcstr)=0 n=0
+to_uint_b(wstr)=0 n=0
+to_uint(cstr)=0 (fail) n=0
+to_uint(str)=0 (fail) n=0
+to_uint(wcstr)=0 (fail) n=0
+to_uint(wstr)=0 (fail) n=0
+
+type=short
+string=-32768
+to_short_def(cstr)=-32768
+to_short_def(str)=-32768
+to_short_def(wcstr)=-32768
+to_short_def(wstr)=-32768
+to_short_b(cstr)=1 n=-32768
+to_short_b(str)=1 n=-32768
+to_short_b(wcstr)=1 n=-32768
+to_short_b(wstr)=1 n=-32768
+to_short(cstr)=6 n=-32768
+to_short(str)=6 n=-32768
+to_short(wcstr)=6 n=-32768
+to_short(wstr)=6 n=-32768
+
+type=short
+string=32768
+to_short_def(cstr)=0
+to_short_def(str)=0
+to_short_def(wcstr)=0
+to_short_def(wstr)=0
+to_short_b(cstr)=0 n=32760
+to_short_b(str)=0 n=32760
+to_short_b(wcstr)=0 n=32760
+to_short_b(wstr)=0 n=32760
+to_short(cstr)=4 (fail) n=32760
+to_short(str)=4 (fail) n=32760
+to_short(wcstr)=4 (fail) n=32760
+to_short(wstr)=4 (fail) n=32760
+
+type=ulong
+string=123
+to_ulong_def(cstr)=123
+to_ulong_def(str)=123
+to_ulong_def(wcstr)=123
+to_ulong_def(wstr)=123
+to_ulong_b(cstr)=1 n=123
+to_ulong_b(str)=1 n=123
+to_ulong_b(wcstr)=1 n=123
+to_ulong_b(wstr)=1 n=123
+to_ulong(cstr)=3 n=123
+to_ulong(str)=3 n=123
+to_ulong(wcstr)=3 n=123
+to_ulong(wstr)=3 n=123
+
+type=ulong
+string=123a
+to_ulong_def(cstr)=0
+to_ulong_def(str)=0
+to_ulong_def(wcstr)=0
+to_ulong_def(wstr)=0
+to_ulong_b(cstr)=0 n=123
+to_ulong_b(str)=0 n=123
+to_ulong_b(wcstr)=0 n=123
+to_ulong_b(wstr)=0 n=123
+to_ulong(cstr)=3 (fail) n=123
+to_ulong(str)=3 (fail) n=123
+to_ulong(wcstr)=3 (fail) n=123
+to_ulong(wstr)=3 (fail) n=123
+
