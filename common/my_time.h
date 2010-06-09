@@ -4,12 +4,6 @@
 	
 	Тест (преобразование 1000 строк, avg - среднее время):
 
-to_duration:         count=1000 total=00:00:00.250021 avg=00:00:00.000250
-duration_from_string: count=100 total=00:00:01.406367 avg=00:00:00.014063
->>:                   count=100 total=00:00:01.359488 avg=00:00:00.013594
->> (2):               count=2 total=00:00:01.843859 avg=00:00:00.921929
->> (3):               count=2 total=00:00:01.890710 avg=00:00:00.945355
-
 	1) my::time::to_duration: avg=00:00:00.000250
 	2) duration_from_string:  avg=00:00:00.014063 (в 56 раз)
 	3) istringstream >> (без создания потока на каждой итерации):
@@ -162,7 +156,7 @@ std::basic_string<Char> format(const Char *fmt,
 
 
 template<class Char, class Time>
-std::basic_string<Char> old_to_str(const Time &time)
+std::basic_string<Char> to_str(const Time &time)
 {
 	basic_ostringstream<Char> out;
 	set_mydef_output_format(out);
@@ -220,7 +214,7 @@ inline posix_time::time_duration format_to_duration(
 }
 
 template<class Char>
-std::basic_string<Char> to_str(const gregorian::date &date)
+std::basic_string<Char> new_to_str(const gregorian::date &date)
 {
 	std::basic_string<Char> str(10);
 	return out.str();
