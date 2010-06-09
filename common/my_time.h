@@ -162,7 +162,7 @@ std::basic_string<Char> format(const Char *fmt,
 
 
 template<class Char, class Time>
-std::basic_string<Char> to_str(const Time &time)
+std::basic_string<Char> old_to_str(const Time &time)
 {
 	basic_ostringstream<Char> out;
 	set_mydef_output_format(out);
@@ -219,18 +219,12 @@ inline posix_time::time_duration format_to_duration(
 	return format_to<posix_time::time_duration>(fmt, str);
 }
 
-template<class Time, class Char>
-Time str_to(const std::basic_string<Char> &str)
+template<class Char>
+std::basic_string<Char> to_str(const gregorian::date &date)
 {
-	Time time;
-	std::basic_istringstream<Char> in(str);
-	set_mydef_input_format(in);
-	in >> time;
-	if (!in)
-		time = posix_time::not_a_date_time;
-	return time;
+	std::basic_string<Char> str(10);
+	return out.str();
 }
-
 
 template<class Char>
 std::size_t to_date_s(const Char *str, gregorian::date &date,
