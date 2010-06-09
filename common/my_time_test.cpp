@@ -17,6 +17,7 @@ posix_time::ptime now()
 
 int main()
 {
+	#if 0
 	posix_time::ptime pt1( gregorian::date(2010,06,02),
 		posix_time::time_duration(20,41,35,653) );
 
@@ -112,6 +113,7 @@ int main()
 	cout << str << " -> ";
 	cout << my::time::format_to_duration("{%Hh %Mm %Ss}", str) << endl;
 
+	/*-
 	cout << "\nstr_to\n";
 	str = "2010-01-02 12:30:00";
 	cout << str << " -> ";
@@ -120,18 +122,61 @@ int main()
 	str = "2010-13-02 12:30:00";
 	cout << str << " -> ";
 	cout << my::time::to_time(str) << endl;
+    -*/
 
-	str = "00:45:03.345678";
-	cout << str << " -> ";
-	cout << my::time::to_duration(str) << endl;
+    cout << endl;
 
-	str = "00:100:03.345678";
-	cout << str << " -> ";
-	cout << my::time::to_duration(str) << endl;
+    #endif
 
-	str = "";
-	cout << str << " -> ";
-	cout << my::time::to_duration(str) << endl;
+#define TEST(NN,N,T,STR) {\
+	const char cstr[] = STR;\
+	string str(STR);\
+	const wchar_t wcstr[] = L##STR;\
+	wstring wstr(L##STR);\
+	cout << "type=" << NN << endl;\
+	cout << "string=\"" << STR << "\"" << endl;\
+	\
+	T t;\
+	std::size_t n;\
+	n = my::time::to_##N##_s(cstr, t);\
+	cout << "to_"##NN##"_s(cstr)=" << n << " "##NN##"=" << t << endl;\
+	n = my::time::to_##N##_s(str, t);\
+	cout << "to_"##NN##"_s(str)=" << n << " "##NN##"=" << t << endl;\
+	n = my::time::to_##N##_s(wcstr, t);\
+	cout << "to_"##NN##"_s(wcstr)=" << n << " "##NN##"=" << t << endl;\
+	n = my::time::to_##N##_s(wstr, t);\
+	cout << "to_"##NN##"_s(wstr)=" << n << " "##NN##"=" << t << endl;\
+	t = my::time::to_##N(cstr);\
+	cout << "to_"##NN##"(cstr)=" << t << endl;\
+	t = my::time::to_##N(str);\
+	cout << "to_"##NN##"(str)=" << t << endl;\
+	t = my::time::to_##N(wcstr);\
+	cout << "to_"##NN##"(wcstr)=" << t << endl;\
+	t = my::time::to_##N(wstr);\
+	cout << "to_"##NN##"(wstr)=" << t << endl;\
+	cout << endl; }
 
+	TEST("date",date,gregorian::date,"2010-12-02")
+	TEST("date",date,gregorian::date,"2010/13/02")
+	TEST("date",date,gregorian::date,"2010/01/01")
+	TEST("date",date,gregorian::date,"2010/01")
+	TEST("date",date,gregorian::date,"25.01.2002")
+	TEST("date",date,gregorian::date,"25.01-2002")
+	TEST("date",date,gregorian::date,"25.01.2002 ")
+	TEST("date",date,gregorian::date,"29-02-2010")
+	TEST("date",date,gregorian::date,"29 06 1978")
+
+	TEST("duration",duration,posix_time::time_duration,"-01:45:03.345678")
+	TEST("duration",duration,posix_time::time_duration,"-123456:45:03")
+	TEST("duration",duration,posix_time::time_duration,"123456:60:03")
+	TEST("duration",duration,posix_time::time_duration,"23:59:34 ")
+
+	TEST("time",time,posix_time::ptime,"2010-06-09 23:59:34")
+	TEST("time",time,posix_time::ptime,"2010-06-09 24:00:00")
+	TEST("time",time,posix_time::ptime,"2010-06-09 -23:59:34")
+	TEST("time",time,posix_time::ptime,"2010/06/09 12:00:00.123456")
+	TEST("time",time,posix_time::ptime,"2010.06.09 12:00:00.123456 ")
+	TEST("time",time,posix_time::ptime,"29 06 2010 09:30:00 ")
+	
 	return 0;
 }
