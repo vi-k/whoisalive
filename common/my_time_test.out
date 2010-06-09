@@ -1,40 +1,209 @@
-set_output_format
-[2010.06.02 20:41]
-not-a-date-time
-{00h 20m 35s}
-{00h 00m 00s}
-user fmt: [2010.06.02 20:41] {00h 20m 35s}
-my fmt: 2010-06-02 20:41:35.000653 00:20:35.500000
-sys fmt: 2010-Jun-02 20:41:35.000653 00:20:35.500000
+type=date
+string="2010-12-02"
+to_date_s(cstr)=10 date=2010-Dec-02
+to_date_s(str)=10 date=2010-Dec-02
+to_date_s(wcstr)=10 date=2010-Dec-02
+to_date_s(wstr)=10 date=2010-Dec-02
+to_date(cstr)=2010-Dec-02
+to_date(str)=2010-Dec-02
+to_date(wcstr)=2010-Dec-02
+to_date(wstr)=2010-Dec-02
 
-set_input_format
-[2010.06.02 20:41]
-not-a-date-time
-failed
-[2010.06.02 20:41]
-2010-Jun-02 20:41:00
-2010-06-02 20:41:35.000653
-2010-Jun-02 20:41:35.000653
+type=date
+string="2010/13/02"
+to_date_s(cstr)=10 date=not-a-date-time
+to_date_s(str)=10 date=not-a-date-time
+to_date_s(wcstr)=10 date=not-a-date-time
+to_date_s(wstr)=10 date=not-a-date-time
+to_date(cstr)=not-a-date-time
+to_date(str)=not-a-date-time
+to_date(wcstr)=not-a-date-time
+to_date(wstr)=not-a-date-time
 
-format
-2010-Jun-02 (Wednesday) 20:41:35
-not-a-date-time
-+00:20:35
+type=date
+string="2010/01/01"
+to_date_s(cstr)=10 date=2010-Jan-01
+to_date_s(str)=10 date=2010-Jan-01
+to_date_s(wcstr)=10 date=2010-Jan-01
+to_date_s(wstr)=10 date=2010-Jan-01
+to_date(cstr)=2010-Jan-01
+to_date(str)=2010-Jan-01
+to_date(wcstr)=2010-Jan-01
+to_date(wstr)=2010-Jan-01
 
-to_str
-2010-06-02 20:41:35.000653
-not-a-date-time
-00:20:35.500000
+type=date
+string="2010/01"
+to_date_s(cstr)=7 date=not-a-date-time
+to_date_s(str)=7 date=not-a-date-time
+to_date_s(wcstr)=7 date=not-a-date-time
+to_date_s(wstr)=7 date=not-a-date-time
+to_date(cstr)=not-a-date-time
+to_date(str)=not-a-date-time
+to_date(wcstr)=not-a-date-time
+to_date(wstr)=not-a-date-time
 
-format_to
-1978-Jun-29 00:05:30 -> 1978-Jun-29 00:05:30
-1976-03-05 14:00:00 -> not-a-date-time
-{23h 45m 23s} -> 23:45:23
-12:00:00 -> not-a-date-time
+type=date
+string="25.01.2002"
+to_date_s(cstr)=10 date=2002-Jan-25
+to_date_s(str)=10 date=2002-Jan-25
+to_date_s(wcstr)=10 date=2002-Jan-25
+to_date_s(wstr)=10 date=2002-Jan-25
+to_date(cstr)=2002-Jan-25
+to_date(str)=2002-Jan-25
+to_date(wcstr)=2002-Jan-25
+to_date(wstr)=2002-Jan-25
 
-str_to
-2010-01-02 12:30:00 -> 2010-Jan-02 12:30:00
-2010-13-02 12:30:00 -> not-a-date-time
-00:45:03.345678 -> 00:45:03.345678
-00:100:03.345678 -> not-a-date-time
- -> not-a-date-time
+type=date
+string="25.01-2002"
+to_date_s(cstr)=5 date=not-a-date-time
+to_date_s(str)=5 date=not-a-date-time
+to_date_s(wcstr)=5 date=not-a-date-time
+to_date_s(wstr)=5 date=not-a-date-time
+to_date(cstr)=not-a-date-time
+to_date(str)=not-a-date-time
+to_date(wcstr)=not-a-date-time
+to_date(wstr)=not-a-date-time
+
+type=date
+string="25.01.2002 "
+to_date_s(cstr)=10 date=2002-Jan-25
+to_date_s(str)=10 date=2002-Jan-25
+to_date_s(wcstr)=10 date=2002-Jan-25
+to_date_s(wstr)=10 date=2002-Jan-25
+to_date(cstr)=not-a-date-time
+to_date(str)=not-a-date-time
+to_date(wcstr)=not-a-date-time
+to_date(wstr)=not-a-date-time
+
+type=date
+string="29-02-2010"
+to_date_s(cstr)=10 date=not-a-date-time
+to_date_s(str)=10 date=not-a-date-time
+to_date_s(wcstr)=10 date=not-a-date-time
+to_date_s(wstr)=10 date=not-a-date-time
+to_date(cstr)=not-a-date-time
+to_date(str)=not-a-date-time
+to_date(wcstr)=not-a-date-time
+to_date(wstr)=not-a-date-time
+
+type=date
+string="29 06 1978"
+to_date_s(cstr)=10 date=1978-Jun-29
+to_date_s(str)=10 date=1978-Jun-29
+to_date_s(wcstr)=10 date=1978-Jun-29
+to_date_s(wstr)=10 date=1978-Jun-29
+to_date(cstr)=1978-Jun-29
+to_date(str)=1978-Jun-29
+to_date(wcstr)=1978-Jun-29
+to_date(wstr)=1978-Jun-29
+
+type=duration
+string="-01:45:03.345678"
+to_duration_s(cstr)=16 duration=-01:45:03.345678
+to_duration_s(str)=16 duration=-01:45:03.345678
+to_duration_s(wcstr)=16 duration=-01:45:03.345678
+to_duration_s(wstr)=16 duration=-01:45:03.345678
+to_duration(cstr)=-01:45:03.345678
+to_duration(str)=-01:45:03.345678
+to_duration(wcstr)=-01:45:03.345678
+to_duration(wstr)=-01:45:03.345678
+
+type=duration
+string="-123456:45:03"
+to_duration_s(cstr)=13 duration=-123456:45:03
+to_duration_s(str)=13 duration=-123456:45:03
+to_duration_s(wcstr)=13 duration=-123456:45:03
+to_duration_s(wstr)=13 duration=-123456:45:03
+to_duration(cstr)=-123456:45:03
+to_duration(str)=-123456:45:03
+to_duration(wcstr)=-123456:45:03
+to_duration(wstr)=-123456:45:03
+
+type=duration
+string="123456:60:03"
+to_duration_s(cstr)=9 duration=not-a-date-time
+to_duration_s(str)=9 duration=not-a-date-time
+to_duration_s(wcstr)=9 duration=not-a-date-time
+to_duration_s(wstr)=9 duration=not-a-date-time
+to_duration(cstr)=not-a-date-time
+to_duration(str)=not-a-date-time
+to_duration(wcstr)=not-a-date-time
+to_duration(wstr)=not-a-date-time
+
+type=duration
+string="23:59:34 "
+to_duration_s(cstr)=8 duration=23:59:34
+to_duration_s(str)=8 duration=23:59:34
+to_duration_s(wcstr)=8 duration=23:59:34
+to_duration_s(wstr)=8 duration=23:59:34
+to_duration(cstr)=not-a-date-time
+to_duration(str)=not-a-date-time
+to_duration(wcstr)=not-a-date-time
+to_duration(wstr)=not-a-date-time
+
+type=time
+string="2010-06-09 23:59:34"
+to_time_s(cstr)=19 time=2010-Jun-09 23:59:34
+to_time_s(str)=19 time=2010-Jun-09 23:59:34
+to_time_s(wcstr)=19 time=2010-Jun-09 23:59:34
+to_time_s(wstr)=19 time=2010-Jun-09 23:59:34
+to_time(cstr)=2010-Jun-09 23:59:34
+to_time(str)=2010-Jun-09 23:59:34
+to_time(wcstr)=2010-Jun-09 23:59:34
+to_time(wstr)=2010-Jun-09 23:59:34
+
+type=time
+string="2010-06-09 24:00:00"
+to_time_s(cstr)=19 time=not-a-date-time
+to_time_s(str)=19 time=not-a-date-time
+to_time_s(wcstr)=19 time=not-a-date-time
+to_time_s(wstr)=19 time=not-a-date-time
+to_time(cstr)=not-a-date-time
+to_time(str)=not-a-date-time
+to_time(wcstr)=not-a-date-time
+to_time(wstr)=not-a-date-time
+
+type=time
+string="2010-06-09 -23:59:34"
+to_time_s(cstr)=20 time=not-a-date-time
+to_time_s(str)=20 time=not-a-date-time
+to_time_s(wcstr)=20 time=not-a-date-time
+to_time_s(wstr)=20 time=not-a-date-time
+to_time(cstr)=not-a-date-time
+to_time(str)=not-a-date-time
+to_time(wcstr)=not-a-date-time
+to_time(wstr)=not-a-date-time
+
+type=time
+string="2010/06/09 12:00:00.123456"
+to_time_s(cstr)=26 time=2010-Jun-09 12:00:00.123456
+to_time_s(str)=26 time=2010-Jun-09 12:00:00.123456
+to_time_s(wcstr)=26 time=2010-Jun-09 12:00:00.123456
+to_time_s(wstr)=26 time=2010-Jun-09 12:00:00.123456
+to_time(cstr)=2010-Jun-09 12:00:00.123456
+to_time(str)=2010-Jun-09 12:00:00.123456
+to_time(wcstr)=2010-Jun-09 12:00:00.123456
+to_time(wstr)=2010-Jun-09 12:00:00.123456
+
+type=time
+string="2010.06.09 12:00:00.123456 "
+to_time_s(cstr)=26 time=2010-Jun-09 12:00:00.123456
+to_time_s(str)=26 time=2010-Jun-09 12:00:00.123456
+to_time_s(wcstr)=26 time=2010-Jun-09 12:00:00.123456
+to_time_s(wstr)=26 time=2010-Jun-09 12:00:00.123456
+to_time(cstr)=not-a-date-time
+to_time(str)=not-a-date-time
+to_time(wcstr)=not-a-date-time
+to_time(wstr)=not-a-date-time
+
+type=time
+string="29 06 2010 09:30:00 "
+to_time_s(cstr)=19 time=2010-Jun-29 09:30:00
+to_time_s(str)=19 time=2010-Jun-29 09:30:00
+to_time_s(wcstr)=19 time=2010-Jun-29 09:30:00
+to_time_s(wstr)=19 time=2010-Jun-29 09:30:00
+to_time(cstr)=not-a-date-time
+to_time(str)=not-a-date-time
+to_time(wcstr)=not-a-date-time
+to_time(wstr)=not-a-date-time
+

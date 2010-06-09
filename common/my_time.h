@@ -1,8 +1,32 @@
-﻿#ifndef MY_TIME_H
+﻿/*
+	Смысл всех этих самописных функций преобразования в том, что
+	стандартные функции из boost::date_time грандиозно медленны
+	
+	Тест (преобразование 1000 строк, avg - среднее время):
+
+to_duration:         count=1000 total=00:00:00.250021 avg=00:00:00.000250
+duration_from_string: count=100 total=00:00:01.406367 avg=00:00:00.014063
+>>:                   count=100 total=00:00:01.359488 avg=00:00:00.013594
+>> (2):               count=2 total=00:00:01.843859 avg=00:00:00.921929
+>> (3):               count=2 total=00:00:01.890710 avg=00:00:00.945355
+
+	1) my::time::to_duration: avg=00:00:00.000250
+	2) duration_from_string:  avg=00:00:00.014063 (в 56 раз)
+	3) istringstream >> (без создания потока на каждой итерации):
+	                          avg=00:00:00.013594 (в 54 раза)
+	4) + создание потока:     avg=00:00:00.921929 (в 3690 раз)
+	5) + форматирование:      avg=00:00:00.945355 (в 3780 раз)
+
+*/
+
+#ifndef MY_TIME_H
 #define MY_TIME_H
 
 #include "my_exception.h"
+#include "my_num.h"
+#include "my_str.h"
 
+#include <cstddef> /* std::size_t */
 #include <sstream>
 #include <istream>
 #include <ostream>
@@ -30,10 +54,10 @@ struct ptime_hash : std::unary_function<posix_time::ptime, std::size_t>
 {
 	std::size_t operator()(const posix_time::ptime &t) const
 	{
-		int size = sizeof(t) / sizeof(size_t);
+		int size = sizeof(t) / sizeof(std::size_t);
 
-		size_t seed = 0;
-		size_t *ptr = (size_t*)&t;
+		std::size_t seed = 0;
+		std::size_t *ptr = (std::size_t*)&t;
 
 		while (size--)
 			boost::hash_combine(seed, *ptr);
@@ -71,7 +95,9 @@ template<class Char, class TimeFacet>
 class mydef_format : public TimeFacet
 {
 public:	
-	mydef_format() : TimeFacet(get_def_time_fmt())
+	int a_;
+
+	mydef_format() : a_(123), TimeFacet(get_def_time_fmt())
 	{
 		static const Char def_duration_fmt[] =
 		{
@@ -98,8 +124,19 @@ inline void set_mydef_output_format(std::basic_ostream<Char> &out)
 {
 	typedef mydef_format<Char,
 		boost::date_time::time_facet<posix_time::ptime, Char> > my_format;
-	if (!has_facet<my_format>(out.getloc()))
+	//std::cout << "<<<" << endl;
+	if (has_facet<my_format>(out.getloc()))
+	{
+		//std::cout << "has_facet" << endl;
+		//std::cout << *(int*)&use_facet<my_format>(out.getloc()) << endl;
+		//std::cout << use_facet<my_format>(out.getloc()).a_ << endl;
+	}
+	else
+	{
+		//std::cout << "!has_facet" << endl;
 		out.imbue( std::locale(out.getloc(), new my_format) );
+	}
+	//std::cout << ">>>" << endl;
 }
 
 /* Функция быстрая для частого применения на одном и том же потоке */
@@ -157,7 +194,7 @@ Time format_to(
 	const Char *fmt,
 	const std::basic_string<Char> &str)
 {
-    Time time;
+	Time time;
 	std::basic_istringstream<Char> in(str);
 	set_input_format(in, fmt);
 	in >> time;
@@ -171,7 +208,7 @@ inline posix_time::ptime format_to_time(
 	const Char *fmt,
 	const std::basic_string<Char> &str)
 {
-    return format_to<posix_time::ptime>(fmt, str);
+	return format_to<posix_time::ptime>(fmt, str);
 }
 
 template<class Char>
@@ -179,13 +216,13 @@ inline posix_time::time_duration format_to_duration(
 	const Char *fmt,
 	const std::basic_string<Char> &str)
 {
-    return format_to<posix_time::time_duration>(fmt, str);
+	return format_to<posix_time::time_duration>(fmt, str);
 }
 
 template<class Time, class Char>
 Time str_to(const std::basic_string<Char> &str)
 {
-    Time time;
+	Time time;
 	std::basic_istringstream<Char> in(str);
 	set_mydef_input_format(in);
 	in >> time;
@@ -194,17 +231,235 @@ Time str_to(const std::basic_string<Char> &str)
 	return time;
 }
 
+
+template<class Char>
+std::size_t to_date_s(const Char *str, gregorian::date &date,
+	std::size_t size = -1)
+{
+	static const Char sep_list[] = { '-', '.', '/', ' ', ',', '\0' };
+
+	unsigned short y(0), m(0), d(0);
+	const Char *ptr = str;
+	const Char *end = (std::size_t)-1 ? my::str::end(str) : str + size;
+	Char sep;
+
+	date = gregorian::date(gregorian::not_a_date_time);
+
+	std::size_t n;
+
+	ptr += (n = my::num::to_ushort(ptr, y, end - ptr));
+
+	if (n != 0 && ptr != end &&
+		(sep = *std::find(sep_list, sep_list + sizeof(sep_list) - 1, *ptr)) != 0)
+	{	
+		if (++ptr != end)
+		{
+			ptr += (n = my::num::to_ushort(ptr, m, end - ptr));
+
+			if (n != 0 && ptr != end && *ptr == sep)
+			{	
+				if (++ptr != end)
+				{
+					ptr += (n = my::num::to_ushort(ptr, d, end - ptr));
+
+					if (y < d)
+					{
+						unsigned short tmp = d;
+						d = y;
+						y = tmp;
+					}
+
+					try { date = gregorian::date(y, m, d); }
+					catch(...) {}
+				}
+			}
+		}
+	}
+
+	return ptr - str;
+}
+
+template<class Char>
+inline std::size_t to_date_s(const std::basic_string<Char> &str,
+	gregorian::date &date)
+{
+	return to_date_s(str.c_str(), date, str.size());
+}
+
+template<class Char>
+inline gregorian::date to_date(const Char *str, std::size_t size = -1)
+{
+	gregorian::date date;
+	
+	if (size == (std::size_t)-1)
+		size = my::str::length(str);
+
+	if (size != to_date_s(str, date, size))
+		date = gregorian::date(gregorian::not_a_date_time);
+
+	return date;
+}
+
+template<class Char>
+inline gregorian::date to_date(const std::basic_string<Char> &str)
+{
+	return to_date(str.c_str(), str.size());
+}
+
+template<class Char>
+std::size_t to_time_s(const Char *str, posix_time::ptime &time,
+	std::size_t size = -1)
+{
+	const Char *ptr = str;
+	const Char *end = (std::size_t)-1 ? my::str::end(str) : str + size;
+
+	time = posix_time::ptime(posix_time::not_a_date_time);
+
+	gregorian::date date;
+	ptr += to_date_s(str, date, end - ptr);
+
+	if (!date.is_special() && ptr != end && *ptr == ' ' && ++ptr != end)
+	{
+		posix_time::time_duration dur;
+		ptr += to_duration_s(ptr, dur, end - ptr);
+
+		if (!dur.is_special() && !dur.is_negative() && dur.hours() < 24)
+			time = posix_time::ptime(date, dur);
+	}
+
+	return ptr - str;
+}
+
+template<class Char>
+inline std::size_t to_time_s(const std::basic_string<Char> &str,
+	posix_time::ptime &time)
+{
+	return to_time_s(str.c_str(), time, str.size());
+}
+
+template<class Char>
+inline posix_time::ptime to_time(const Char *str,
+	std::size_t size = -1)
+{
+	posix_time::ptime time;
+	
+	if (size == (std::size_t)-1)
+		size = my::str::length(str);
+
+	if (size != to_time_s(str, time, size))
+		time = posix_time::ptime(posix_time::not_a_date_time);
+
+	return time;
+}
+
 template<class Char>
 inline posix_time::ptime to_time(const std::basic_string<Char> &str)
 {
-	return str_to<posix_time::ptime>(str);
+	return to_time(str.c_str(), str.size());
+}
+
+template<class Char>
+std::size_t to_duration_s(const Char *str, posix_time::time_duration &dur,
+	std::size_t size = -1)
+{
+	unsigned long h(0), m(0), s(0), f(0);
+	const Char *ptr = str;
+	const Char *end = (std::size_t)-1 ? my::str::end(str) : str + size;
+	bool negative = false;
+
+	dur = posix_time::time_duration(gregorian::not_a_date_time);
+
+	if (ptr != end && *ptr == '-')
+	{
+		ptr++;
+		negative = true;
+	}
+
+	std::size_t n;
+
+	/* Часы */
+	ptr += (n = my::num::to_ulong(ptr, h, end - ptr));
+
+	if (n != 0 && ptr != end && *ptr == ':' && ++ptr != end)
+	{	
+		/* Минуты */
+		ptr += (n = my::num::to_ulong(ptr, m, end - ptr));
+
+		if (n != 0 && m < 60 && ptr != end && *ptr == ':' && ++ptr != end)
+		{
+			/* Секунды */
+			ptr += (n = my::num::to_ulong(ptr, s, end - ptr));
+
+			if (n != 0 && s < 60)
+			{
+				/* Доли секунд (могут отсутствовать) */
+				if (ptr != end && *ptr == '.' && ++ptr != end)
+				{
+					ptr += (n = my::num::to_ulong(ptr, f, end - ptr));
+
+					/* Но если есть точка, должно быть и число */
+					if (n == 0)
+						return ptr - str;
+				}
+
+				try {
+					
+					dur = posix_time::time_duration(h, m, s, f);
+
+					if (negative)
+						dur = -dur;
+				}
+				catch(...) {}
+			}
+		}
+	}
+
+	return ptr - str;
+}
+
+template<class Char>
+inline std::size_t to_duration_s(const std::basic_string<Char> &str,
+	posix_time::time_duration &dur)
+{
+	return to_duration_s(str.c_str(), dur, str.size());
+}
+
+template<class Char>
+inline posix_time::time_duration to_duration(const Char *str,
+	std::size_t size = -1)
+{
+	posix_time::time_duration dur;
+	
+	if (size == (std::size_t)-1)
+		size = my::str::length(str);
+
+	if (size != to_duration_s(str, dur, size))
+		dur = posix_time::time_duration(posix_time::not_a_date_time);
+
+	return dur;
 }
 
 template<class Char>
 inline posix_time::time_duration to_duration(const std::basic_string<Char> &str)
 {
-	return str_to<posix_time::time_duration>(str);
+	return to_duration(str.c_str(), str.size());
 }
+
+template<class Char>
+inline posix_time::time_duration old_to_duration(const std::basic_string<Char> &str)
+{
+	posix_time::time_duration dur(posix_time::not_a_date_time);
+
+	try
+	{
+		dur = boost::date_time::str_from_delimited_time_duration<
+				posix_time::time_duration, Char>(str);
+	}
+	catch(...) {}
+
+	return dur;
+}
+
 
 }}
 

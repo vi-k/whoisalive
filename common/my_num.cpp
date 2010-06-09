@@ -94,6 +94,10 @@ inline bool to_real_b(const Char *str, Type &res, std::size_t size)
 
 }}
 
+int my_num_dummy()
+//int main()
+{
+
 #define DUMMY(N,T) {\
 	T n = 0;\
 	my::num::to_##N##_def("", n, -1);\
@@ -103,9 +107,6 @@ inline bool to_real_b(const Char *str, Type &res, std::size_t size)
 	my::num::to_##N##(L"", n, -1);\
 	my::num::to_##N##_b(L"", n, -1);}
 
-int my_num_dummy()
-//int main()
-{
     DUMMY(signed,char)
     DUMMY(signed,short)
     DUMMY(signed,int)
