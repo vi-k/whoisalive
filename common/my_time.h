@@ -26,12 +26,15 @@
 #include <string>
 #include <locale> /* facet */
 
+#include <boost/date_time/special_defs.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
-namespace gregorian=boost::gregorian;
 #include <boost/date_time/posix_time/posix_time.hpp>
-namespace posix_time=boost::posix_time;
 #include "boost/date_time/local_time/local_time.hpp"
+
+namespace gregorian=boost::gregorian;
+namespace posix_time=boost::posix_time;
 namespace local_time=boost::local_time;
+namespace date_time=boost::date_time;
 
 #include <boost/functional/hash.hpp>
 
@@ -92,21 +95,17 @@ public:
 
 	mydef_format() : a_(123), TimeFacet(get_def_time_fmt())
 	{
-		static const Char def_duration_fmt[] =
-		{
-			'%', 'H', ':', '%', 'M', ':', '%', 'S', '%', 'F', '\0'
-		};
+		static const Char def_duration_fmt[]
+			= { '%','H',':','%','M',':','%','S','%','F', 0 };
 
 		time_duration_format(def_duration_fmt);
 	}
 
 	inline static const Char* get_def_time_fmt()
 	{
-		static const Char def_time_fmt[] =
-		{
-			'%', 'Y', '-', '%', 'm', '-', '%', 'd', ' ',
-			'%', 'H', ':', '%', 'M', ':', '%', 'S', '%', 'F', '\0'
-		};
+		static const Char def_time_fmt[]
+			= { '%','Y','-','%','m','-','%','d',' ',
+			'%','H',':','%','M',':','%','S','%','F', 0 };
 		return def_time_fmt;
 	}
 };
@@ -204,12 +203,65 @@ inline posix_time::time_duration format_to_duration(
 	return format_to<posix_time::time_duration>(fmt, str);
 }
 
+template<class Time>
+date_time::special_values as_special(const Time &t)
+{
+	if (t.is_not_a_date_time())
+		return date_time::not_a_date_time;
+	else if (t.is_neg_infinity())
+		return date_time::neg_infin;
+	else if (t.is_pos_infinity())
+		return date_time::pos_infin;
+
+	return date_time::not_special;
+}
+
+template<class Char>
+std::size_t put(Char *buf, std::size_t buf_sz,
+	const date_time::special_values &sv)
+{
+	static const Char neg_infinity[]
+		= { '-','i','n','f','i','n','i','t','y', 0 };
+	static const Char pos_infinity[]
+		= { '+','i','n','f','i','n','i','t','y', 0 };
+	static const Char not_a_date_time[]
+		= { 'n','o','t','-','a','-','d','a','t','e',
+			'-','t','i','m','e', 0 };
+	static const Char not_special[]
+		= { 'n','o','t','-','s','p','e','c','i','a','l', 0 };
+
+	Char *ptr = buf;
+	Char *end = buf + buf_sz;
+
+	switch (sv)
+	{
+		case date_time::not_a_date_time:
+			ptr += my::str::put(ptr, end - ptr, not_a_date_time);
+			break;
+
+		case date_time::neg_infin:
+			ptr += my::str::put(ptr, end - ptr, neg_infinity);
+			break;
+		
+		case date_time::pos_infin:
+			ptr += my::str::put(ptr, end - ptr, pos_infinity);
+			break;
+		
+		default:
+			ptr += my::str::put(ptr, end - ptr, not_special);
+	}
+
+	return ptr - buf;
+}
 
 /* Преобразование даты (boost::gregorian::date) в строку */
 template<class Char>
 std::size_t put(Char *buf, std::size_t buf_sz,
 	const gregorian::date &date)
 {
+	if (date.is_special())
+		return put(buf, buf_sz, date.as_special());
+
 	Char *ptr = buf;
 	Char *end = buf + buf_sz;
 
@@ -229,6 +281,9 @@ template<class Char>
 std::size_t put(Char *buf, std::size_t buf_sz,
 	const posix_time::ptime &time)
 {
+	if (time.is_special())
+		return put(buf, buf_sz, as_special(time));
+
 	Char *ptr = buf;
 	Char *end = buf + buf_sz;
 
@@ -244,76 +299,50 @@ template<class Char>
 std::size_t put(Char *buf, std::size_t buf_sz,
 	const posix_time::time_duration &dur)
 {
-	static const Char neg_infinity[]
-		= { '-', 'i', 'n', 'f', 'i', 'n', 'i', 't', 'y', 0 };
-	static const Char pos_infinity[]
-		= { '+', 'i', 'n', 'f', 'i', 'n', 'i', 't', 'y', 0 };
-	static const Char not_a_date_time[]
-		= { 'n', 'o', 't', '-', 'a', '-', 'd', 'a', 't', 'e',
-			'-', 't', 'i', 'm', 'e', 0 };
-
+	if (dur.is_special())
+		return put(buf, buf_sz, as_special(dur));
+	
 	Char *ptr = buf;
 	Char *end = buf + buf_sz;
 
-	if (dur.is_neg_infinity())
-		ptr += my::str::put(ptr, end - ptr, neg_infinity);
-	else if (dur.is_pos_infinity())
-		ptr += my::str::put(ptr, end - ptr, pos_infinity);
-	else if (dur.is_not_a_date_time())
-		ptr += my::str::put(ptr, end - ptr, not_a_date_time);
-	else
+	long long ticks = dur.ticks();
+
+	if (ticks < 0)
 	{
-		boost::int64_t ticks = dur.ticks();
+		ptr += my::str::put(ptr, end - ptr, Char('-'));
+		ticks = -ticks;
+	}
+		
+	long long total_seconds = ticks / dur.ticks_per_second();
+	long long hours = total_seconds / 3600;
 
-		if (ticks < 0)
-		{
-			ptr += my::str::put(ptr, end - ptr, Char('-'));
-			ticks = -ticks;
-		}
+	long fseconds = static_cast<long>(ticks
+		- total_seconds * dur.ticks_per_second());
+	long seconds = static_cast<long>(total_seconds - hours * 3600);
+	long minutes = seconds / 60;
+	seconds -= minutes * 60;
+		
+	ptr += my::num::put(ptr, end - ptr, hours, 2);
+	ptr += my::str::put(ptr, end - ptr, Char(':'));
+	ptr += my::num::put(ptr, end - ptr, minutes, 2);
+	ptr += my::str::put(ptr, end - ptr, Char(':'));
+	ptr += my::num::put(ptr, end - ptr, seconds, 2);
 
-		//td.ticks() / (3600*td.ticks_per_second())
-		ptr += my::num::put(ptr, end - ptr,
-			td.ticks() / (3600*td.ticks_per_second()), 2);
-
-		ptr += my::num::put(ptr, end - ptr, tmp_dur.hours(), 2);
-		ptr += my::str::put(ptr, end - ptr, Char(':'));
-		ptr += my::num::put(ptr, end - ptr, tmp_dur.minutes(), 2);
-		ptr += my::str::put(ptr, end - ptr, Char(':'));
-		ptr += my::num::put(ptr, end - ptr, tmp_dur.seconds(), 2);
-
-		long fs = tmp_dur.fractional_seconds();
-		if (fs)
-		{
-			ptr += my::str::put(ptr, end - ptr, Char('.'));
-			ptr += my::num::put(ptr, end - ptr, fs,
-				posix_time::time_duration::num_fractional_digits());
-		}
+	if (fseconds)
+	{
+		ptr += my::str::put(ptr, end - ptr, Char('.'));
+		ptr += my::num::put(ptr, end - ptr, fseconds,
+			posix_time::time_duration::num_fractional_digits());
 	}
 
 	return ptr - buf;
 }
 
-template<class Char>
-inline std::basic_string<Char> to_str(const gregorian::date &date)
-{
-	Char buf[11]; /* 2010-06-10 - 10 */
-	put(buf, sizeof(buf) / sizeof(*buf), date);
-	return std::basic_string<Char>(buf);
-}
-
-template<class Char>
-inline std::basic_string<Char> to_str(const posix_time::ptime &time)
+template<class Char,class Time>
+inline std::basic_string<Char> to_str(const Time &t)
 {
 	Char buf[30]; /* 2010-06-10 16:02:14.123456[789] - 26/29 */
-	put(buf, sizeof(buf) / sizeof(*buf), time);
-	return std::basic_string<Char>(buf);
-}
-
-template<class Char>
-inline std::basic_string<Char> to_str(const posix_time::time_duration &dur)
-{
-	Char buf[25]; /* -1732919508:00:54.775805 - 24 */
-	put(buf, sizeof(buf) / sizeof(*buf), dur);
+	put(buf, sizeof(buf) / sizeof(*buf), t);
 	return std::basic_string<Char>(buf);
 }
 
@@ -331,7 +360,7 @@ template<class Char>
 std::size_t to_date_s(const Char *str, gregorian::date &date,
 	std::size_t size = -1)
 {
-	static const Char sep_list[] = { '-', '.', '/', ' ', ',', '\0' };
+	static const Char sep_list[] = { '-','.','/',' ',',', 0 };
 
 	unsigned short y(0), m(0), d(0);
 	const Char *ptr = str;
