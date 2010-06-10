@@ -81,16 +81,17 @@ public:
 			out << "total=" << sw.total;
 		else
 		{
+			int index = 0;
 			if (sw.show_ & show_count)
-				out	<< "count=" << sw.count;
+				out	<< (index++ ? " " : "") << "count=" << sw.count;
 			if (sw.show_ & show_total)
-				out << " total=" << sw.total;
+				out << (index++ ? " " : "") << "total=" << sw.total;
 			if (sw.show_ & show_avg)
-				out << " avg=" << sw.avg();
+				out << (index++ ? " " : "") << "avg=" << sw.avg();
 			if (sw.show_ & show_min)
-				out << " min=" << sw.min;
+				out << (index++ ? " " : "") << "min=" << sw.min;
 			if (sw.show_ & show_max)
-				out << " max=" << sw.max;
+				out << (index++ ? " " : "") << "max=" << sw.max;
 		}
 
 		return out;
