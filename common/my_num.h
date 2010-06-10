@@ -28,10 +28,10 @@
 		
 		
 		template<class Char>
-		size_t /type_name/_to(
-				type value,
+		size_t put(
 				Char *buf,
 				size_t size,
+				type value,
 				size_t decimals = 0);
 
 			Преобразование числа value в буфер buf размером size.
@@ -42,15 +42,15 @@
 
 
 		template<class Char>
-		std::basic_string<Char> /type_name/_to_str(
+		std::basic_string<Char> to_str(
 				type value,
 				size_t decimals = 0);
 
-		std::string /type_name/_to_string(
+		std::string to_string(
 				type value,
 				size_t decimals = 0);
 
-		std::wstring /type_name/_to_wstring(
+		std::wstring to_wstring(
 				type value,
 				size_t decimals = 0);
 
@@ -129,8 +129,8 @@ namespace my { namespace num {
 	любые типы и результат такого действия не предсказуем.
 */
 template<class T, class Char>
-std::size_t signed_to(T n, Char *str, std::size_t size,
-	std::size_t decimals = 0)
+std::size_t put_signed(Char *str, std::size_t size,
+	T n, std::size_t decimals = 0)
 {
 	static const Char sym[]
 		= { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
@@ -204,8 +204,8 @@ std::size_t signed_to(T n, Char *str, std::size_t size,
 */
 
 template<class T, class Char>
-std::size_t unsigned_to(T n, Char *str, std::size_t size,
-	std::size_t decimals = 0)
+std::size_t put_unsigned(Char *str, std::size_t size,
+	T n, std::size_t decimals = 0)
 {
 	static const Char sym[]
 		= { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
@@ -256,47 +256,47 @@ std::size_t unsigned_to(T n, Char *str, std::size_t size,
 }
 
 template<class T, class Char>
-inline std::basic_string<Char> signed_to(T n, std::size_t decimals = 0)
+inline std::basic_string<Char> signed_to_str(T n, std::size_t decimals = 0)
 {
 	Char buf[NUM_TO_STR_BUF_SIZE];
 	std::size_t sz
-		= signed_to<T,Char>(n, buf, sizeof(buf), decimals);
+		= put_signed<T,Char>(buf, sizeof(buf) / sizeof(*buf), n, decimals);
 	return std::basic_string<Char>(buf);
 }
 
 template<class T, class Char>
-inline std::basic_string<Char> unsigned_to(T n, std::size_t decimals = 0)
+inline std::basic_string<Char> unsigned_to_str(T n, std::size_t decimals = 0)
 {
 	Char buf[NUM_TO_STR_BUF_SIZE];
 	std::size_t sz
-		= unsigned_to<T,Char>(n, buf, sizeof(buf), decimals);
+		= put_unsigned<T,Char>(buf, sizeof(buf) / sizeof(*buf), n, decimals);
 	return std::basic_string<Char>(buf);
 }
 
-#define DEF_NUM_TO_FUNCS(S,N,T)\
+#define DEF_NUM_TO_FUNCS(S,T)\
 template<class Char>\
-inline std::size_t N##_to(T n, Char *str, std::size_t size,\
-	std::size_t decimals = 0)\
-	{ return S##_to<T,Char>(n, str, size, decimals); }\
+inline std::size_t put(Char *str, std::size_t size,\
+	T n, std::size_t decimals = 0)\
+	{ return put_##S<T,Char>(str, size, n, decimals); }\
 template<class Char>\
-inline std::basic_string<Char> N##_to_str(T n, std::size_t decimals = 0)\
-	{ return S##_to<T,Char>(n, decimals); }\
-inline std::string N##_to_string(T n, std::size_t decimals = 0)\
-	{ return N##_to_str<char>(n, decimals); }\
-inline std::wstring N##_to_wstring(T n, std::size_t decimals = 0)\
-	{ return N##_to_str<wchar_t>(n, decimals); }
+inline std::basic_string<Char> to_str(T n, std::size_t decimals = 0)\
+	{ return S##_to_str<T,Char>(n, decimals); }\
+inline std::string to_string(T n, std::size_t decimals = 0)\
+	{ return to_str<char>(n, decimals); }\
+inline std::wstring to_wstring(T n, std::size_t decimals = 0)\
+	{ return to_str<wchar_t>(n, decimals); }
 
-DEF_NUM_TO_FUNCS(signed,char,char)
-DEF_NUM_TO_FUNCS(signed,short,short)
-DEF_NUM_TO_FUNCS(signed,int,int)
-DEF_NUM_TO_FUNCS(signed,long,long)
-DEF_NUM_TO_FUNCS(signed,longlong,long long)
+DEF_NUM_TO_FUNCS(signed,char)
+DEF_NUM_TO_FUNCS(signed,short)
+DEF_NUM_TO_FUNCS(signed,int)
+DEF_NUM_TO_FUNCS(signed,long)
+DEF_NUM_TO_FUNCS(signed,long long)
 
-DEF_NUM_TO_FUNCS(unsigned,uchar,unsigned char)
-DEF_NUM_TO_FUNCS(unsigned,ushort,unsigned short)
-DEF_NUM_TO_FUNCS(unsigned,uint,unsigned int)
-DEF_NUM_TO_FUNCS(unsigned,ulong,unsigned long)
-DEF_NUM_TO_FUNCS(unsigned,ulonglong,unsigned long long)
+DEF_NUM_TO_FUNCS(unsigned,unsigned char)
+DEF_NUM_TO_FUNCS(unsigned,unsigned short)
+DEF_NUM_TO_FUNCS(unsigned,unsigned int)
+DEF_NUM_TO_FUNCS(unsigned,unsigned long)
+DEF_NUM_TO_FUNCS(unsigned,unsigned long long)
 
 
 template<class Char, class Type, class Rule>

@@ -26,6 +26,41 @@ inline std::size_t length(const Char *str)
 	return end(str) - str;
 }
 
+template<class Char>
+inline std::size_t put(Char *buf, std::size_t buf_sz, Char c)
+{
+	if (buf_sz < 2)
+	{
+		if (buf_sz == 1)
+			*buf = 0;
+		
+		return 0;
+	}
+
+	*buf++ = c;
+	*buf = 0;
+
+	return 1;
+}
+
+template<class Char>
+inline std::size_t put(Char *buf, std::size_t buf_sz, const Char *str)
+{
+	Char *ptr = buf;
+
+	if (buf_sz)
+	{
+		Char *last = buf + buf_sz - 1;
+
+		while (*str && ptr < last)
+			*ptr++ = *str++;
+	
+		*ptr = 0;
+	}
+	
+	return ptr - buf;
+}
+
 std::string to_string(const wchar_t *str, int len = -1);
 inline std::string to_string(const std::wstring &str)
 	{ return my::str::to_string(str.c_str(), (int)str.size()); }
