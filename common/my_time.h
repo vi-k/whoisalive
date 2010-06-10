@@ -10,7 +10,6 @@
 	                          avg=00:00:00.013594 (в 54 раза)
 	4) + создание потока:     avg=00:00:00.921929 (в 3690 раз)
 	5) + форматирование:      avg=00:00:00.945355 (в 3780 раз)
-
 */
 
 #ifndef MY_TIME_H
@@ -57,7 +56,7 @@ struct ptime_hash : std::unary_function<posix_time::ptime, std::size_t>
 			boost::hash_combine(seed, *ptr);
 
 		return seed;
-   	}
+	}
 };
 
 posix_time::ptime utc_to_local(const posix_time::ptime &utc_time);
@@ -154,7 +153,7 @@ std::basic_string<Char> format(const Char *fmt,
 	return out.str();
 }
 
-
+/*-
 template<class Char, class Time>
 std::basic_string<Char> to_str(const Time &time)
 {
@@ -163,15 +162,7 @@ std::basic_string<Char> to_str(const Time &time)
 	out << time;
 	return out.str();
 }
-
-template<class Time>
-inline std::string to_string(const Time &time)
-	{ return to_str<char>(time); }
-
-template<class Time>
-inline std::wstring to_wstring(const Time &time)
-	{ return to_str<wchar_t>(time); }
-
+-*/
 
 template<class Time>
 void throw_if_fail(const Time &time,
@@ -213,13 +204,129 @@ inline posix_time::time_duration format_to_duration(
 	return format_to<posix_time::time_duration>(fmt, str);
 }
 
+
+/* Преобразование даты (boost::gregorian::date) в строку */
 template<class Char>
-std::basic_string<Char> new_to_str(const gregorian::date &date)
+std::size_t put(Char *buf, std::size_t buf_sz,
+	const gregorian::date &date)
 {
-	std::basic_string<Char> str(10);
-	return out.str();
+	Char *ptr = buf;
+	Char *end = buf + buf_sz;
+
+	gregorian::date::ymd_type ymd = date.year_month_day();
+
+	ptr += my::num::put(ptr, end - ptr, ymd.year, 4);
+	ptr += my::str::put(ptr, end - ptr, Char('-'));
+	ptr += my::num::put(ptr, end - ptr, ymd.month, 2);
+	ptr += my::str::put(ptr, end - ptr, Char('-'));
+	ptr += my::num::put(ptr, end - ptr, ymd.day, 2);
+
+	return ptr - buf;
 }
 
+/* Преобразование даты/времени (boost::posix_time::ptime) в строку */
+template<class Char>
+std::size_t put(Char *buf, std::size_t buf_sz,
+	const posix_time::ptime &time)
+{
+	Char *ptr = buf;
+	Char *end = buf + buf_sz;
+
+	ptr += put(ptr, end - ptr, time.date());
+	ptr += my::str::put(ptr, end - ptr, Char(' '));
+	ptr += put(ptr, end - ptr, time.time_of_day());
+
+	return ptr - buf;
+}
+
+/* Преобразование длительности (boost::posix_time::time_duration) в строку */
+template<class Char>
+std::size_t put(Char *buf, std::size_t buf_sz,
+	const posix_time::time_duration &dur)
+{
+	static const Char neg_infinity[]
+		= { '-', 'i', 'n', 'f', 'i', 'n', 'i', 't', 'y', 0 };
+	static const Char pos_infinity[]
+		= { '+', 'i', 'n', 'f', 'i', 'n', 'i', 't', 'y', 0 };
+	static const Char not_a_date_time[]
+		= { 'n', 'o', 't', '-', 'a', '-', 'd', 'a', 't', 'e',
+			'-', 't', 'i', 'm', 'e', 0 };
+
+	Char *ptr = buf;
+	Char *end = buf + buf_sz;
+
+	if (dur.is_neg_infinity())
+		ptr += my::str::put(ptr, end - ptr, neg_infinity);
+	else if (dur.is_pos_infinity())
+		ptr += my::str::put(ptr, end - ptr, pos_infinity);
+	else if (dur.is_not_a_date_time())
+		ptr += my::str::put(ptr, end - ptr, not_a_date_time);
+	else
+	{
+		boost::int64_t ticks = dur.ticks();
+
+		if (ticks < 0)
+		{
+			ptr += my::str::put(ptr, end - ptr, Char('-'));
+			ticks = -ticks;
+		}
+
+		//td.ticks() / (3600*td.ticks_per_second())
+		ptr += my::num::put(ptr, end - ptr,
+			td.ticks() / (3600*td.ticks_per_second()), 2);
+
+		ptr += my::num::put(ptr, end - ptr, tmp_dur.hours(), 2);
+		ptr += my::str::put(ptr, end - ptr, Char(':'));
+		ptr += my::num::put(ptr, end - ptr, tmp_dur.minutes(), 2);
+		ptr += my::str::put(ptr, end - ptr, Char(':'));
+		ptr += my::num::put(ptr, end - ptr, tmp_dur.seconds(), 2);
+
+		long fs = tmp_dur.fractional_seconds();
+		if (fs)
+		{
+			ptr += my::str::put(ptr, end - ptr, Char('.'));
+			ptr += my::num::put(ptr, end - ptr, fs,
+				posix_time::time_duration::num_fractional_digits());
+		}
+	}
+
+	return ptr - buf;
+}
+
+template<class Char>
+inline std::basic_string<Char> to_str(const gregorian::date &date)
+{
+	Char buf[11]; /* 2010-06-10 - 10 */
+	put(buf, sizeof(buf) / sizeof(*buf), date);
+	return std::basic_string<Char>(buf);
+}
+
+template<class Char>
+inline std::basic_string<Char> to_str(const posix_time::ptime &time)
+{
+	Char buf[30]; /* 2010-06-10 16:02:14.123456[789] - 26/29 */
+	put(buf, sizeof(buf) / sizeof(*buf), time);
+	return std::basic_string<Char>(buf);
+}
+
+template<class Char>
+inline std::basic_string<Char> to_str(const posix_time::time_duration &dur)
+{
+	Char buf[25]; /* -1732919508:00:54.775805 - 24 */
+	put(buf, sizeof(buf) / sizeof(*buf), dur);
+	return std::basic_string<Char>(buf);
+}
+
+template<class Time>
+inline std::string to_string(const Time &time)
+	{ return to_str<char>(time); }
+
+template<class Time>
+inline std::wstring to_wstring(const Time &time)
+	{ return to_str<wchar_t>(time); }
+
+
+/* Преобразование строки в дату (boost::gregorian::date) */
 template<class Char>
 std::size_t to_date_s(const Char *str, gregorian::date &date,
 	std::size_t size = -1)
@@ -238,7 +345,8 @@ std::size_t to_date_s(const Char *str, gregorian::date &date,
 	ptr += (n = my::num::to_ushort(ptr, y, end - ptr));
 
 	if (n != 0 && ptr != end &&
-		(sep = *std::find(sep_list, sep_list + sizeof(sep_list) - 1, *ptr)) != 0)
+		(sep = *std::find(sep_list, sep_list
+			+ sizeof(sep_list) / sizeof(*sep_list) - 1, *ptr)) != 0)
 	{	
 		if (++ptr != end)
 		{
@@ -294,6 +402,8 @@ inline gregorian::date to_date(const std::basic_string<Char> &str)
 	return to_date(str.c_str(), str.size());
 }
 
+
+/* Преобразование строки в дату/время (boost::posix_time::ptime) */
 template<class Char>
 std::size_t to_time_s(const Char *str, posix_time::ptime &time,
 	std::size_t size = -1)
@@ -346,6 +456,8 @@ inline posix_time::ptime to_time(const std::basic_string<Char> &str)
 	return to_time(str.c_str(), str.size());
 }
 
+
+/* Преобразование строки в длительность (boost::posix_time::time_duration) */
 template<class Char>
 std::size_t to_duration_s(const Char *str, posix_time::time_duration &dur,
 	std::size_t size = -1)
@@ -431,21 +543,6 @@ template<class Char>
 inline posix_time::time_duration to_duration(const std::basic_string<Char> &str)
 {
 	return to_duration(str.c_str(), str.size());
-}
-
-template<class Char>
-inline posix_time::time_duration old_to_duration(const std::basic_string<Char> &str)
-{
-	posix_time::time_duration dur(posix_time::not_a_date_time);
-
-	try
-	{
-		dur = boost::date_time::str_from_delimited_time_duration<
-				posix_time::time_duration, Char>(str);
-	}
-	catch(...) {}
-
-	return dur;
 }
 
 

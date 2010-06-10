@@ -14,51 +14,51 @@ int main(void)
 	STR str;\
 	T n;\
 	n = 0;\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << "[0000..] " << (CAST)n << " = " << str << endl;\
 	n = ~0;\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << "[1111..] " << (CAST)n << " = " << str << endl;\
 	n = (unsigned T)~0 >> 1;\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << "[0111..] " << (CAST)n << " = " << str << endl;\
 	n = ~((unsigned T)~0 >> 1);\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << "[1000..] " << (CAST)n << " = " << str << endl;\
 	n = 123;\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << (CAST)n << " = " << str << endl;\
 	n = 123;\
-	str = my::num::##N##_to_##STR(n, 5);\
+	str = my::num::to_##STR(n, 5);\
 	COUT << (CAST)n << "[dec=5] = " << str << endl;\
 	n = -123;\
-	str = my::num::##N##_to_##STR(n, 5);\
+	str = my::num::to_##STR(n, 5);\
 	COUT << (CAST)n << "[dec=5] = " << str << endl;\
 	STR::value_type buf[64];\
 	size_t sz;\
 	n = 123;\
-	sz = my::num::##N##_to(n, buf, 4);\
+	sz = my::num::put(buf, 4, n);\
 	COUT << (CAST)n << "[sz=4] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = 123;\
-	sz = my::num::##N##_to(n, buf, 3);\
+	sz = my::num::put(buf, 3, n);\
 	COUT << (CAST)n << "[sz=3] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = -123;\
-	sz = my::num::##N##_to(n, buf, 4);\
+	sz = my::num::put(buf, 4, n);\
 	COUT << (CAST)n << "[sz=4] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = -123;\
-	sz = my::num::##N##_to(n, buf, 5);\
+	sz = my::num::put(buf, 5, n);\
 	COUT << (CAST)n << "[sz=5] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = 123;\
-	sz = my::num::##N##_to(n, buf, 5, 5);\
+	sz = my::num::put(buf, 5, n, 5);\
 	COUT << (CAST)n << "[sz=5,dec=5] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = 123;\
-	sz = my::num::##N##_to(n, buf, 6, 5);\
+	sz = my::num::put(buf, 6, n, 5);\
 	COUT << (CAST)n << "[sz=6,dec=5] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = -123;\
-	sz = my::num::##N##_to(n, buf, 6, 5);\
+	sz = my::num::put(buf, 6, n, 5);\
 	COUT << (CAST)n << "[sz=6,dec=5] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = -123;\
-	sz = my::num::##N##_to(n, buf, 7, 5);\
+	sz = my::num::put(buf, 7, n, 5);\
 	COUT << (CAST)n << "[sz=7,dec=5] = " << buf << " (sz=" << sz << ")" << endl;\
 	COUT << endl;}
 
@@ -69,36 +69,36 @@ int main(void)
 	STR str;\
 	T n;\
 	n = 0;\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << "[0000..] " << (CAST)n << " = " << str << endl;\
 	n = ~0;\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << "[1111..] " << (CAST)n << " = " << str << endl;\
 	n = (T)~0 >> 1;\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << "[0111..] " << (CAST)n << " = " << str << endl;\
 	n = ~((T)~0 >> 1);\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << "[1000..] " << (CAST)n << " = " << str << endl;\
 	n = 123;\
-	str = my::num::##N##_to_##STR(n);\
+	str = my::num::to_##STR(n);\
 	COUT << (CAST)n << " = " << str << endl;\
 	n = 123;\
-	str = my::num::##N##_to_##STR(n, 5);\
+	str = my::num::to_##STR(n, 5);\
 	COUT << (CAST)n << "[dec=5] = " << str << endl;\
 	STR::value_type buf[64];\
 	size_t sz;\
 	n = 123;\
-	sz = my::num::##N##_to(n, buf, 4);\
+	sz = my::num::put(buf, 4, n);\
 	COUT << (CAST)n << "[sz=4] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = 123;\
-	sz = my::num::##N##_to(n, buf, 3);\
+	sz = my::num::put(buf, 3, n);\
 	COUT << (CAST)n << "[sz=3] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = 123;\
-	sz = my::num::##N##_to(n, buf, 5, 5);\
+	sz = my::num::put(buf, 5, n, 5);\
 	COUT << (CAST)n << "[sz=5,dec=5] = " << buf << " (sz=" << sz << ")" << endl;\
 	n = 123;\
-	sz = my::num::##N##_to(n, buf, 6, 5);\
+	sz = my::num::put(buf, 6, n, 5);\
 	COUT << (CAST)n << "[sz=6,dec=5] = " << buf << " (sz=" << sz << ")" << endl;\
 	COUT << endl;}
 

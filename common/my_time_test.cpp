@@ -177,6 +177,6 @@ int main()
 	TEST("time",time,posix_time::ptime,"2010/06/09 12:00:00.123456")
 	TEST("time",time,posix_time::ptime,"2010.06.09 12:00:00.123456 ")
 	TEST("time",time,posix_time::ptime,"29 06 2010 09:30:00 ")
-	
+
 	return 0;
 }
