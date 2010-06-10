@@ -35,9 +35,15 @@ public:
 		: count(0)
 		, show_(show) {}
 
-	void reset()
+	inline void reset()
 	{
 		*this = stopwatch(show_);
+	}
+
+	inline void restart()
+	{
+		reset();
+		start();
 	}
 
 	inline void start()
