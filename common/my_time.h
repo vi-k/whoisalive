@@ -203,6 +203,10 @@ inline posix_time::time_duration format_to_duration(
 	return format_to<posix_time::time_duration>(fmt, str);
 }
 
+/*
+	Вывод даты/времени в строку
+*/
+
 template<class Time>
 date_time::special_values as_special(const Time &t)
 {
@@ -282,7 +286,7 @@ std::size_t put(Char *buf, std::size_t buf_sz,
 	const posix_time::ptime &time)
 {
 	if (time.is_special())
-		return put(buf, buf_sz, as_special(time));
+		return put(buf, buf_sz, my::time::as_special(time));
 
 	Char *ptr = buf;
 	Char *end = buf + buf_sz;
@@ -300,7 +304,7 @@ std::size_t put(Char *buf, std::size_t buf_sz,
 	const posix_time::time_duration &dur)
 {
 	if (dur.is_special())
-		return put(buf, buf_sz, as_special(dur));
+		return put(buf, buf_sz, my::time::as_special(dur));
 	
 	Char *ptr = buf;
 	Char *end = buf + buf_sz;
@@ -342,17 +346,17 @@ template<class Char,class Time>
 inline std::basic_string<Char> to_str(const Time &t)
 {
 	Char buf[30]; /* 2010-06-10 16:02:14.123456[789] - 26/29 */
-	put(buf, sizeof(buf) / sizeof(*buf), t);
+	my::time::put(buf, sizeof(buf) / sizeof(*buf), t);
 	return std::basic_string<Char>(buf);
 }
 
 template<class Time>
 inline std::string to_string(const Time &time)
-	{ return to_str<char>(time); }
+	{ return my::time::to_str<char>(time); }
 
 template<class Time>
 inline std::wstring to_wstring(const Time &time)
-	{ return to_str<wchar_t>(time); }
+	{ return my::time::to_str<wchar_t>(time); }
 
 
 /* Преобразование строки в дату (boost::gregorian::date) */
