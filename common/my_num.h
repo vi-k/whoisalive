@@ -10,6 +10,100 @@
 		вынес в *.cpp (и чтоб они компилировались, а не игнорировались,
 		включил функцию my_num_dummy, которая задействует все возможные
 		варианты).
+
+	Функции:
+		
+		Легенда:
+			type_name, type - тип числа:
+				char      -> char
+				uchar     -> unsigned char
+				short     -> short
+				ushort    -> unsigned short
+				int       -> int
+				uint      -> unsigned int
+				long      -> long
+				ulong     -> unsigned long
+				longlong  -> long long
+				ulonglong -> unsigned long long
+		
+		
+		template<class Char>
+		size_t /type_name/_to(
+				type value,
+				Char *buf,
+				size_t size,
+				size_t decimals = 0);
+
+			Преобразование числа value в буфер buf размером size.
+			decimals - минимальное кол-во цифр.
+			
+			Возврат: размер полученной строки (без учёта
+				завершающего нуля).
+
+
+		template<class Char>
+		std::basic_string<Char> /type_name/_to_str(
+				type value,
+				size_t decimals = 0);
+
+		std::string /type_name/_to_string(
+				type value,
+				size_t decimals = 0);
+
+		std::wstring /type_name/_to_wstring(
+				type value,
+				size_t decimals = 0);
+
+			Преобразование числа value в строку.
+
+
+		template<class Char>
+		size_t to_/type_name/(
+				const Char *str,
+				type &res,
+				size_t size = -1);
+
+		template<class Char>
+		size_t to_/type_name/(
+				const std::basic_string<Char> &str,
+				type &res);
+
+			Преобразование строки str в число.
+
+			Возврат: кол-во символов, считанных из буфера или строки;
+				res - полученное значение.
+
+
+		template<class Char>
+		type to_/type_name/_def(
+				const Char *str,
+				type def,
+				size_t size = -1);
+
+		template<class Char>
+		type to_/type_name/_def(
+				const std::basic_string<Char> &str,
+				type def);
+
+			Преобразование строки str в число. В случае ошибки разбора,
+			возвращается def.
+
+
+		template<class Char>
+		bool to_/type_name/_b(
+				const Char *str,
+				type &res,
+				size_t size = -1);
+
+		template<class Char>
+		bool to_/type_name/_b(
+				const std::basic_string<Char> &str,
+				type &res)\
+
+			Преобразование строки str в число.
+			
+			Возврат: успешно ли выполнено преобразование.
+
 */
 
 #ifndef MY_NUM_H
@@ -185,12 +279,12 @@ inline std::size_t N##_to(T n, Char *str, std::size_t size,\
 	std::size_t decimals = 0)\
 	{ return S##_to<T,Char>(n, str, size, decimals); }\
 template<class Char>\
-inline std::basic_string<Char> N##_to(T n, std::size_t decimals = 0)\
+inline std::basic_string<Char> N##_to_str(T n, std::size_t decimals = 0)\
 	{ return S##_to<T,Char>(n, decimals); }\
 inline std::string N##_to_string(T n, std::size_t decimals = 0)\
-	{ return S##_to<T,char>(n, decimals); }\
+	{ return N##_to_str<char>(n, decimals); }\
 inline std::wstring N##_to_wstring(T n, std::size_t decimals = 0)\
-	{ return S##_to<T,wchar_t>(n, decimals); }
+	{ return N##_to_str<wchar_t>(n, decimals); }
 
 DEF_NUM_TO_FUNCS(signed,char,char)
 DEF_NUM_TO_FUNCS(signed,short,short)
