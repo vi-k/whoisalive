@@ -361,6 +361,92 @@ inline std::wstring to_wstring(const Time &time)
 
 
 /*
+	Функции форматирования даты/времени в строку
+*/
+struct internal_datetime
+{
+	unsigned short year;
+	unsigned short month;
+	unsigned short day;
+	bool negative;
+	long long hours;
+	long minutes;
+	long seconds;
+	long day;
+};
+
+template<class Char>
+std::size_t format(Char *buf, std::size_t buf_sz,
+	const internal_datetime *dt, Char ch)
+{
+	Char *ptr = buf;
+	Char *end = buf + buf_sz;
+
+	switch (ch)
+	{
+		/* Дата */
+
+		case 'Y': /* Four digit year */
+			break;
+
+		case 'm': /* Month name as a decimal 01 to 12 */
+			break;
+
+		case 'd': /* Day of the month as decimal 01 to 31 */
+			break;
+
+
+		/* Время */
+
+		case '-':
+			/* Placeholder for the sign of a duration. Only displays when
+				the duration is negative */
+			break;
+
+		case '+':
+			/* Placeholder for the sign of a duration. Always displays
+				for both positive and negative */
+			break;
+
+		case 'H':
+			/* Hours */
+			break;
+
+		case 'M':
+			/* Minutes 00..59 */
+			break;
+
+		case 's':
+			/* Seconds with fractional seconds */
+			break;
+
+		case 'S':
+			/* Seconds only */
+			break;
+
+		case 'f':
+			/* Fractional seconds are always used,
+				even when their value is zero */
+			break;
+
+		case 'F':
+			/* Fractional seconds are used only
+				when their value is not zero */
+			break;
+
+		case 'R':
+			/* The time in 24-hour notation (%H:%M) */
+			break;
+
+		case 'T':
+			/* The time in 24-hour notation (%H:%M:%S) */
+			break;
+	}
+
+	return ptr - buf;
+}
+
+/*
 	Функции преобразования строки в дату/время
 */
 
