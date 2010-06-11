@@ -37,26 +37,45 @@ int main()
 	TEST_SPECIAL("posix_time::ptime",posix_time::ptime,cout,string)
 
 
-#define TEST_D(y,m,d) {\
+#define TEST(t,fmt)\
+	if (*fmt) {\
+		cout << "fmt  = " << fmt << endl;\
+		cout << "str  = " << my::time::to_string(t,fmt) << flush << endl;\
+		wcout << "wstr = " << my::time::to_wstring(t,L##fmt) << flush << endl;\
+	} else {\
+		cout << "str  = " << my::time::to_string(t) << flush << endl;\
+		wcout << "wstr = " << my::time::to_wstring(t) << flush << endl;\
+	}
+
+
+#define TEST_D(y,m,d) TEST_D_F(y,m,d,"")
+
+#define TEST_D_F(y,m,d,fmt) {\
 	gregorian::date t(y,m,d);\
 	cout << "       " << t << " (" << y << "," << m << "," << d << ")" << endl << flush;\
-	cout << "str  = " << my::time::to_string(t) << flush << endl;\
-	wcout << "wstr = " << my::time::to_wstring(t) << flush << endl << endl;}
+	TEST(t,fmt)\
+	cout << endl;}
 
-#define TEST_TD(h,m,s,f) {\
+
+#define TEST_TD(h,m,s,f) TEST_TD_F(h,m,s,f,"")
+
+#define TEST_TD_F(h,m,s,f,fmt) {\
 	posix_time::time_duration t(h,m,s,f);\
 	cout << "       " << t << " (" << h << "," << m << "," << s\
 		<< "," << f << ")" << endl << flush;\
-	cout << "str  = " << my::time::to_string(t) << flush << endl;\
-	wcout << "wstr = " << my::time::to_wstring(t) << flush << endl << endl;}
+	TEST(t,fmt)\
+	cout << endl;}
 
-#define TEST_PT(y,mo,d,h,mi,s,f) {\
+
+#define TEST_PT(y,mo,d,h,mi,s,f) TEST_PT_F(y,mo,d,h,mi,s,f,"")
+
+#define TEST_PT_F(y,mo,d,h,mi,s,f,fmt) {\
 	posix_time::ptime t(gregorian::date(y,mo,d),\
 		posix_time::time_duration(h,mi,s,f));\
 	cout << "       " << t << " (" << y << "," << mo << "," << d << ","\
 		<< h << "," << mi << "," << s << "," << f << ")" << endl << flush;\
-	cout << "str  = " << my::time::to_string(t) << flush << endl;\
-	wcout << "wstr = " << my::time::to_wstring(t) << flush << endl << endl;}
+	TEST(t,fmt)\
+	cout << endl;}
 
 
 	cout << "\n*** date/time ***\n" << endl;
@@ -64,22 +83,27 @@ int main()
 	TEST_D(1945,5,9)
 	TEST_D(2010,1,1)
 	TEST_D(2010,12,31)
+	TEST_D_F(1400,1,1,"%Y.%m.%d")
+	TEST_D_F(1777,2,23,"%d-%m-%Y")
+	TEST_D_F(1992,6,12,"%Y/%m/%d %H:%M:%S%F")
+	TEST_D_F(1999,12,31,"symbols test %% %Q%* %")
 
+	
 	cout << "\n*** time_duration ***\n" << endl;
 
-	TEST_TD( 0,0,0,0)
-	TEST_TD( 0,0,0,1)
-	TEST_TD( 0,0,1,1)
-	TEST_TD( 0,1,0,1)
-	TEST_TD( 1,0,0,1)
-	TEST_TD( 0,0,0,-1)
-	TEST_TD( 0,0,-1,1)
-	TEST_TD( 0,-1,0,1)
-	TEST_TD( -1,0,0,1)
-	TEST_TD( -11,-11,-11,-11)
+	TEST_TD(0,0,0,0)
+	TEST_TD(0,0,0,1)
+	TEST_TD(0,0,1,1)
+	TEST_TD(0,1,0,1)
+	TEST_TD(1,0,0,1)
+	TEST_TD(0,0,0,-1)
+	TEST_TD(0,0,-1,1)
+	TEST_TD(0,-1,0,1)
+	TEST_TD(-1,0,0,1)
+	TEST_TD(-11,-11,-11,-11)
 
-	TEST_TD( 2147483647,0,0,0)
-	TEST_TD( 2147483648,0,0,0)
+	TEST_TD(2147483647,0,0,0)
+	TEST_TD(2147483648,0,0,0)
 	cout << "!!! time_duration(2147483648,0,0,0).is_negative()="
 		<< posix_time::time_duration(2147483648,0,0,0).is_negative()
 		<< endl;
@@ -89,32 +113,25 @@ int main()
 		<< endl;
 	cout << "!!! Boost.DateTime cast problem\n\n";
 		
-	TEST_TD( 22,27,9,0)
+	TEST_TD(22,27,9,0)
 
+	TEST_TD_F(12,34,45,123456,"%-%H:%M:%S%F")
+	TEST_TD_F(12,34,45,123456,"%+%H:%M:%S%F")
+	TEST_TD_F(-1,2,3,456,"%- %Hh %Mm %S%Fs")
+	TEST_TD_F(-1,2,3,456,"%+ %Hh %Mm %S%Fs")
+	TEST_TD_F(-1234,0,0,0,"%H.%M.%S%F")
+	TEST_TD_F(-1234,0,0,0,"%H.%M.%S%f")
+	TEST_TD_F(12,30,0,0,"%Y/%m/%d %H:%M:%S%F")
+	TEST_TD_F(0,0,0,0,"symbols test %% %Q%* %")
+
+	
 	cout << "\n*** ptime ***\n" << endl;
 
 	TEST_PT( 2010,6,10, 23,19,0,0)
-
-	cout << "Time to sleep!!!\n\n";
-
-    /*-
-	wcout << my::time::to_wstring(gregorian::date(2010,06,29)) << flush << endl;
-
-	cout << my::time::to_string(posix_time::time_duration(23,45,29,123456)) << flush << endl;
-	wcout << my::time::to_wstring(posix_time::time_duration(23,45,29,123456)) << flush << endl;
-	cout << my::time::to_string(posix_time::time_duration(00,-15,-01)) << flush << endl;
-	wcout << my::time::to_wstring(posix_time::time_duration(00,15,-01)) << flush << endl;
-	cout << my::time::to_string(posix_time::time_duration(-01,15,00)) << flush << endl;
-	wcout << my::time::to_wstring(posix_time::time_duration(-01,15,00)) << flush << endl;
-
-    /*-
-	cout << my::time::to_string( posix_time::ptime(
-		gregorian::date(2010,06,29),
-		posix_time::time_duration(23,45,29,123456))) << flush << endl;
-	wcout << my::time::to_wstring( posix_time::ptime(
-		gregorian::date(2010,06,29),
-		posix_time::time_duration(23,45,29,123456))) << flush << endl;
-    -*/
+	TEST_PT_F(1992,6,12, 12,30,0,0, "%Y/%m/%d %H:%M:%S%F")
+	TEST_PT_F(1992,6,12, 12,30,0,0, "%H:%M:%S%F %d.%m.%Y")
+	TEST_TD_F(0,0,0,0,"symbols test %% %Q%* %")
+	TEST_TD_F(0,0,0,123456,"big format <%f%f%f%f%f%f%f%f%f%f>")
 
 	return 0;
 }

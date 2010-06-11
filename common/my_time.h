@@ -20,6 +20,7 @@
 #include "my_str.h"
 
 #include <cstddef> /* std::size_t */
+#include <algorithm> /* std::copy, std::max*/
 #include <sstream>
 #include <istream>
 #include <ostream>
@@ -262,7 +263,7 @@ std::size_t put(Char *buf, std::size_t buf_sz,
 /* Преобразование даты (boost::gregorian::date) в строку */
 template<class Char>
 std::size_t put(Char *buf, std::size_t buf_sz,
-	const gregorian::date &date)
+	const gregorian::date &date, const Char *format = 0)
 {
 	if (date.is_special())
 		return put(buf, buf_sz, date.as_special());
@@ -272,11 +273,62 @@ std::size_t put(Char *buf, std::size_t buf_sz,
 
 	gregorian::date::ymd_type ymd = date.year_month_day();
 
-	ptr += my::num::put(ptr, end - ptr, ymd.year, 4);
-	ptr += my::str::put(ptr, end - ptr, Char('-'));
-	ptr += my::num::put(ptr, end - ptr, ymd.month, 2);
-	ptr += my::str::put(ptr, end - ptr, Char('-'));
-	ptr += my::num::put(ptr, end - ptr, ymd.day, 2);
+	if (!format)
+	{
+		ptr += my::num::put(ptr, end - ptr, ymd.year, 4);
+		ptr += my::str::put(ptr, end - ptr, Char('-'));
+		ptr += my::num::put(ptr, end - ptr, ymd.month, 2);
+		ptr += my::str::put(ptr, end - ptr, Char('-'));
+		ptr += my::num::put(ptr, end - ptr, ymd.day, 2);
+	}
+	else
+	{
+		while (ptr < end)
+		{
+			const Char *format_ptr = format;
+
+			while (*format_ptr && *format_ptr != '%')
+				format_ptr++;
+
+			ptr += my::str::put(ptr, end - ptr,
+				format, format_ptr - format);
+
+			if (*format_ptr == 0)
+				break;
+
+			Char ch = format_ptr[1];
+			format = format_ptr + 2;
+
+			switch (ch)
+			{
+				case 0:
+				case '%':
+					ptr += my::str::put(ptr, end - ptr, Char('%'));
+					break;
+
+				case 'Y':
+					ptr += my::num::put(ptr, end - ptr, ymd.year, 4);
+					break;
+
+				case 'm':
+					ptr += my::num::put(ptr, end - ptr, ymd.month, 2);
+					break;
+
+				case 'd':
+					ptr += my::num::put(ptr, end - ptr, ymd.day, 2);
+					break;
+
+				default:
+					ptr += my::str::put(ptr, end - ptr, Char('%'));
+					ptr += my::str::put(ptr, end - ptr, ch);
+					break;
+			}
+
+			if (ch == 0)
+				break;
+
+		} /* while (*format) */
+	}
 
 	return ptr - buf;
 }
@@ -284,7 +336,7 @@ std::size_t put(Char *buf, std::size_t buf_sz,
 /* Преобразование даты/времени (boost::posix_time::ptime) в строку */
 template<class Char>
 std::size_t put(Char *buf, std::size_t buf_sz,
-	const posix_time::ptime &time)
+	const posix_time::ptime &time, const Char *format = 0)
 {
 	if (time.is_special())
 		return put(buf, buf_sz, my::time::as_special(time));
@@ -292,9 +344,28 @@ std::size_t put(Char *buf, std::size_t buf_sz,
 	Char *ptr = buf;
 	Char *end = buf + buf_sz;
 
-	ptr += put(ptr, end - ptr, time.date());
-	ptr += my::str::put(ptr, end - ptr, Char(' '));
-	ptr += put(ptr, end - ptr, time.time_of_day());
+	if (!format)
+	{
+		ptr += put(ptr, end - ptr, time.date());
+		ptr += my::str::put(ptr, end - ptr, Char(' '));
+		ptr += put(ptr, end - ptr, time.time_of_day());
+	}
+	else if (buf_sz)
+	{
+		/* Сложный момент, как из двух собрать одно с помощью
+			одного формата? */
+
+		/* Используя формат, выводим дату. Формат для времени
+			сохраняется в выходном буфере */
+		ptr += put(ptr, end - ptr, time.date(), format);
+
+        /* Делаем копию полученной строки */
+        std::basic_string<Char> new_format(buf);
+
+		/* Используем скопированную строку как формат */
+		ptr = buf;
+		ptr += put(ptr, end - ptr, time.time_of_day(), new_format.c_str());
+	}
 
 	return ptr - buf;
 }
@@ -302,7 +373,7 @@ std::size_t put(Char *buf, std::size_t buf_sz,
 /* Преобразование длительности (boost::posix_time::time_duration) в строку */
 template<class Char>
 std::size_t put(Char *buf, std::size_t buf_sz,
-	const posix_time::time_duration &dur)
+	const posix_time::time_duration &dur, const Char *format = 0)
 {
 	if (dur.is_special())
 		return put(buf, buf_sz, my::time::as_special(dur));
@@ -311,10 +382,11 @@ std::size_t put(Char *buf, std::size_t buf_sz,
 	Char *end = buf + buf_sz;
 
 	long long ticks = dur.ticks();
+	bool negative = false;
 
 	if (ticks < 0)
 	{
-		ptr += my::str::put(ptr, end - ptr, Char('-'));
+		negative = true;
 		ticks = -ticks;
 	}
 		
@@ -327,124 +399,146 @@ std::size_t put(Char *buf, std::size_t buf_sz,
 	long minutes = seconds / 60;
 	seconds -= minutes * 60;
 		
-	ptr += my::num::put(ptr, end - ptr, hours, 2);
-	ptr += my::str::put(ptr, end - ptr, Char(':'));
-	ptr += my::num::put(ptr, end - ptr, minutes, 2);
-	ptr += my::str::put(ptr, end - ptr, Char(':'));
-	ptr += my::num::put(ptr, end - ptr, seconds, 2);
-
-	if (fseconds)
+	if (!format)
 	{
-		ptr += my::str::put(ptr, end - ptr, Char('.'));
-		ptr += my::num::put(ptr, end - ptr, fseconds,
-			posix_time::time_duration::num_fractional_digits());
+		if (negative)
+			ptr += my::str::put(ptr, end - ptr, Char('-'));
+
+		ptr += my::num::put(ptr, end - ptr, hours, 2);
+		ptr += my::str::put(ptr, end - ptr, Char(':'));
+		ptr += my::num::put(ptr, end - ptr, minutes, 2);
+		ptr += my::str::put(ptr, end - ptr, Char(':'));
+		ptr += my::num::put(ptr, end - ptr, seconds, 2);
+
+		if (fseconds)
+		{
+			ptr += my::str::put(ptr, end - ptr, Char('.'));
+			ptr += my::num::put(ptr, end - ptr, fseconds,
+				posix_time::time_duration::num_fractional_digits());
+		}
+	}
+	else
+	{
+		while (ptr < end)
+		{
+			const Char *format_ptr = format;
+
+			while (*format_ptr && *format_ptr != '%')
+				format_ptr++;
+
+			ptr += my::str::put(ptr, end - ptr,
+				format, format_ptr - format);
+
+			if (*format_ptr == 0)
+				break;
+
+			Char ch = format_ptr[1];
+			format = format_ptr + 2;
+
+			switch (ch)
+			{
+				case 0:
+				case '%':
+					ptr += my::str::put(ptr, end - ptr, Char('%'));
+					break;
+
+				case '-':
+					if (negative)
+						ptr += my::str::put(ptr, end - ptr, Char('-'));
+					break;
+
+				case '+':
+					ptr += my::str::put(ptr, end - ptr,
+						negative ? Char('-') : Char('+'));
+					break;
+
+				case 'H':
+					ptr += my::num::put(ptr, end - ptr, hours, 2);
+					break;
+
+				case 'M':
+					ptr += my::num::put(ptr, end - ptr, minutes, 2);
+					break;
+
+				case 'S':
+					ptr += my::num::put(ptr, end - ptr, seconds, 2);
+					break;
+
+				case 'f':
+					ptr += my::str::put(ptr, end - ptr, Char('.'));
+					ptr += my::num::put(ptr, end - ptr, fseconds, 6);
+					break;
+
+				case 'F':
+					if (fseconds)
+					{
+						ptr += my::str::put(ptr, end - ptr, Char('.'));
+						ptr += my::num::put(ptr, end - ptr, fseconds, 6);
+					}
+					break;
+
+				default:
+					ptr += my::str::put(ptr, end - ptr, Char('%'));
+					ptr += my::str::put(ptr, end - ptr, ch);
+					break;
+			}
+
+			if (ch == 0)
+				break;
+
+		} /* while (*format) */
 	}
 
 	return ptr - buf;
 }
+
 
 template<class Char,class Time>
-inline std::basic_string<Char> to_str(const Time &t)
+inline std::basic_string<Char> to_str(const Time &t,
+	const Char *format = 0)
 {
-	Char buf[30]; /* 2010-06-10 16:02:14.123456[789] - 26/29 */
-	my::time::put(buf, sizeof(buf) / sizeof(*buf), t);
-	return std::basic_string<Char>(buf);
-}
+	Char buf[64];
+	std::size_t n;
+	
+	n = my::time::put(buf, sizeof(buf) / sizeof(*buf), t, format);
+	
+	if (n < sizeof(buf) / sizeof(*buf) - 1)
+		return std::basic_string<Char>(buf);
 
-template<class Time>
-inline std::string to_string(const Time &time)
-	{ return my::time::to_str<char>(time); }
+    /* Если статического буфера не хватило (из-за формата)
+    	- выделяем динамический. И повторно запускаем put().
+    	Это не есть хорошо, но пока сойдёт */
+	
+	if (format)
+		n = std::max(n, my::str::length(format));
 
-template<class Time>
-inline std::wstring to_wstring(const Time &time)
-	{ return my::time::to_str<wchar_t>(time); }
+	std::basic_string<Char> out(n * 2, ' ');
 
-
-/*
-	Функции форматирования даты/времени в строку
-*/
-struct internal_datetime
-{
-	unsigned short year;
-	unsigned short month;
-	unsigned short day;
-	bool negative;
-	long long hours;
-	long minutes;
-	long seconds;
-	long day;
-};
-
-template<class Char>
-std::size_t format(Char *buf, std::size_t buf_sz,
-	const internal_datetime *dt, Char ch)
-{
-	Char *ptr = buf;
-	Char *end = buf + buf_sz;
-
-	switch (ch)
+	while (true)
 	{
-		/* Дата */
+		n = my::time::put(&*out.begin(), out.size() + 1, t, format);
 
-		case 'Y': /* Four digit year */
+		if (n != out.size())
 			break;
 
-		case 'm': /* Month name as a decimal 01 to 12 */
-			break;
-
-		case 'd': /* Day of the month as decimal 01 to 31 */
-			break;
-
-
-		/* Время */
-
-		case '-':
-			/* Placeholder for the sign of a duration. Only displays when
-				the duration is negative */
-			break;
-
-		case '+':
-			/* Placeholder for the sign of a duration. Always displays
-				for both positive and negative */
-			break;
-
-		case 'H':
-			/* Hours */
-			break;
-
-		case 'M':
-			/* Minutes 00..59 */
-			break;
-
-		case 's':
-			/* Seconds with fractional seconds */
-			break;
-
-		case 'S':
-			/* Seconds only */
-			break;
-
-		case 'f':
-			/* Fractional seconds are always used,
-				even when their value is zero */
-			break;
-
-		case 'F':
-			/* Fractional seconds are used only
-				when their value is not zero */
-			break;
-
-		case 'R':
-			/* The time in 24-hour notation (%H:%M) */
-			break;
-
-		case 'T':
-			/* The time in 24-hour notation (%H:%M:%S) */
-			break;
+		out.resize(n * 2);
 	}
 
-	return ptr - buf;
+	out.resize(n);
+
+	return out;
 }
+
+template<class Time>
+inline std::string to_string(const Time &time,
+	const char *format = 0)
+	{ return my::time::to_str<char>(time, format); }
+
+template<class Time>
+inline std::wstring to_wstring(const Time &time,
+	const wchar_t *format = 0)
+	{ return my::time::to_str<wchar_t>(time, format); }
+
 
 /*
 	Функции преобразования строки в дату/время
