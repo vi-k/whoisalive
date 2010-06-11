@@ -14,6 +14,7 @@
 	----------------------------------------
 
 	Функции преобразования числа в строку.
+	
 	Поддерживаемые типы: char, short, int, long, long long
 		и их беззнаковые версии.
 		
@@ -49,74 +50,82 @@
 
 			Преобразование числа value в строку.
 
-		----------
-
-		template<class Char>
-		size_t to_/type_name/(
-				const Char *str,
-				type &res,
-				size_t size = -1);
-
-		template<class Char>
-		size_t to_/type_name/(
-				const std::basic_string<Char> &str,
-				type &res);
-
-			Преобразование строки str в число.
-
-			Возврат: кол-во символов, считанных из буфера или строки;
-				res - полученное значение.
 
 	----------------------------------------
 
 	Функции преобразования строки в число.
+
 	Поддерживаемые типы: char, short, int, long, long long,
-		их беззнаковые версии, float, double, long double.
+	их беззнаковые версии, float, double, long double.
 		
+		Используемые типы и их представление в названиях функций:
+			char      -> char
+			uchar     -> unsigned char
+			short     -> short
+			ushort    -> unsigned short
+			int       -> int
+			uint      -> unsigned int
+			long      -> long
+			ulong     -> unsigned long
+			longlong  -> long long
+			ulonglong -> unsigned long long
+
 		----------
-		Легенда:
-			type_name, type - тип числа:
-				char      -> char
-				uchar     -> unsigned char
-				short     -> short
-				ushort    -> unsigned short
-				int       -> int
-				uint      -> unsigned int
-				long      -> long
-				ulong     -> unsigned long
-				longlong  -> long long
-				ulonglong -> unsigned long long
 
 		template<class Char>
-		type to_/type_name/_def(
-				const Char *str,
-				type def,
-				size_t size = -1);
+		size_t get(
+				Char *str,
+				size_t str_sz,
+				type &res);
 
 		template<class Char>
-		type to_/type_name/_def(
+		size_t get(
+				const std::basic_string<Char> &str,
+				type &res);
+
+			Преобразование строки в число. В первом варианте,
+			если размер строки не задан (== -1), он рассчитывается
+			автоматически.
+
+			Возврат: кол-во символов, считанных из буфера или строки;
+				в res - полученное значение.
+
+		----------
+
+		template<class Char>
+		type to_type_def(
+				Char *str,
+				size_t str_sz,
+				type def);
+
+		template<class Char>
+		type to_type_def(
 				const std::basic_string<Char> &str,
 				type def);
 
-			Преобразование строки str в число. В случае ошибки разбора,
-			возвращается def.
+			Преобразование строки в число. В случае ошибки разбора,
+			возвращается def. В первом варианте, если размер строки
+			не задан (== -1), он рассчитывается автоматически.
 
-
-		template<class Char>
-		bool to_/type_name/_b(
-				const Char *str,
-				type &res,
-				size_t size = -1);
+		----------
 
 		template<class Char>
-		bool to_/type_name/_b(
+		bool try_to_type(
+				Char *str,
+				size_t str_sz,
+				type &res);
+
+		template<class Char>
+		bool try_to_type(
 				const std::basic_string<Char> &str,
-				type &res)\
+				type &res);
 
-			Преобразование строки str в число.
+			Попытка преобразования строки в число. При ошибке
+			преобразования число в res не меняется. В первом варианте,
+			если размер строки не задан (== -1), он рассчитывается
+			автоматически.
 			
-			Возврат: успешно ли выполнено преобразование.
-
+			Возврат: успех преобразования, в res - полученное значение.
 */
 
 #ifndef MY_NUM_H
@@ -129,7 +138,7 @@ namespace my { namespace num {
 
 
 /*
-	Функции преобразования челых чисел в строку
+	Функции преобразования целых чисел в строку
 */
 
 
@@ -330,46 +339,50 @@ DEF_NUM_TO_FUNCS(unsigned,unsigned long)
 DEF_NUM_TO_FUNCS(unsigned,unsigned long long)
 
 
-template<class Char, class Type>
-inline std::size_t get_signed(const Char *buf, std::size_t buf_sz, Type &res);
+/*
+	Функции преобразования строки в число
+*/
 
 template<class Char, class Type>
-inline Type to_signed_def(const Char *buf, std::size_t buf_sz, Type def);
+inline std::size_t get_signed(const Char *str, std::size_t str_sz, Type &res);
 
 template<class Char, class Type>
-inline bool try_to_signed(const Char *buf, std::size_t buf_sz, Type &res);
-
-
-template<class Char, class Type>
-inline std::size_t get_unsigned(const Char *buf, std::size_t buf_sz, Type &res);
+inline Type to_signed_def(const Char *str, std::size_t str_sz, Type def);
 
 template<class Char, class Type>
-inline Type to_unsigned_def(const Char *buf, std::size_t buf_sz, Type def);
-
-template<class Char, class Type>
-inline bool try_to_unsigned(const Char *buf, std::size_t buf_sz, Type &res);
+inline bool try_to_signed(const Char *str, std::size_t str_sz, Type &res);
 
 
 template<class Char, class Type>
-inline std::size_t get_real(const Char *buf, std::size_t buf_sz, Type &res);
+inline std::size_t get_unsigned(const Char *str, std::size_t str_sz, Type &res);
 
 template<class Char, class Type>
-inline Type to_real_def(const Char *buf, std::size_t buf_sz, Type def);
+inline Type to_unsigned_def(const Char *str, std::size_t str_sz, Type def);
 
 template<class Char, class Type>
-inline bool try_to_real(const Char *buf, std::size_t buf_sz, Type &res);
+inline bool try_to_unsigned(const Char *str, std::size_t str_sz, Type &res);
+
+
+template<class Char, class Type>
+inline std::size_t get_real(const Char *str, std::size_t str_sz, Type &res);
+
+template<class Char, class Type>
+inline Type to_real_def(const Char *str, std::size_t str_sz, Type def);
+
+template<class Char, class Type>
+inline bool try_to_real(const Char *str, std::size_t str_sz, Type &res);
 
 
 #define DEF_TO_NUM_FUNCS(S,N,T)\
 template<class Char>\
-inline std::size_t get(const Char *buf, std::size_t buf_sz, T &res)\
-	{ return get_##S<Char,T>(buf, buf_sz, res); }\
+inline std::size_t get(const Char *str, std::size_t str_sz, T &res)\
+	{ return get_##S<Char,T>(str, str_sz, res); }\
 template<class Char>\
-inline T to_##N##_def(const Char *buf, std::size_t buf_sz, T def)\
-	{ return to_##S##_def<Char,T>(buf, buf_sz, def); }\
+inline T to_##N##_def(const Char *str, std::size_t str_sz, T def)\
+	{ return to_##S##_def<Char,T>(str, str_sz, def); }\
 template<class Char>\
-inline bool try_to_##N(const Char *buf, std::size_t buf_sz, T &res)\
-	{ return try_to_##S<Char,T>(buf, buf_sz, res); }\
+inline bool try_to_##N(const Char *str, std::size_t str_sz, T &res)\
+	{ return try_to_##S<Char,T>(str, str_sz, res); }\
 template<class Char>\
 inline std::size_t get(const std::basic_string<Char> &str, T &res)\
 	{ return get_##S<Char,T>(str.c_str(), str.size(), res); }\

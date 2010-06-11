@@ -203,8 +203,9 @@ inline posix_time::time_duration format_to_duration(
 	return format_to<posix_time::time_duration>(fmt, str);
 }
 
+
 /*
-	Вывод даты/времени в строку
+	Функции преобразования даты/времени в строку
 */
 
 template<class Time>
@@ -359,38 +360,46 @@ inline std::wstring to_wstring(const Time &time)
 	{ return my::time::to_str<wchar_t>(time); }
 
 
+/*
+	Функции преобразования строки в дату/время
+*/
+
 /* Преобразование строки в дату (boost::gregorian::date) */
 template<class Char>
-std::size_t to_date_s(const Char *str, gregorian::date &date,
-	std::size_t size = -1)
+std::size_t get(const Char *str, std::size_t str_sz,
+	gregorian::date &date)
 {
 	static const Char sep_list[] = { '-','.','/',' ',',', 0 };
 
 	unsigned short y(0), m(0), d(0);
 	const Char *ptr = str;
-	const Char *end = (std::size_t)-1 ? my::str::end(str) : str + size;
-	Char sep;
+	const Char *end = my::str::end(str, str_sz);
 
 	date = gregorian::date(gregorian::not_a_date_time);
 
 	std::size_t n;
 
-	ptr += (n = my::num::to_ushort(ptr, y, end - ptr));
+	/* Год */
+	ptr += (n = my::num::get(ptr, end - ptr, y));
+	if (n != 0 && ptr != end)
+	{
+		/* Разделитель частей */
+		Char sep = *std::find(sep_list, sep_list
+			+ sizeof(sep_list) / sizeof(*sep_list) - 1, *ptr);
 
-	if (n != 0 && ptr != end &&
-		(sep = *std::find(sep_list, sep_list
-			+ sizeof(sep_list) / sizeof(*sep_list) - 1, *ptr)) != 0)
-	{	
-		if (++ptr != end)
+		if (sep)
 		{
-			ptr += (n = my::num::to_ushort(ptr, m, end - ptr));
-
+			/* Месяц */
+			ptr++;
+			ptr += (n = my::num::get(ptr, end - ptr, m));
 			if (n != 0 && ptr != end && *ptr == sep)
-			{	
-				if (++ptr != end)
+			{
+				/* День */
+				ptr++;
+				ptr += (n = my::num::get(ptr, end - ptr, d));
+				if (n != 0)
 				{
-					ptr += (n = my::num::to_ushort(ptr, d, end - ptr));
-
+					/* Если дата была в виде d-m-y, переворачиваем */
 					if (y < d)
 					{
 						unsigned short tmp = d;
@@ -409,21 +418,18 @@ std::size_t to_date_s(const Char *str, gregorian::date &date,
 }
 
 template<class Char>
-inline std::size_t to_date_s(const std::basic_string<Char> &str,
+inline std::size_t get(const std::basic_string<Char> &str,
 	gregorian::date &date)
-{
-	return to_date_s(str.c_str(), date, str.size());
-}
+	{ return my::time::get(str.c_str(), str.size(), date); }
 
 template<class Char>
-inline gregorian::date to_date(const Char *str, std::size_t size = -1)
+inline gregorian::date to_date(const Char *str, std::size_t str_sz)
 {
 	gregorian::date date;
-	
-	if (size == (std::size_t)-1)
-		size = my::str::length(str);
 
-	if (size != to_date_s(str, date, size))
+	str_sz = my::str::end(str, str_sz) - str;
+
+	if (str_sz != my::time::get(str, str_sz, date))
 		date = gregorian::date(gregorian::not_a_date_time);
 
 	return date;
@@ -431,28 +437,28 @@ inline gregorian::date to_date(const Char *str, std::size_t size = -1)
 
 template<class Char>
 inline gregorian::date to_date(const std::basic_string<Char> &str)
-{
-	return to_date(str.c_str(), str.size());
-}
+	{ return my::time::to_date(str.c_str(), str.size()); }
 
 
 /* Преобразование строки в дату/время (boost::posix_time::ptime) */
 template<class Char>
-std::size_t to_time_s(const Char *str, posix_time::ptime &time,
-	std::size_t size = -1)
+std::size_t get(const Char *str, std::size_t str_sz,
+	posix_time::ptime &time)
 {
 	const Char *ptr = str;
-	const Char *end = (std::size_t)-1 ? my::str::end(str) : str + size;
+	const Char *end = my::str::end(str, str_sz);
 
-	time = posix_time::ptime(posix_time::not_a_date_time);
+	time = posix_time::not_a_date_time;
 
 	gregorian::date date;
-	ptr += to_date_s(str, date, end - ptr);
+	ptr += my::time::get(str, end - ptr, date);
 
-	if (!date.is_special() && ptr != end && *ptr == ' ' && ++ptr != end)
+	if (!date.is_special() && ptr != end && *ptr == ' ')
 	{
+		ptr++;
+
 		posix_time::time_duration dur;
-		ptr += to_duration_s(ptr, dur, end - ptr);
+		ptr += my::time::get(ptr, end - ptr, dur);
 
 		if (!dur.is_special() && !dur.is_negative() && dur.hours() < 24)
 			time = posix_time::ptime(date, dur);
@@ -462,45 +468,39 @@ std::size_t to_time_s(const Char *str, posix_time::ptime &time,
 }
 
 template<class Char>
-inline std::size_t to_time_s(const std::basic_string<Char> &str,
+inline std::size_t get(const std::basic_string<Char> &str,
 	posix_time::ptime &time)
-{
-	return to_time_s(str.c_str(), time, str.size());
-}
+	{ return my::time::get(str.c_str(), str.size(), time); }
 
 template<class Char>
-inline posix_time::ptime to_time(const Char *str,
-	std::size_t size = -1)
+inline posix_time::ptime to_time(const Char *str, std::size_t str_sz)
 {
 	posix_time::ptime time;
-	
-	if (size == (std::size_t)-1)
-		size = my::str::length(str);
 
-	if (size != to_time_s(str, time, size))
-		time = posix_time::ptime(posix_time::not_a_date_time);
+	str_sz = my::str::end(str, str_sz) - str;
+
+	if (str_sz != my::time::get(str, str_sz, time))
+		time = posix_time::not_a_date_time;
 
 	return time;
 }
 
 template<class Char>
 inline posix_time::ptime to_time(const std::basic_string<Char> &str)
-{
-	return to_time(str.c_str(), str.size());
-}
+	{ return my::time::to_time(str.c_str(), str.size()); }
 
 
 /* Преобразование строки в длительность (boost::posix_time::time_duration) */
 template<class Char>
-std::size_t to_duration_s(const Char *str, posix_time::time_duration &dur,
-	std::size_t size = -1)
+std::size_t get(const Char *str, std::size_t str_sz,
+	posix_time::time_duration &dur)
 {
-	unsigned long h(0), m(0), s(0), f(0);
+	unsigned long h(0), m(0), s(0), fs(0);
 	const Char *ptr = str;
-	const Char *end = (std::size_t)-1 ? my::str::end(str) : str + size;
+	const Char *end = my::str::end(str, str_sz);
 	bool negative = false;
 
-	dur = posix_time::time_duration(gregorian::not_a_date_time);
+	dur = gregorian::not_a_date_time;
 
 	if (ptr != end && *ptr == '-')
 	{
@@ -509,74 +509,112 @@ std::size_t to_duration_s(const Char *str, posix_time::time_duration &dur,
 	}
 
 	std::size_t n;
+	bool ok = true;
 
 	/* Часы */
-	ptr += (n = my::num::to_ulong(ptr, h, end - ptr));
+	ptr += (n = my::num::get(ptr, end - ptr, h));
 
-	if (n != 0 && ptr != end && *ptr == ':' && ++ptr != end)
+	if (n == 0)
+		ok = false;
+
+	/* Минуты (могут отсутствовать) */
+	else if (ptr != end && *ptr == ':')
 	{	
-		/* Минуты */
-		ptr += (n = my::num::to_ulong(ptr, m, end - ptr));
+		ptr++;
+		ptr += (n = my::num::get(ptr, end - ptr, m));
 
-		if (n != 0 && m < 60 && ptr != end && *ptr == ':' && ++ptr != end)
+		/* Но если есть разделитель, дожно быть и число */
+		if (n == 0 || m >= 60)
+			ok = false;
+		
+		/* Секунды (могут отсутствовать) */
+		else if (ptr != end && *ptr == ':')
 		{
-			/* Секунды */
-			ptr += (n = my::num::to_ulong(ptr, s, end - ptr));
+			ptr++;
+			ptr += (n = my::num::get(ptr, end - ptr, s));
 
-			if (n != 0 && s < 60)
+			/* Но если есть разделитель, дожно быть и число */
+			if (n == 0 || s >= 60)
+				ok = false;
+
+			/* Доли секунд (могут отсутствовать) */
+			else if (ptr != end && *ptr == '.')
 			{
-				/* Доли секунд (могут отсутствовать) */
-				if (ptr != end && *ptr == '.' && ++ptr != end)
+				ptr++;
+				ptr += (n = my::num::get(ptr, end - ptr, fs));
+
+				/* Но если есть точка, должно быть и число */
+				if (n == 0)
+					ok = false;
+
+				else
 				{
-					ptr += (n = my::num::to_ulong(ptr, f, end - ptr));
-
-					/* Но если есть точка, должно быть и число */
-					if (n == 0)
-						return ptr - str;
-				}
-
-				try {
+					/* Учитываем, что значение после точки - это
+						ДОЛИ секунды! Т.е. 00:00:00.12 не должно
+						превратиться в 00:00:00.000012 */
 					
-					dur = posix_time::time_duration(h, m, s, f);
-
-					if (negative)
-						dur = -dur;
+					/* a - кол-во недостающих нулей (a>0) или
+						избыток цифр (a<0) */
+					long a = dur.num_fractional_digits() - n;
+					
+					/* Округляем при необходимости:
+						00:00:00.123456789 -> 00:00:00.123457 */
+					if (a < 0)
+					{
+						double dfs = fs;
+						while (a++)
+							dfs /= 10.0;
+						fs = (long)(dfs + 0.5);
+					}
+					else
+					{
+						/* Добавляем недостающее:
+							00:00:00.12 -> 00:00:00.120000 */
+						while (a--)
+							fs = (fs<<3) + (fs<<1); /* Умножение на 10 */
+					}
 				}
-				catch(...) {}
 			}
 		}
+	}
+
+	if (ok)
+	{
+		try {
+
+			dur = posix_time::time_duration(h, m, s, fs);
+
+			if (negative)
+				dur = -dur;
+		}
+		catch(...) {}
 	}
 
 	return ptr - str;
 }
 
 template<class Char>
-inline std::size_t to_duration_s(const std::basic_string<Char> &str,
+inline std::size_t get(const std::basic_string<Char> &str,
 	posix_time::time_duration &dur)
-{
-	return to_duration_s(str.c_str(), dur, str.size());
-}
+	{ return my::time::get(str.c_str(), str.size(), dur); }
 
 template<class Char>
 inline posix_time::time_duration to_duration(const Char *str,
-	std::size_t size = -1)
+	std::size_t str_sz)
 {
 	posix_time::time_duration dur;
-	
-	if (size == (std::size_t)-1)
-		size = my::str::length(str);
 
-	if (size != to_duration_s(str, dur, size))
-		dur = posix_time::time_duration(posix_time::not_a_date_time);
+	str_sz = my::str::end(str, str_sz) - str;
+
+	if (str_sz != my::time::get(str, str_sz, dur))
+		dur = posix_time::not_a_date_time;
 
 	return dur;
 }
 
 template<class Char>
 inline posix_time::time_duration to_duration(const std::basic_string<Char> &str)
-{
-	return to_duration(str.c_str(), str.size());
-}
+	{ return my::time::to_duration(str.c_str(), str.size()); }
 
 
 }}
