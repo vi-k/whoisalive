@@ -6,18 +6,36 @@
 
 namespace my { namespace str {
 
+
+/* Поиск конца буфера - определяется по завершающему нулю */
+
 template<class Char>
-inline const Char* end(const Char *str)
+inline const Char* end(const Char *buf)
 {
-	while (*str) str++;
-	return str;
+	while (*buf) buf++;
+	return buf;
 }
 
 template<class Char>
-inline Char* end(Char *str)
+inline Char* end(Char *buf)
 {
-	while (*str) str++;
-	return str;
+	while (*buf) buf++;
+	return buf;
+}
+
+/* Поиск конца буфера. Если задан размер - простым вычеслением,
+	если размер не задан (-1) - поиск завершающего нуля */
+
+template<class Char>
+inline const Char* end(const Char *buf, std::size_t buf_sz)
+{
+	return buf_sz == (std::size_t)-1 ? my::str::end(buf) : buf + buf_sz;
+}
+
+template<class Char>
+inline Char* end(Char *buf, std::size_t buf_sz)
+{
+	return buf_sz == (std::size_t)-1 ? my::str::end(buf) : buf + buf_sz;
 }
 
 template<class Char>
