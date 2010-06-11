@@ -9,21 +9,21 @@ namespace my { namespace num {
 /* Шаблоны для внутреннего использования - для преобразования
 	используют Boost.Spirit (хоть я и разочарован в скорости его компиляции) */
 template<class Char, class Type, class Rule>
-std::size_t get_num(const Char *buf, std::size_t buf_sz, Rule rule, Type &res)
+std::size_t get_num(const Char *str, std::size_t str_sz, Rule rule, Type &res)
 {
-	const Char *ptr = buf;
-	const Char *end = my::str::end(buf, buf_sz);
+	const Char *ptr = str;
+	const Char *end = my::str::end(str, str_sz);
 
 	qi::parse(ptr, end, rule, res);
 
-	return ptr - buf;
+	return ptr - str;
 }
 
 template<class Char, class Type, class Rule>
-Type to_num_def(const Char *buf, std::size_t buf_sz, Rule rule, Type def)
+Type to_num_def(const Char *str, std::size_t str_sz, Rule rule, Type def)
 {
-	const Char *ptr = buf;
-	const Char *end = my::str::end(buf, buf_sz);
+	const Char *ptr = str;
+	const Char *end = my::str::end(str, str_sz);
 
 	Type res;
 	bool ok = qi::parse(ptr, end, rule, res);
@@ -32,10 +32,10 @@ Type to_num_def(const Char *buf, std::size_t buf_sz, Rule rule, Type def)
 }
 
 template<class Char, class Type, class Rule>
-bool try_to_num(const Char *buf, std::size_t buf_sz, Rule rule, Type &res)
+bool try_to_num(const Char *str, std::size_t str_sz, Rule rule, Type &res)
 {
-	const Char *ptr = buf;
-	const Char *end = my::str::end(buf, buf_sz);
+	const Char *ptr = str;
+	const Char *end = my::str::end(str, str_sz);
 	
 	Type tmp;
 	bool ok = qi::parse(ptr, end, rule, tmp);
@@ -49,42 +49,42 @@ bool try_to_num(const Char *buf, std::size_t buf_sz, Rule rule, Type &res)
 
 
 template<class Char, class Type>
-inline std::size_t get_signed(const Char *buf, std::size_t buf_sz, Type &res)
-	{ return get_num(buf, buf_sz, qi::int_parser<Type, 10, 1, -1>(), res); }
+inline std::size_t get_signed(const Char *str, std::size_t str_sz, Type &res)
+	{ return get_num(str, str_sz, qi::int_parser<Type, 10, 1, -1>(), res); }
 
 template<class Char, class Type>
-inline Type to_signed_def(const Char *buf, std::size_t buf_sz, Type def)
-	{ return to_num_def(buf, buf_sz, qi::int_parser<Type, 10, 1, -1>(), def); }
+inline Type to_signed_def(const Char *str, std::size_t str_sz, Type def)
+	{ return to_num_def(str, str_sz, qi::int_parser<Type, 10, 1, -1>(), def); }
 
 template<class Char, class Type>
-inline bool try_to_signed(const Char *buf, std::size_t buf_sz, Type &res)
-	{ return try_to_num(buf, buf_sz, qi::int_parser<Type, 10, 1, -1>(), res); }
-
-
-template<class Char, class Type>
-inline std::size_t get_unsigned(const Char *buf, std::size_t buf_sz, Type &res)
-	{ return get_num(buf, buf_sz, qi::uint_parser<Type, 10, 1, -1>(), res); }
-
-template<class Char, class Type>
-inline Type to_unsigned_def(const Char *buf, std::size_t buf_sz, Type def)
-	{ return to_num_def(buf, buf_sz, qi::uint_parser<Type, 10, 1, -1>(), def); }
-
-template<class Char, class Type>
-inline bool try_to_unsigned(const Char *buf, std::size_t buf_sz, Type &res)
-	{ return try_to_num(buf, buf_sz, qi::uint_parser<Type, 10, 1, -1>(), res); }
+inline bool try_to_signed(const Char *str, std::size_t str_sz, Type &res)
+	{ return try_to_num(str, str_sz, qi::int_parser<Type, 10, 1, -1>(), res); }
 
 
 template<class Char, class Type>
-inline std::size_t get_real(const Char *buf, std::size_t buf_sz, Type &res)
-	{ return get_num(buf, buf_sz, qi::real_parser<Type>(), res); }
+inline std::size_t get_unsigned(const Char *str, std::size_t str_sz, Type &res)
+	{ return get_num(str, str_sz, qi::uint_parser<Type, 10, 1, -1>(), res); }
 
 template<class Char, class Type>
-inline Type to_real_def(const Char *buf, std::size_t buf_sz, Type def)
-	{ return to_num_def(buf, buf_sz, qi::real_parser<Type>(), def); }
+inline Type to_unsigned_def(const Char *str, std::size_t str_sz, Type def)
+	{ return to_num_def(str, str_sz, qi::uint_parser<Type, 10, 1, -1>(), def); }
 
 template<class Char, class Type>
-inline bool try_to_real(const Char *buf, std::size_t buf_sz, Type &res)
-	{ return try_to_num(buf, buf_sz, qi::real_parser<Type>(), res); }
+inline bool try_to_unsigned(const Char *str, std::size_t str_sz, Type &res)
+	{ return try_to_num(str, str_sz, qi::uint_parser<Type, 10, 1, -1>(), res); }
+
+
+template<class Char, class Type>
+inline std::size_t get_real(const Char *str, std::size_t str_sz, Type &res)
+	{ return get_num(str, str_sz, qi::real_parser<Type>(), res); }
+
+template<class Char, class Type>
+inline Type to_real_def(const Char *str, std::size_t str_sz, Type def)
+	{ return to_num_def(str, str_sz, qi::real_parser<Type>(), def); }
+
+template<class Char, class Type>
+inline bool try_to_real(const Char *str, std::size_t str_sz, Type &res)
+	{ return try_to_num(str, str_sz, qi::real_parser<Type>(), res); }
 
 
 }}
