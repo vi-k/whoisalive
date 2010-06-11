@@ -13,41 +13,55 @@ int main()
 	wstring wstr(L##STR);\
 	cout << "type=" << NN << endl;\
 	cout << "string=" << STR << endl;\
+	T n;\
+	size_t s;\
 	\
-	T n = my::num::to_##N##_def(cstr, 0);\
+	n = 0;\
+	s = my::num::get(cstr, -1, n);\
+	cout << "get(cstr)=" << s;\
+	if (cstr[s] != 0) cout << " (fail)";\
+	cout << " n=" << n << endl;\
+	n = 0;\
+	s = my::num::get(str, n);\
+	cout << "get(str)=" << s;\
+	if (str[s] != 0) cout << " (fail)";\
+	cout << " n=" << n << endl;\
+	n = 0;\
+	s = my::num::get(wcstr, -1, n);\
+	cout << "get(wcstr)=" << s;\
+	if (wcstr[s] != 0) cout << " (fail)";\
+	cout << " n=" << n << endl;\
+	n = 0;\
+	s = my::num::get(wstr, n);\
+	cout << "get(wstr)=" << s;\
+	if (wstr[s] != 0) cout << " (fail)";\
+	cout << " n=" << n << endl;\
+	\
+	n = 0;\
+	n = my::num::to_##N##_def(cstr, -1, 0);\
 	cout << "to_"##NN##"_def(cstr)=" << n << endl;\
+	n = 0;\
 	n = my::num::to_##N##_def(str, 0);\
 	cout << "to_"##NN##"_def(str)=" << n << endl;\
-	n = my::num::to_##N##_def(wcstr, 0);\
+	n = 0;\
+	n = my::num::to_##N##_def(wcstr, -1, 0);\
 	cout << "to_"##NN##"_def(wcstr)=" << n << endl;\
+	n = 0;\
 	n = my::num::to_##N##_def(wstr, 0);\
 	cout << "to_"##NN##"_def(wstr)=" << n << endl;\
 	\
-	bool b = my::num::to_##N##_b(cstr, n);\
-	cout << "to_"##NN##"_b(cstr)=" << b << " n=" << n; cout << endl;\
-	b = my::num::to_##N##_b(str, n);\
-	cout << "to_"##NN##"_b(str)=" << b << " n=" << n; cout << endl;\
-	b = my::num::to_##N##_b(wcstr, n);\
-	cout << "to_"##NN##"_b(wcstr)=" << b << " n=" << n; cout << endl;\
-	b = my::num::to_##N##_b(wstr, n);\
-	cout << "to_"##NN##"_b(wstr)=" << b << " n=" << n; cout << endl;\
-	\
-	size_t s = my::num::to_##N(cstr, n);\
-	cout << "to_"##NN##"(cstr)=" << s;\
-	if (cstr[s] != 0) cout << " (fail)";\
-	cout << " n=" << n << endl;\
-	s = my::num::to_##N(str, n);\
-	cout << "to_"##NN##"(str)=" << s;\
-	if (str[s] != 0) cout << " (fail)";\
-	cout << " n=" << n << endl;\
-	s = my::num::to_##N(wcstr, n);\
-	cout << "to_"##NN##"(wcstr)=" << s;\
-	if (wcstr[s] != 0) cout << " (fail)";\
-	cout << " n=" << n << endl;\
-	s = my::num::to_##N(wstr, n);\
-	cout << "to_"##NN##"(wstr)=" << s;\
-	if (wstr[s] != 0) cout << " (fail)";\
-	cout << " n=" << n << endl;\
+	n = 0;\
+	bool b = my::num::try_to_##N(cstr, -1, n);\
+	cout << "try_to_"##NN##"(cstr)=" << b << " n=" << n; cout << endl;\
+	n = 0;\
+	b = my::num::try_to_##N(str, n);\
+	cout << "try_to_"##NN##"(str)=" << b << " n=" << n; cout << endl;\
+	n = 0;\
+	b = my::num::try_to_##N(wcstr, -1, n);\
+	cout << "try_to_"##NN##"(wcstr)=" << b << " n=" << n; cout << endl;\
+	n = 0;\
+	b = my::num::try_to_##N(wstr, n);\
+	cout << "try_to_"##NN##"(wstr)=" << b << " n=" << n; cout << endl;\
 	cout << endl; }
 
 	cout << boolalpha << fixed << dec;

@@ -1,9 +1,9 @@
 ﻿/*
 	Быстрые функции преобразования чисел в строки и из строки
 	
-	В строку (signed_to, unsigned_to)- своя функция (первый придуманный
-		алгоритм оказался быстрее itoa и Boost.Spirit.Karma (но после
-		всех наворотов стал таким же как Karma).
+	В строку - свой алгоритм (первый придуманный алгоритм
+		оказался быстрее itoa и, даже (!), Boost.Spirit.Karma (после
+		создания его безопасной версии стал таким как последний).
 
 	Из строки (to_signed, to_unsigned, to_real)- использую
 		Boost.Spirit2 (ужасно медленно компилируется, поэтому шаблоны
@@ -11,35 +11,28 @@
 		включил функцию my_num_dummy, которая задействует все возможные
 		варианты).
 
-	Функции:
+	----------------------------------------
+
+	Функции преобразования числа в строку.
+	Поддерживаемые типы: char, short, int, long, long long
+		и их беззнаковые версии.
 		
-		Легенда:
-			type_name, type - тип числа:
-				char      -> char
-				uchar     -> unsigned char
-				short     -> short
-				ushort    -> unsigned short
-				int       -> int
-				uint      -> unsigned int
-				long      -> long
-				ulong     -> unsigned long
-				longlong  -> long long
-				ulonglong -> unsigned long long
-		
-		
+		----------
+
 		template<class Char>
 		size_t put(
 				Char *buf,
-				size_t size,
+				size_t buf_sz,
 				type value,
 				size_t decimals = 0);
 
-			Преобразование числа value в буфер buf размером size.
+			Преобразование числа value в буфер buf размером buf_sz.
 			decimals - минимальное кол-во цифр.
 			
 			Возврат: размер полученной строки (без учёта
 				завершающего нуля).
 
+		----------
 
 		template<class Char>
 		std::basic_string<Char> to_str(
@@ -56,6 +49,7 @@
 
 			Преобразование числа value в строку.
 
+		----------
 
 		template<class Char>
 		size_t to_/type_name/(
@@ -73,6 +67,25 @@
 			Возврат: кол-во символов, считанных из буфера или строки;
 				res - полученное значение.
 
+	----------------------------------------
+
+	Функции преобразования строки в число.
+	Поддерживаемые типы: char, short, int, long, long long,
+		их беззнаковые версии, float, double, long double.
+		
+		----------
+		Легенда:
+			type_name, type - тип числа:
+				char      -> char
+				uchar     -> unsigned char
+				short     -> short
+				ushort    -> unsigned short
+				int       -> int
+				uint      -> unsigned int
+				long      -> long
+				ulong     -> unsigned long
+				longlong  -> long long
+				ulonglong -> unsigned long long
 
 		template<class Char>
 		type to_/type_name/_def(
@@ -115,6 +128,13 @@
 namespace my { namespace num {
 
 
+/*
+	Функции преобразования челых чисел в строку
+*/
+
+
+/* Размер временного буфера для преобразований,
+	хватит на 128 бит (39 сиволов без знака) */
 #define NUM_TO_STR_BUF_SIZE 64
 
 /*
@@ -129,15 +149,15 @@ namespace my { namespace num {
 	любые типы и результат такого действия не предсказуем.
 */
 template<class T, class Char>
-std::size_t put_signed(Char *str, std::size_t size,
+std::size_t put_signed(Char *buf, std::size_t buf_sz,
 	T n, std::size_t decimals = 0)
 {
 	static const Char sym[]
 		= { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
 	/* Результат сохраняем во временный буфер в обратном порядке */
-	Char buf[NUM_TO_STR_BUF_SIZE];
-	Char *buf_ptr = buf;
+	Char tmp[NUM_TO_STR_BUF_SIZE];
+	Char *tmp_ptr = tmp;
 	bool neg;
 
 	/* Сохраняем знак. Операции проводим только с отрицательными
@@ -150,45 +170,48 @@ std::size_t put_signed(Char *str, std::size_t size,
 	do
 	{
 		T nn = n / 10;
-		*buf_ptr++ = sym[ (nn<<3) + (nn<<1) - n ];
+		*tmp_ptr++ = sym[ (nn<<3) + (nn<<1) - n ];
 		n = nn;
 	} while (n);
 
-	/* На данный момент в буфере хранится число в обратном
-		порядке, без знака и без завершающего нуля */
+	/* На данный момент во временном буфере хранится число
+		в обратном порядке, без знака и без завершающего нуля */
 
 	/* Заполняем выходную строку. Отдельно, если не входим
 		в ограничение размера (###), отдельно - если входим */
-	Char *str_ptr = str;
-	std::size_t buf_size = buf_ptr - buf;
-	std::size_t zero_count = (decimals > buf_size ? decimals - buf_size : 0);
+	Char *ptr = buf;
+	Char *end = buf + buf_sz;
+	
+	std::size_t tmp_sz = tmp_ptr - tmp;
+	std::size_t zero_count = (decimals > tmp_sz ? decimals - tmp_sz : 0);
 
-	if (buf_size + zero_count + neg >= size)
+	if (tmp_sz + zero_count + neg >= buf_sz)
 	{
-		if (size != 0)
+		if (buf_sz != 0)
 		{
-			Char *str_last = str + size - 1;
-			while (str_ptr != str_last)
-   				*str_ptr++ = '#';
+			Char *last = buf + buf_sz - 1;
+			while (ptr != last)
+   				*ptr++ = '#';
 
-   			*str_ptr = 0;
+   			*ptr = 0;
 		}	
    	}
    	else
    	{
 		if (neg)
-			*str_ptr++ = '-';
+			*ptr++ = '-';
 
-		while (zero_count)
-			zero_count--, *str_ptr++ = '0';
+		Char *zero_end = ptr + zero_count;
+		while (ptr < zero_end)
+			*ptr++ = '0';
 
-		while (buf_ptr != buf)
-   			*str_ptr++ = *--buf_ptr;
+		while (tmp_ptr != tmp)
+   			*ptr++ = *--tmp_ptr;
 
-		*str_ptr = 0;   	
+		*ptr = 0;   	
    	}
 
-	return str_ptr - str;
+	return ptr - buf;
 }
 
 /*
@@ -204,20 +227,20 @@ std::size_t put_signed(Char *str, std::size_t size,
 */
 
 template<class T, class Char>
-std::size_t put_unsigned(Char *str, std::size_t size,
+std::size_t put_unsigned(Char *buf, std::size_t buf_sz,
 	T n, std::size_t decimals = 0)
 {
 	static const Char sym[]
 		= { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
 	/* Результат сохраняем во временный буфер в обратном порядке */
-	Char buf[NUM_TO_STR_BUF_SIZE];
-	Char *buf_ptr = buf;
+	Char tmp[NUM_TO_STR_BUF_SIZE];
+	Char *tmp_ptr = tmp;
 
 	do
 	{
 		T nn = n / 10;
-		*buf_ptr++ = sym[ n - (nn<<3) - (nn<<1) ];
+		*tmp_ptr++ = sym[ n - (nn<<3) - (nn<<1) ];
 		n = nn;
 	} while (n);
 
@@ -226,34 +249,42 @@ std::size_t put_unsigned(Char *str, std::size_t size,
 
 	/* Заполняем выходную строку. Отдельно, если не входим
 		в ограничение размера (###), отдельно - если входим */
-	Char *str_ptr = str;
-	std::size_t buf_size = buf_ptr - buf;
-	std::size_t zero_count = (decimals > buf_size ? decimals - buf_size : 0);
+	Char *ptr = buf;
+	Char *end = buf + buf_sz;
+	
+	std::size_t tmp_sz = tmp_ptr - tmp;
+	std::size_t zero_count = (decimals > tmp_sz ? decimals - tmp_sz : 0);
 
-	if (buf_size + zero_count >= size)
+	if (tmp_sz + zero_count >= buf_sz)
 	{
-		if (size != 0)
+		if (buf_sz != 0)
 		{
-			Char *str_last = str + size - 1;
-			while (str_ptr != str_last)
-   				*str_ptr++ = '#';
+			Char *last = buf + buf_sz - 1;
+			while (ptr != last)
+   				*ptr++ = '#';
 
-   			*str_ptr = 0;
+   			*ptr = 0;
 		}	
    	}
    	else
    	{
-		while (zero_count)
-			zero_count--, *str_ptr++ = '0';
+		Char *zero_end = ptr + zero_count;
+		while (ptr < zero_end)
+			*ptr++ = '0';
 
-		while (buf_ptr != buf)
-   			*str_ptr++ = *--buf_ptr;
+		while (tmp_ptr != tmp)
+   			*ptr++ = *--tmp_ptr;
 
-		*str_ptr = 0;   	
+		*ptr = 0;   	
    	}
 
-	return str_ptr - str;
+	return ptr - buf;
 }
+
+/*
+	signed_to_str и unsigned_to_str
+	Напрямую использовать не рекомендуется.
+*/
 
 template<class T, class Char>
 inline std::basic_string<Char> signed_to_str(T n, std::size_t decimals = 0)
@@ -299,68 +330,55 @@ DEF_NUM_TO_FUNCS(unsigned,unsigned long)
 DEF_NUM_TO_FUNCS(unsigned,unsigned long long)
 
 
-template<class Char, class Type, class Rule>
-Type to_num_def(const Char *str, Rule rule, Type def,
-	std::size_t size = -1);
+template<class Char, class Type>
+inline std::size_t get_signed(const Char *buf, std::size_t buf_sz, Type &res);
 
-template<class Char, class Type, class Rule>
-std::size_t to_num(const Char *str, Rule rule, Type &res,
-	std::size_t size = -1);
+template<class Char, class Type>
+inline Type to_signed_def(const Char *buf, std::size_t buf_sz, Type def);
 
-template<class Char, class Type, class Rule>
-bool to_num_b(const Char *str, Rule rule, Type &res,
-	std::size_t size = -1);
+template<class Char, class Type>
+inline bool try_to_signed(const Char *buf, std::size_t buf_sz, Type &res);
 
 
 template<class Char, class Type>
-inline Type to_signed_def(const Char *str, Type def, std::size_t size = -1);
+inline std::size_t get_unsigned(const Char *buf, std::size_t buf_sz, Type &res);
 
 template<class Char, class Type>
-inline std::size_t to_signed(const Char *str, Type &res, std::size_t size = -1);
+inline Type to_unsigned_def(const Char *buf, std::size_t buf_sz, Type def);
 
 template<class Char, class Type>
-inline bool to_signed_b(const Char *str, Type &res, std::size_t size = -1);
-
-
-template<class Char, class Type>
-inline Type to_unsigned_def(const Char *str, Type def, std::size_t size = -1);
-
-template<class Char, class Type>
-inline std::size_t to_unsigned(const Char *str, Type &res, std::size_t size = -1);
-
-template<class Char, class Type>
-inline bool to_unsigned_b(const Char *str, Type &res, std::size_t size = -1);
+inline bool try_to_unsigned(const Char *buf, std::size_t buf_sz, Type &res);
 
 
 template<class Char, class Type>
-inline Type to_real_def(const Char *str, Type def, std::size_t size = -1);
+inline std::size_t get_real(const Char *buf, std::size_t buf_sz, Type &res);
 
 template<class Char, class Type>
-inline std::size_t to_real(const Char *str, Type &res, std::size_t size = -1);
+inline Type to_real_def(const Char *buf, std::size_t buf_sz, Type def);
 
 template<class Char, class Type>
-inline bool to_real_b(const Char *str, Type &res, std::size_t size = -1);
+inline bool try_to_real(const Char *buf, std::size_t buf_sz, Type &res);
 
 
 #define DEF_TO_NUM_FUNCS(S,N,T)\
 template<class Char>\
-inline T to_##N##_def(const Char *str, T def, std::size_t size = -1)\
-	{ return to_##S##_def<Char,T>(str, def, size); }\
+inline std::size_t get(const Char *buf, std::size_t buf_sz, T &res)\
+	{ return get_##S<Char,T>(buf, buf_sz, res); }\
 template<class Char>\
-inline std::size_t to_##N(const Char *str, T &res, std::size_t size = -1)\
-	{ return to_##S##<Char,T>(str, res, size); }\
+inline T to_##N##_def(const Char *buf, std::size_t buf_sz, T def)\
+	{ return to_##S##_def<Char,T>(buf, buf_sz, def); }\
 template<class Char>\
-inline bool to_##N##_b(const Char *str, T &res, std::size_t size = -1)\
-	{ return to_##S##_b<Char,T>(str, res, size); }\
+inline bool try_to_##N(const Char *buf, std::size_t buf_sz, T &res)\
+	{ return try_to_##S<Char,T>(buf, buf_sz, res); }\
+template<class Char>\
+inline std::size_t get(const std::basic_string<Char> &str, T &res)\
+	{ return get_##S<Char,T>(str.c_str(), str.size(), res); }\
 template<class Char>\
 inline T to_##N##_def(const std::basic_string<Char> &str, T def)\
-	{ return to_##S##_def<Char,T>(str.c_str(), def, str.size()); }\
+	{ return to_##S##_def<Char,T>(str.c_str(), str.size(), def); }\
 template<class Char>\
-inline std::size_t to_##N(const std::basic_string<Char> &str, T &res)\
-	{ return to_##S##<Char,T>(str.c_str(), res, str.size()); }\
-template<class Char>\
-inline bool to_##N##_b(const std::basic_string<Char> &str, T &res)\
-	{ return to_##S##_b<Char,T>(str.c_str(), res, str.size()); }
+inline bool try_to_##N(const std::basic_string<Char> &str, T &res)\
+	{ return try_to_##S<Char,T>(str.c_str(), str.size(), res); }
 
 
 DEF_TO_NUM_FUNCS(signed,char,char)
