@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <string>
+#include <algorithm>
 
 namespace my { namespace str {
 
@@ -24,7 +25,8 @@ inline Char* end(Char *buf)
 }
 
 /* Поиск конца буфера. Если задан размер - простым вычеслением,
-	если размер не задан (-1) - поиск завершающего нуля */
+	если размер не задан (-1) - поиск завершающего нуля.
+	Эта возможность только для функций чтения! */
 
 template<class Char>
 inline const Char* end(const Char *buf, std::size_t buf_sz)
@@ -33,17 +35,11 @@ inline const Char* end(const Char *buf, std::size_t buf_sz)
 }
 
 template<class Char>
-inline Char* end(Char *buf, std::size_t buf_sz)
-{
-	return buf_sz == (std::size_t)-1 ? my::str::end(buf) : buf + buf_sz;
-}
-
-template<class Char>
 inline std::size_t length(const Char *str)
-{
-	return end(str) - str;
-}
+	{ return end(str) - str; }
 
+/* Вывод символа - функция сделана для удобства, чтобы лишний
+	раз не проверять выход за пределы буфера */
 template<class Char>
 inline std::size_t put(Char *buf, std::size_t buf_sz, Char c)
 {
@@ -61,6 +57,7 @@ inline std::size_t put(Char *buf, std::size_t buf_sz, Char c)
 	return 1;
 }
 
+/* Вывод строки (до завершающего символа) */
 template<class Char>
 inline std::size_t put(Char *buf, std::size_t buf_sz, const Char *str)
 {
@@ -68,9 +65,9 @@ inline std::size_t put(Char *buf, std::size_t buf_sz, const Char *str)
 
 	if (buf_sz)
 	{
-		Char *last = buf + buf_sz - 1;
+		Char *end = buf + buf_sz - 1;
 
-		while (*str && ptr < last)
+		while (*str && ptr != end)
 			*ptr++ = *str++;
 	
 		*ptr = 0;
@@ -78,6 +75,27 @@ inline std::size_t put(Char *buf, std::size_t buf_sz, const Char *str)
 	
 	return ptr - buf;
 }
+
+/* Вывод бинарной строки заданного размера */
+template<class Char>
+std::size_t put(Char *buf, std::size_t buf_sz,
+	const Char *str, std::size_t str_sz)
+{
+	Char *ptr = buf;
+
+	if (buf_sz)
+	{
+		const Char *end = str + (buf_sz > str_sz ? str_sz : buf_sz - 1);
+
+		while (str != end)
+			*ptr++ = *str++;
+
+		*ptr = 0;
+	}
+	
+	return ptr - buf;
+}
+
 
 std::string to_string(const wchar_t *str, int len = -1);
 inline std::string to_string(const std::wstring &str)
