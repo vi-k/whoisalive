@@ -2,6 +2,7 @@
 
 #include <string>
 #include <iostream>
+#include <iterator>
 using namespace std;
 
 int main(void)
@@ -123,6 +124,67 @@ int main(void)
 	cout << "*** unsigned integers to wstring ***\n" << endl;
 	TEST_U_CAST("uchar",uchar,unsigned char,unsigned int,wcout,wstring)
 	TEST_U("uint",uint,unsigned int,wcout,wstring)
+
+	{
+	char buf[20];
+	char *ptr = buf;
+	cout << my::num::put_signed2(ptr, buf + sizeof(buf)/sizeof(*buf), 123456)
+		<< endl;
+	*ptr = 0;
+	cout << '\"' << buf << '\"' << endl;
+	cout << ptr - buf << endl;
+	}
+
+	{
+	wchar_t buf[20];
+	wchar_t *ptr = buf;
+	cout << my::num::put_signed2(ptr, buf + sizeof(buf)/sizeof(*buf), 123456)
+		<< endl;
+	*ptr = 0;
+	wcout << '\"' << buf << '\"' << endl;
+	cout << ptr - buf << endl;
+	}
+
+	{
+	int buf[20];
+	int *ptr = buf;
+	cout << my::num::put_signed2(ptr, buf + sizeof(buf)/sizeof(*buf), 123456)
+		<< endl;
+	*ptr = 0;
+	cout << buf[0] << endl;
+	cout << buf[1] << endl;
+	cout << buf[2] << endl;
+	cout << buf[3] << endl;
+	cout << buf[4] << endl;
+	cout << buf[5] << endl;
+	cout << ptr - buf << endl;
+	}
+
+	{
+	string str(20,' ');
+	string::iterator ptr = str.begin();
+	cout << my::num::put_signed2(ptr, str.end(), 123456)
+		<< endl;
+	str.resize(ptr - str.begin());
+	cout << '\"' << str << '\"' << endl;
+	cout << ptr - str.begin() << endl;
+	}
+
+	/*-
+	{
+	typedef back_insert_iterator<string> sink_type;
+
+	string str, str2;
+	sink_type sink(str), sink2(str2);
+
+	string::iterator ptr = str.begin();
+	cout << my::num::put_signed2(sink, sink2, 123456)
+		<< endl;
+	str.resize(ptr - str.begin());
+	cout << '\"' << str << '\"' << endl;
+	cout << ptr - str.begin() << endl;
+	}
+    -*/
 
 	return 0;
 }

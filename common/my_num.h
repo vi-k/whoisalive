@@ -2,8 +2,8 @@
 	Быстрые функции преобразования чисел в строки и из строки
 	
 	В строку - свой алгоритм (первый придуманный алгоритм
-		оказался быстрее itoa и, даже (!), Boost.Spirit.Karma (после
-		создания его безопасной версии стал таким как последний).
+		оказался быстрее itoa и, даже (!), Boost.Spirit.Karma (но после
+		создания его безопасной версии стал таким же как последний).
 
 	Из строки (to_signed, to_unsigned, to_real)- использую
 		Boost.Spirit2 (ужасно медленно компилируется, поэтому шаблоны
@@ -147,7 +147,7 @@ namespace my { namespace num {
 #define NUM_TO_STR_BUF_SIZE 64
 
 /*
-	signed_to
+	put_signed
 
 	Алгоритм преобразования целого числа со знаком в строку.
 	Ради производительности имеет ограничение - используется
@@ -200,13 +200,13 @@ std::size_t put_signed(Char *buf, std::size_t buf_sz,
 		{
 			Char *last = buf + buf_sz - 1;
 			while (ptr != last)
-   				*ptr++ = '#';
+			*ptr++ = '#';
 
-   			*ptr = 0;
+			*ptr = 0;
 		}	
-   	}
-   	else
-   	{
+	}
+	else
+	{
 		if (neg)
 			*ptr++ = '-';
 
@@ -215,16 +215,62 @@ std::size_t put_signed(Char *buf, std::size_t buf_sz,
 			*ptr++ = '0';
 
 		while (tmp_ptr != tmp)
-   			*ptr++ = *--tmp_ptr;
+			*ptr++ = *--tmp_ptr;
 
-		*ptr = 0;   	
-   	}
+		*ptr = 0;
+	}
 
 	return ptr - buf;
 }
 
+template<class OutputIterator, class SignedInt>
+bool put_signed2(OutputIterator &begin, OutputIterator end,
+	SignedInt value/*, std::size_t decimals = 0*/)
+{
+	static const char sym[]
+		= { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+
+	/* Результат сохраняем во временный буфер в обратном порядке */
+	char buf[NUM_TO_STR_BUF_SIZE];
+	char *buf_ptr = buf;
+	bool neg;
+
+	/* Сохраняем знак. Операции проводим только с отрицательными
+		числами. Логичнее было бы проводить с положительными,
+		но не все отрицательные числа можно перевести
+		в положительные - например, (char)-128 */
+	if ( (neg = value < 0) == false)
+		value = -value;
+
+	do
+	{
+		SignedInt n = value / 10;
+		*buf_ptr++ = sym[ (n<<3) + (n<<1) - value ];
+		value = n;
+
+	} while (value);
+
+	/* На данный момент во временном буфере хранится число
+		в обратном порядке, без знака и без завершающего нуля */
+
+	/* Заполняем выходную строку */
+	std::size_t buf_sz = buf_ptr - buf;
+	//std::size_t zero_count = (decimals > buf_sz ? decimals - buf_sz : 0);
+
+	if (neg && begin != end)
+		*begin++ = '-';
+
+	//while (zero_count-- && begin != end)
+	//	*begin++ = '0';
+
+	while (buf_ptr != buf && begin != end)
+		*begin++ = *--buf_ptr;
+
+	return buf_ptr == buf;
+}
+
 /*
-	unsigned_to
+	put_unsigned
 
 	Алгоритм преобразования целого числа без знака в строку.
 	Ради производительности имеет ограничение - используется
@@ -270,22 +316,22 @@ std::size_t put_unsigned(Char *buf, std::size_t buf_sz,
 		{
 			Char *last = buf + buf_sz - 1;
 			while (ptr != last)
-   				*ptr++ = '#';
+				*ptr++ = '#';
 
-   			*ptr = 0;
+			*ptr = 0;
 		}	
-   	}
-   	else
-   	{
+	}
+	else
+	{
 		Char *zero_end = ptr + zero_count;
 		while (ptr < zero_end)
 			*ptr++ = '0';
 
 		while (tmp_ptr != tmp)
-   			*ptr++ = *--tmp_ptr;
+			*ptr++ = *--tmp_ptr;
 
-		*ptr = 0;   	
-   	}
+		*ptr = 0;
+	}
 
 	return ptr - buf;
 }
@@ -318,6 +364,10 @@ template<class Char>\
 inline std::size_t put(Char *str, std::size_t size,\
 	T n, std::size_t decimals = 0)\
 	{ return put_##S<T,Char>(str, size, n, decimals); }\
+template<class OutputIterator>\
+inline bool put2(OutputIterator &begin, OutputIterator end,\
+	T n)\
+	{ return put_##S##2<OutputIterator,T>(begin, end, n); }\
 template<class Char>\
 inline std::basic_string<Char> to_str(T n, std::size_t decimals = 0)\
 	{ return S##_to_str<T,Char>(n, decimals); }\
