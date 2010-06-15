@@ -80,10 +80,10 @@ public:
 		};
 
 		std::basic_ostringstream<Char> out;
-		my::time::set_output_format(out, time_fmt);
+
 		out << state_
 			<< ' ' << acknowledged_
-			<< ' ' << time_;
+			<< ' ' << my::time::to_str<Char>(time_, time_fmt);
 		return out.str();
 	}
 
@@ -180,14 +180,10 @@ public:
 	friend std::basic_ostream<Char>& operator<<(
 		std::basic_ostream<Char>& out, const host_state &hs)
 	{
-		boost::io::basic_ios_all_saver<Char> ios_saver(out);
-		
-		my::time::set_mydef_output_format(out);
-
 		out << HOST_STATE_VER
 			<< ' ' << hs.state_
 			<< ' ' << hs.acknowledged_
-			<< ' ' << hs.time_;
+			<< ' ' << my::time::to_str<Char>(hs.time_);
 
 		return out;
 	}
@@ -196,16 +192,16 @@ public:
 	friend std::basic_istream<Char>& operator>>(
 		std::basic_istream<Char>& in, host_state &hs)
 	{
-		boost::io::basic_ios_all_saver<Char> ios_saver(in);
-
-		my::time::set_mydef_input_format(in);
+		basic_string<Char> t1, t2;
 
 		int ver = 0;
 
 		in >> ver
 			>> hs.state_
 			>> hs.acknowledged_
-			>> hs.time_;
+			>> t1 >> t2;
+
+		hs.time_ = my::time::to_time(t1 + Char(' ') + t2);
 
 		if (ver != HOST_STATE_VER)
 			in.setstate(std::ios::failbit);
