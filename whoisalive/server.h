@@ -78,20 +78,14 @@ public:
 	unsigned int load_file(const std::wstring &file,
 		const std::wstring &file_local, bool throw_if_fail = true);
 
+	bool cmd(const wstring &request);
+
 	/* Состояние ip-адресов, квитирование */
 	pinger::host_state host_state(const std::wstring &host)
 		{ return hosts_[host]; }
 	
-	void acknowledge(const std::wstring &host)
-	{
-		//TODO: acknowledge теперь на сервере
-	}
-	
-	void unacknowledge(const std::wstring &host)
-	{
-		//TODO: acknowledge теперь на сервере
-	}
-	
+	void acknowledge(const std::wstring &host);
+	void unacknowledge(const std::wstring &host);
 	void acknowledge_all(void);
 	void unacknowledge_all(void);
 

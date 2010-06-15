@@ -64,7 +64,7 @@ void server::run()
 			if (!out.str().empty())
 			try
 			{
-				h.connection->send_in_utf8(out.str());
+				h.connection->send( my::utf8::encode(out.str()) );
 			}
 			catch(...)
 			{

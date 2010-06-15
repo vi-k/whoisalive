@@ -55,6 +55,22 @@ bool wx_App::OnExceptionInMainLoop()
 	{
 		throw;
 	}
+	catch (my::exception &e)
+	{
+		wstring error = e.message();
+		main_log << L"my::exception (App::ExceptionInMainLoop)\n"
+			<< error << main_log;
+		wxMessageBox(error.c_str(), L"Ошибка", wxOK | wxICON_ERROR);
+	}
+	catch (exception &e)
+	{
+		my::exception my_e(e);
+		wstring error = my_e.message();
+		main_log << L"std::exception (App::ExceptionInMainLoop)\n"
+			<< error << main_log;
+		wxMessageBox(error.c_str(),
+			L"std::exception", wxOK | wxICON_ERROR);
+	}
 	catch (...)
 	{
 		main_log << L"unknown exception (App::ExceptionInMainLoop)" << main_log;

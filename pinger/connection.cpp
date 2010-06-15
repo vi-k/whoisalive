@@ -203,7 +203,7 @@ void connection::run()
 				}
 
 				send_ok("text/plain; charset=utf-8");
-				send_in_utf8(out.str());
+				send( my::utf8::encode(out.str()) );
 
 				server_.ping_eventer().add_handler(this, address);
 
@@ -267,7 +267,7 @@ void connection::run()
 				}
 
 				send_ok("text/plain; charset=utf-8");
-				send_in_utf8(out.str());
+				send( my::utf8::encode(out.str()) );
 
 				server_.state_eventer().add_handler(this, address);
 
@@ -401,6 +401,34 @@ void connection::run()
 
 			} /* else if (file == L"add") */
 
+			else if (file == L"acknowledge")
+			{
+				string host = my::ip::punycode_encode(request.params[L"host"]);
+				ip::address_v4 address;
+
+				if (!host.empty())
+					address = server_.pinger().resolve(host).address().to_v4();
+				
+				server_.pinger().acknowledge(address, true);
+
+				send_ok("text/plain");
+				send("OK");
+			}
+
+			else if (file == L"unacknowledge")
+			{
+				string host = my::ip::punycode_encode(request.params[L"host"]);
+				ip::address_v4 address;
+
+				if (!host.empty())
+					address = server_.pinger().resolve(host).address().to_v4();
+				
+				server_.pinger().acknowledge(address, false);
+
+				send_ok("text/plain");
+				send("OK");
+			}
+
 			else
 				parsed = false;
 
@@ -463,7 +491,7 @@ void connection::send_404(const std::wstring &message)
 	try
 	{
 		send_header(404, "Page Not Found", "text/plain; charset=utf-8");
-		send_in_utf8(message);
+		send( my::utf8::encode(message) );
 	}
 	catch(...)
 	{
@@ -499,5 +527,5 @@ void connection::send_xml(xml::wptree &pt)
 	write_xml(out, pt, xs);
 
 	send_ok("application/xml; charset=utf-8");
-	send_in_utf8(out.str());
+	send( my::utf8::encode(out.str()) );
 }
