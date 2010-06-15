@@ -38,7 +38,7 @@ server::server(xml::wptree &config)
 	try
 	{
 		if (address.empty())
-			endpoint = tcp::endpoint(tcp::v4(), my::num::to_int(port, 0));
+			endpoint = tcp::endpoint(tcp::v4(), my::num::to_int_def(port, 0));
 		else
 		{
 			tcp::resolver::query query(

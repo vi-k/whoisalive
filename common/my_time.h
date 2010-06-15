@@ -381,7 +381,12 @@ inline std::basic_string<Char> to_str(const Time &t,
     	Это не есть хорошо, но пока сойдёт */
 	
 	if (format)
-		n = std::max(n, my::str::length(format));
+		//n = std::max(n, my::str::length(format));
+	{
+		std::size_t len = my::str::length(format);
+		if (len > n)
+			n = len;
+	}
 
 	std::basic_string<Char> out(n * 2, ' ');
 

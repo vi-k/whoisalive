@@ -176,7 +176,6 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 		else
 		{
 			wistringstream ss( my::utf8::decode(reply_.body) );
-			pinger::ping_result::prepare(ss); /* Ускоритель ввода с потока */
 
 			PingTextCtrl->Freeze();
 
@@ -203,7 +202,6 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 				ping.set_time( my::time::utc_to_local(ping.time()) );
 
 				wostringstream out;
-				my::time::set_output_format(out, L"[%H:%M:%S]");
 
 				wxTextAttr style;
 
@@ -226,7 +224,7 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 					{
 						case pinger::ping_result::ok:
 							style = wxTextAttr(*wxGREEN);
-							out << ping.time()
+							out << my::time::to_wstring(ping.time(), L"[%H:%M:%S]")
 								<< L' ' << ping.ipv4_hdr().header_length()
 								<< L" bytes from " << ping.ipv4_hdr().source_address()
 								<< L", icmp_seq=" << num
@@ -237,7 +235,7 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 
 						case pinger::ping_result::timeout:
 							style = wxTextAttr(*wxRED);
-							out << ping.time()
+							out << my::time::to_wstring(ping.time(), L"[%H:%M:%S]")
 								<< L" timeout (icmp_seq=" << num
 								<< L", time=" << ping.duration().total_milliseconds() << L" ms"
 								<< L")\n";
@@ -283,13 +281,13 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 		PingFirstText->SetLabel(L"");
 	else
 		PingFirstText->SetLabel(
-			my::time::format(L"%d-%m-%Y\n%H:%M:%S", first_ping_) );
+			my::time::to_wstring(first_ping_, L"%d-%m-%Y\n%H:%M:%S") );
 
 	if (last_ping_.is_special())
 		PingLastText->SetLabel(L"");
 	else
 		PingLastText->SetLabel(
-			my::time::format(L"%d-%m-%Y\n%H:%M:%S", last_ping_) );
+			my::time::to_wstring(last_ping_, L"%d-%m-%Y\n%H:%M:%S") );
 }
 
 void wx_Ping::repaint()
@@ -410,10 +408,9 @@ void wx_Ping::on_pingpanel_mousemove(wxMouseEvent& event)
 	if (iter != pings_.end())
 	{
 		wostringstream out;
-		my::time::set_output_format(out, L"%Y-%m-%d %H:%M:%S");
 
 		out << iter->value().state() << endl
-			<< iter->value().time() << endl
+			<< my::time::to_wstring(iter->value().time(), L"%Y-%m-%d %H:%M:%S") << endl
 			<< L"icmp_seq=" << iter->key() << endl
 			<< L"time=" << iter->value().duration().total_milliseconds() << L" ms";
 

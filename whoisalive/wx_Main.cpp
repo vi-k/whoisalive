@@ -49,10 +49,9 @@ extern wx_App *App;
 wofstream main_log_stream;
 void on_main_log(const wstring &text)
 {
-	/* main_log_stream уже имеет facet */
-	main_log_stream << L"[" << my::time::format(L"%Y-%m-%d %H:%M:%S",
-		posix_time::microsec_clock::universal_time()) << L"]\n";
-	main_log_stream << text << endl << endl;
+	main_log_stream << my::time::to_wstring(
+		posix_time::microsec_clock::universal_time(), L"[%Y-%m-%d %H:%M:%S]\n")
+		<< text << endl << endl;
 	main_log_stream.flush();
 }
 my::log main_log(on_main_log);

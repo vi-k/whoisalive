@@ -94,9 +94,9 @@ void connection::run()
 					throw my::exception(L"Карта не найдена")
 						<< my::param(L"request", my::str::to_wstring(request.request_));
 
-				int z = my::num::to_int(request.params[L"z"], -1);
-				int x = my::num::to_int(request.params[L"x"], -1);
-				int y = my::num::to_int(request.params[L"y"], -1);
+				int z = my::num::to_int_def(request.params[L"z"], -1);
+				int x = my::num::to_int_def(request.params[L"x"], -1);
+				int y = my::num::to_int_def(request.params[L"y"], -1);
 
 				int maxc = 0;
 				if (z >= 1 && z <= 25)

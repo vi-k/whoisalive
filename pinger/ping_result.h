@@ -102,11 +102,9 @@ public:
 
 		std::basic_ostringstream<Char> out;
 	
-		my::time::set_output_format(out, time_fmt);
-		
 		out << '#' << sequence_number()
 			<< ' ' << state_
-			<< ' ' << time_
+			<< ' ' << my::time::to_str<Char>(time_, time_fmt)
 			<< ' ' << duration_.total_milliseconds() << 'm' << 's';
 		return out.str();
 	}
@@ -155,20 +153,13 @@ public:
 	}
 
 	template<class Char>
-	inline static void prepare(std::basic_ostream<Char>& out)
-		{ my::time::set_mydef_output_format(out); }
-
-	template<class Char>
 	friend std::basic_ostream<Char>& operator<<(
 		std::basic_ostream<Char>& out, const ping_result &pr)
 	{
-		boost::io::basic_ios_all_saver<Char> ios_saver(out);
-		my::time::set_mydef_output_format(out);
-
 		out << PING_RESULT_VER
 			<< ' ' << pr.state_
-			<< ' ' << pr.time_
-			<< ' ' << pr.duration_
+			<< ' ' << my::time::to_str<Char>(pr.time_)
+			<< ' ' << my::time::to_str<Char>(pr.duration_)
 			<< ' ' << my::str::to_hex( (const char*)pr.ipv4_hdr_.rep_,
 				sizeof(pr.ipv4_hdr_.rep_) ).c_str()
 			<< ' ' << my::str::to_hex( (const char*)pr.icmp_hdr_.rep_,
@@ -178,22 +169,20 @@ public:
 	}
 
 	template<class Char>
-	inline static void prepare(std::basic_istream<Char>& out)
-		{ my::time::set_mydef_input_format(out); }
-
-	template<class Char>
 	friend std::basic_istream<Char>& operator>>(
 		std::basic_istream<Char>& in, ping_result &pr)
 	{
-		boost::io::basic_ios_all_saver<Char> ios_saver(in);
-		my::time::set_mydef_input_format(in);
-
 		int ver = 0;
+
+		basic_string<Char> t1, t2, td;
 
 		in >> ver
 			>> pr.state_
-			>> pr.time_
-			>> pr.duration_;
+			>> t1 >> t2
+			>> td;
+
+		pr.time_ = my::time::to_time(t1 + Char(' ') + t2);
+		pr.duration_ = my::time::to_duration(td);
 
 		if (ver != PING_RESULT_VER)
 			in.setstate(std::ios::failbit);
