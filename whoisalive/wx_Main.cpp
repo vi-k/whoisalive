@@ -546,15 +546,6 @@ void wx_Frame::OnMenuPing_Selected(wxCommandEvent& event)
 	{
 		who::object *object = dynamic_cast<who::object*>(menu_widget_);
 		if (object)
-		{
-			try
-			{
-				new wx_Ping(this, *server_, object); /* Удалит себя сам */
-			}
-			catch(my::exception &e)
-			{
-				wxMessageBox(e.message(), L"Ошибка", wxOK | wxICON_ERROR);
-			}
-		}
+			wx_Ping::Start(this, *server_, object);
 	}
 }

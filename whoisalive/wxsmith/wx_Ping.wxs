@@ -14,6 +14,10 @@
 			<object class="sizeritem">
 				<object class="wxPanel" name="ID_STATEPANEL" variable="StatePanel" member="yes">
 					<size>400,61</size>
+					<handler function="OnStatePanelPaint" entry="EVT_PAINT" />
+					<handler function="OnPanelsEraseBackground" entry="EVT_ERASE_BACKGROUND" />
+					<handler function="OnStatePanelMouseMove" entry="EVT_MOTION" />
+					<handler function="OnStatePanelMouseLeave" entry="EVT_LEAVE_WINDOW" />
 				</object>
 				<flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
@@ -23,7 +27,7 @@
 				<object class="wxBoxSizer" variable="BoxSizer1" member="no">
 					<object class="sizeritem">
 						<object class="wxStaticText" name="ID_STATICTEXT1" variable="StateFirstText" member="yes">
-							<label>&#x0A;</label>
+							<label></label>
 							<font>
 								<size>6</size>
 							</font>
@@ -35,7 +39,7 @@
 					</object>
 					<object class="sizeritem">
 						<object class="wxStaticText" name="ID_STATICTEXT2" variable="StateLastText" member="yes">
-							<label>&#x0A;</label>
+							<label></label>
 							<font>
 								<size>6</size>
 							</font>
@@ -53,10 +57,10 @@
 			<object class="sizeritem">
 				<object class="wxPanel" name="ID_PINGPANEL" variable="PingPanel" member="yes">
 					<size>400,61</size>
-					<handler function="on_pingpanel_paint" entry="EVT_PAINT" />
-					<handler function="on_pingpanel_erasebackground" entry="EVT_ERASE_BACKGROUND" />
-					<handler function="on_pingpanel_mousemove" entry="EVT_MOTION" />
-					<handler function="on_pingpanel_mouseleave" entry="EVT_LEAVE_WINDOW" />
+					<handler function="OnPingPanelPaint" entry="EVT_PAINT" />
+					<handler function="OnPanelsEraseBackground" entry="EVT_ERASE_BACKGROUND" />
+					<handler function="OnPingPanelMouseMove" entry="EVT_MOTION" />
+					<handler function="OnPingPanelMouseLeave" entry="EVT_LEAVE_WINDOW" />
 				</object>
 				<flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
@@ -66,7 +70,7 @@
 				<object class="wxBoxSizer" variable="BoxSizer2" member="no">
 					<object class="sizeritem">
 						<object class="wxStaticText" name="ID_STATICTEXT3" variable="PingFirstText" member="yes">
-							<label>&#x0A;</label>
+							<label></label>
 							<font>
 								<size>6</size>
 							</font>
@@ -78,7 +82,7 @@
 					</object>
 					<object class="sizeritem">
 						<object class="wxStaticText" name="ID_STATICTEXT4" variable="PingLastText" member="yes">
-							<label>&#x0A;</label>
+							<label></label>
 							<font>
 								<size>6</size>
 							</font>
