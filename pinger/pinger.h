@@ -88,6 +88,8 @@ public:
 
 	class host_pinger_copy copy();
 
+	void acknowledge(bool ack);
+
 	host_state last_state()
 	{
 		scoped_lock l(pinger_mutex_);
@@ -177,6 +179,7 @@ public:
 	inline void change_state_notify(host_pinger &pinger,
 		const host_state &state)
 	{
+		/*TODO: Сохранение результата в БД */
 		if (on_change_state)
 			on_change_state(pinger.copy(), state);
 	}
@@ -195,6 +198,14 @@ public:
 		scoped_lock l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true);
 		return host_pinger_copy(*pinger);
+	}
+
+	void acknowledge(const ip::address_v4 &address, bool ack)
+	{
+		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		host_pinger *pinger = find_pinger_(address, true);
+		if (pinger)
+			pinger->acknowledge(ack);
 	}
 
 	host_state last_state(const ip::address_v4 &address)

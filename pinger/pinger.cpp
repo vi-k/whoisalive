@@ -117,6 +117,41 @@ void host_pinger::run()
 		this, sequence_number_) );
 }
 
+void host_pinger::acknowledge(bool ack)
+{
+	/* Сразу вычисляем время - избегаем лишних погрешностей */
+	posix_time::ptime time = now();
+
+	host_state prev_state;
+	host_state new_state;
+	bool changed = false;
+
+	/* Блокируем пингер */
+	{
+		scoped_lock l(pinger_mutex_);
+
+		if (!states_.empty())
+			prev_state = states_.front();
+
+		new_state = prev_state;
+		new_state.set_time(time);
+		new_state.set_acknowledged(ack);
+
+		if ( !host_state::eq(new_state, prev_state) )
+		{
+			changed = true;
+			states_.push_front(new_state);
+		}
+	}
+
+	/* Мы имеем копии результата и состояния, поэтому
+		дальнейшая блокировка не требуется */
+
+	/* Оповещаем об изменении состояния */
+	if (changed)
+		parent_.change_state_notify(*this, new_state);
+}
+
 void host_pinger::handle_timeout_(unsigned short sequence_number)
 {
 	/* Сразу вычисляем время - избегаем лишних погрешностей */
@@ -132,6 +167,7 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 	/* Cостояние хоста */
 	host_state prev_state;
 	host_state new_state;
+	bool state_changed = false;
 
 	/* Блокируем пингер */
 	{
@@ -166,7 +202,10 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 		}
 
 		if ( !host_state::eq(new_state, prev_state) )
+		{
+			state_changed = true;
 			states_.push_front(new_state);
+		}
 	}
 
 	/* Мы имеем копии результата и состояния, поэтому
@@ -186,8 +225,7 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 	parent_.ping_notify(*this, result);
 
 	/* Оповещаем об изменении состояния */
-	if ( !host_state::eq(new_state, prev_state) )
-		/*TODO: Сохранение результата в БД */
+	if (state_changed)
 		parent_.change_state_notify(*this, new_state);
 }
 
@@ -203,6 +241,7 @@ void host_pinger::on_receive(posix_time::ptime time,
 	/* Cостояние хоста */
 	host_state prev_state;
 	host_state new_state;
+	bool state_changed = false;
 
 	/* Блокируем пингер */
 	{
@@ -243,7 +282,10 @@ void host_pinger::on_receive(posix_time::ptime time,
 		}
 
 		if ( !host_state::eq(new_state, prev_state) )
+		{
+			state_changed = true;
 			states_.push_front(new_state);
+		}
 
 		if (iter == results_.end())
 		{
@@ -260,11 +302,8 @@ void host_pinger::on_receive(posix_time::ptime time,
 	parent_.ping_notify(*this, result);
 
 	/* Оповещаем об изменении состояния */
-	if ( !host_state::eq(new_state, prev_state) )
-	{
-		/*TODO: Добавить сохранение результата в БД */
+	if (state_changed)
 		parent_.change_state_notify(*this, new_state);
-	}
 }
 
 server::server()

@@ -170,7 +170,9 @@ wx_Frame::wx_Frame(wxWindow* parent, wxWindowID id)
 
 	main_log << L"Start" << main_log;
 
+#ifndef _DEBUG
 	m_object_menu.Remove(m_objectmenu_unack);
+#endif
 
 	m_notebook->Connect(wxID_ANY,wxEVT_SET_FOCUS,(wxObjectEventFunction)&wx_Frame::skip_setfocus,0,this);
 	Connect(ID_NOTEBOOK1,wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGED,(wxObjectEventFunction)&wx_Frame::OnNotebookPageChanged);

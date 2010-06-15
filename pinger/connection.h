@@ -29,11 +29,6 @@ public:
 		asio::write(socket_, asio::buffer(data), asio::transfer_all());
 	}
 
-	void send_in_utf8(const std::wstring &data)
-	{
-		send( my::utf8::encode(data) );
-	}
-
 	void send_header(unsigned int status_code,
 		const std::string &status_message,
 		const std::string &content_type);

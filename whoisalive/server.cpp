@@ -114,11 +114,11 @@ void server::state_log_thread_proc( void)
 			reply.body.resize(n);
 			reply.buf_.sgetn((char*)reply.body.c_str(), n);
 
-			if (reply.body == "START ARCHIVE\r\n")
+			if (reply.body == "START_ARCHIVE\r\n")
 			{
 				//
 			}
-			else if (reply.body == "END ARCHIVE\r\n")
+			else if (reply.body == "END_ARCHIVE\r\n")
 			{
 				//
 			}
@@ -257,6 +257,16 @@ window* server::add_window(HWND parent_wnd)
 	return win;
 }
 
+void server::acknowledge(const std::wstring &host)
+{
+	cmd(L"/pinger/acknowledge?host=" + host);
+}
+	
+void server::unacknowledge(const std::wstring &host)
+{
+	cmd(L"/pinger/unacknowledge?host=" + host);
+}
+
 void server::acknowledge_all(void)
 {
 	for( hosts_list::iterator it = hosts_.begin();
@@ -338,6 +348,15 @@ unsigned int server::load_file(const wstring &file,
 			<< my::param(L"request", file);
 	
 	return reply.status_code;
+}
+
+bool server::cmd(const wstring &request)
+{
+	my::http::reply reply;
+
+    get(reply, request);
+
+	return reply.status_code == 200;
 }
 
 void server::paint_tile(Gdiplus::Graphics *canvas,
