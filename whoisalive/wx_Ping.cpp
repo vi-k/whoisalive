@@ -4,7 +4,6 @@
 #include "../common/my_str.h"
 #include "../common/my_num.h"
 #include "../common/my_utf8.h"
-#include "../common/my_stopwatch.h"
 
 #include <sstream>
 #include <istream>
@@ -179,9 +178,6 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 
 			PingTextCtrl->Freeze();
 
-			my::stopwatch timer;
-			timer.start();
-
 			/* Если загружаем архив, то это будет больше, чем одна строка */
 			while (true)
 			{
@@ -248,11 +244,7 @@ void wx_Ping::handle_read(const boost::system::error_code& error,
 
 			} /* while (ss) */
 
-			timer.finish();
-
 			PingTextCtrl->Thaw();
-
-			*PingTextCtrl << timer.to_wstring() << L'\n';
 
 			repaint();
 
