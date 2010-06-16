@@ -44,13 +44,13 @@ END_EVENT_TABLE()
 
 #define BLOCK_W 4
 
-void destroy(wx_Ping *frame)
+void destroy(wxFrame *frame)
 {
 	frame->Destroy();
 }
 
 wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
-	: terminate_(0)
+	: terminate_(false)
 	, server_(server)
 	, object_(object)
 	, pings_socket_(server.io_service())
@@ -126,16 +126,14 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	SetLabel(name);
 
 	Show();
-
-	//boost::get_deleter<boost::detail::esft2_deleter_wrapper>(
-	//	shared_from_this())->set_deleter(destroy);
 }
 
 void wx_Ping::Start(wxWindow* parent, who::server &server, who::object *object)
 {
 	try
 	{
-		shared_ptr<wx_Ping> ptr( new wx_Ping(parent, server, object) );
+		shared_ptr<wx_Ping> ptr
+			= shared_ptr<wx_Ping>(new wx_Ping(parent, server, object), destroy);
 		ptr->start();
 	}
 	catch(my::exception &e)
@@ -181,23 +179,17 @@ wx_Ping::~wx_Ping()
 {
 	//(*Destroy(wx_Ping)
 	//*)
-
-	//if (terminate_ == 2)
-	//	Destroy();
-
-	terminate_ = 2;
-	Close(true);
 }
 
 void wx_Ping::OnClose(wxCloseEvent& event)
 {
-	terminate_ = 1;
+	terminate_ = true;
 
 	scoped_lock ls(states_read_mutex_);
 	states_socket_.close();
 
 	scoped_lock lp(pings_read_mutex_);
-	//pings_socket_.close();
+	pings_socket_.close();
 
 	event.Veto();
 }
@@ -292,79 +284,6 @@ void wx_Ping::states_handle_read(const boost::system::error_code& error,
 		wxMessageBox(str, L"Ошибка чтения данных",
 			wxOK | wxICON_ERROR, this);
 	}
-}
-
-/* Прорисовка состояний */
-void wx_Ping::states_repaint()
-{
-	scoped_lock l(states_bitmap_mutex_);
-
-	first_state_time_ = last_state_time_ = posix_time::ptime();
-
-	int w, h;
-	StatePanel->GetClientSize(&w, &h);
-
-	if (states_bitmap_.GetWidth() != w || states_bitmap_.GetHeight() != h)
-		states_bitmap_.Create(w, h);
-
-	wxMemoryDC dc(states_bitmap_);
-
-	int ok_y = h - 4;
-	int warn_y = h /2;
-	int fail_y = 3;
-
-	/* Стираем */
-	dc.SetBrush(*wxBLACK_BRUSH);
-	dc.DrawRectangle(0, 0, w, h);
-
-	/* Рисуем границы */
-	dc.SetPen(*wxGREY_PEN);
-	dc.DrawLine(0, ok_y, w, ok_y);
-	dc.DrawLine(0, warn_y, w, warn_y);
-	dc.DrawLine(0, fail_y, w, fail_y);
-
-	//dc.SetPen(*wxGREEN_PEN);
-
-	int prev_y = -1;
-	int index = 0;
-
-	scoped_lock ll(states_mutex_);
-
-	/*-
-	for (states_list::iterator iter = states_.begin();
-		iter != states_.end(); iter++)
-	{
-		pinger::host_state state = iter->value();
-
-		if (index++ == 0)
-			last_state_time_ = state.time();
-
-		int x = w - index * BLOCK_W;
-
-		if (x <= 0 && x > -BLOCK_W)
-			first_state_time_ = state.time();
-
-		if (state.state() == pinger::ping_result::timeout)
-		{
-			prev_y = -1;
-			continue;
-		}
-
-		int y = zero_y - (double)ping.duration().total_milliseconds()
-			/ timeout * (zero_y - timeout_y);
-		if (y < 0)
-			y = 0;
-
-		if (prev_y != -1)
-			dc.DrawLine(x + BLOCK_W, prev_y, x + BLOCK_W, y);
-
-		dc.DrawLine(x + BLOCK_W, y, x, y);
-
-		prev_y = y;
-	}
-	-*/
-
-	StatePanel->Refresh();
 }
 
 /* Асинхронное чтение пингов */
@@ -498,6 +417,79 @@ void wx_Ping::pings_handle_read(const boost::system::error_code& error,
 		wxMessageBox(str, L"Ошибка чтения данных",
 			wxOK | wxICON_ERROR, this);
 	}
+}
+
+/* Прорисовка состояний */
+void wx_Ping::states_repaint()
+{
+	scoped_lock l(states_bitmap_mutex_);
+
+	first_state_time_ = last_state_time_ = posix_time::ptime();
+
+	int w, h;
+	StatePanel->GetClientSize(&w, &h);
+
+	if (states_bitmap_.GetWidth() != w || states_bitmap_.GetHeight() != h)
+		states_bitmap_.Create(w, h);
+
+	wxMemoryDC dc(states_bitmap_);
+
+	int ok_y = h - 4;
+	int warn_y = h /2;
+	int fail_y = 3;
+
+	/* Стираем */
+	dc.SetBrush(*wxBLACK_BRUSH);
+	dc.DrawRectangle(0, 0, w, h);
+
+	/* Рисуем границы */
+	dc.SetPen(*wxGREY_PEN);
+	dc.DrawLine(0, ok_y, w, ok_y);
+	dc.DrawLine(0, warn_y, w, warn_y);
+	dc.DrawLine(0, fail_y, w, fail_y);
+
+	//dc.SetPen(*wxGREEN_PEN);
+
+	int prev_y = -1;
+	int index = 0;
+
+	scoped_lock ll(states_mutex_);
+
+	/*-
+	for (states_list::iterator iter = states_.begin();
+		iter != states_.end(); iter++)
+	{
+		pinger::host_state state = iter->value();
+
+		if (index++ == 0)
+			last_state_time_ = state.time();
+
+		int x = w - index * BLOCK_W;
+
+		if (x <= 0 && x > -BLOCK_W)
+			first_state_time_ = state.time();
+
+		if (state.state() == pinger::ping_result::timeout)
+		{
+			prev_y = -1;
+			continue;
+		}
+
+		int y = zero_y - (double)ping.duration().total_milliseconds()
+			/ timeout * (zero_y - timeout_y);
+		if (y < 0)
+			y = 0;
+
+		if (prev_y != -1)
+			dc.DrawLine(x + BLOCK_W, prev_y, x + BLOCK_W, y);
+
+		dc.DrawLine(x + BLOCK_W, y, x, y);
+
+		prev_y = y;
+	}
+	-*/
+
+	StatePanel->Refresh();
 }
 
 void wx_Ping::pings_repaint()

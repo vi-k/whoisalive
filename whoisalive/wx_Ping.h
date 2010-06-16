@@ -13,7 +13,8 @@
 #include <memory>
 
 #include <boost/config/warning_disable.hpp> /* против unsafe */
-#include <boost/smart_ptr/enable_shared_from_this2.hpp>
+#include <boost/smart_ptr/enable_shared_from_this.hpp>
+#include <boost/bind.hpp>
 
 //(*Headers(wx_Ping)
 #include <wx/frame.h>
@@ -27,13 +28,14 @@ class wxBoxSizer;
 #include <wx/textctrl.h>
 #include <wx/bitmap.h>
 
-class wx_Ping: public wxFrame, public boost::enable_shared_from_this2<wx_Ping>
+class wx_Ping: public wxFrame, public boost::enable_shared_from_this<wx_Ping>
 {
 private:
+
 	typedef my::mru::list<unsigned short, pinger::ping_result> pings_list;
 	typedef std::map<posix_time::ptime, pinger::host_state> states_list;
 
-	int terminate_;
+	bool terminate_;
 	who::server &server_;
 	who::object *object_;
 
@@ -62,11 +64,10 @@ private:
 	void states_handle_read(const boost::system::error_code& error,
 		size_t bytes_transferred);
 
-	void states_repaint();
-
 	void pings_handle_read(const boost::system::error_code& error,
 		size_t bytes_transferred);
 
+	void states_repaint();
 	void pings_repaint();
 
 	//(*Handlers(wx_Ping)
