@@ -30,7 +30,8 @@ const wchar_t* widget_type(widget *widg)
 #pragma warning(disable:4355) /* 'this' : used in base member initializer list */
 
 window::window(server &server, HWND parent)
-	: server_(server)
+	: stop_(false)
+	, server_(server)
 	, hwnd_(NULL)
 	, focused_(false)
 	, w_(0)
@@ -44,7 +45,6 @@ window::window(server &server, HWND parent)
 	, mouse_end_y_(0)
 	, select_parent_(NULL)
 	, select_rect_(0.0f, 0.0f, 0.0f, 0.0f)
-	, terminate_(false)
 {
 	/* Создание внутреннего окна для обработки сообщений от внешнего окна */
 	WNDCLASS wc;
@@ -63,18 +63,25 @@ window::window(server &server, HWND parent)
 
 	set_link(parent);
 
-	anim_thread_ = boost::thread( boost::bind(&window::anim_thread_proc, this) );
+	boost::thread( boost::bind(&window::anim_thread_proc, this) );
 }
 
 window::~window()
 {
-	/* Ждём завершения animate-потока */
+	stop_ = true;
+
+	/* Будим поток animate, если он спит */
 	{
-		terminate_ = true; /* Сообщаем потоку о прекращении работы */
-		animate(); /* Будим поток */
-		anim_thread_.join(); /* Ждём завершения */
+		unique_lock<mutex> l(anim_sleep_mutex_);
+		/* Блокировкой гарантируем, что не попытаемся разбудить поток,
+			когда он ещё не спит, но уже собрался (т.е., что не окажемся
+			между if (!stop_) и последующим wait() */
+		animate();
 	}
-	
+
+	/* Ждём завершения работы всех, кто заявил о себе */
+	unique_lock<shared_mutex> l(i_work_mutex_);
+
 	delete_link();
 
 	schemes_.clear();
@@ -83,35 +90,21 @@ window::~window()
 /* Анимация карты */
 void window::anim_thread_proc(void)
 {
+	/* Заявляем, что мы работаем */
+	shared_lock<shared_mutex> l(i_work_mutex_);
+
 	asio::io_service io_service;
 	asio::deadline_timer timer(io_service, posix_time::microsec_clock::universal_time());
 	
-	while (!terminate_)
+	while (!stop_)
 	{
 		/* Анимируются все карты */
 		bool anim = false;
 		BOOST_FOREACH(who::scheme &scheme, schemes_)
-			if (scheme.animate_calc())
-				anim = true;
+			anim |= scheme.animate_calc();
 
 		/* ... но прорисовывается только одно - активное */
 		paint_();
-
-		/* Для отладки */
-		#ifdef _DEBUG
-		if (active_scheme_)
-		{
-			static int count = 0;
-			wchar_t buf[200];
-
-			swprintf_s( buf, sizeof(buf) / sizeof(*buf), L"[%08X] %d - %.3f (%d) - %d",
-				hwnd_, ++count,
-				active_scheme_->scale(), GetCurrentThreadId(),
-				scheme::z(active_scheme_->scale()) );
-
-			SetWindowText(g_parent_wnd, buf);
-		}
-		#endif
 
 		boost::posix_time::ptime time = timer.expires_at() + server_.anim_period();
 		boost::posix_time::ptime now = posix_time::microsec_clock::universal_time();
@@ -122,25 +115,24 @@ void window::anim_thread_proc(void)
 			В этом случае следующий запуск делаем относительно текущего времени */ 
 		timer.expires_at( now > time ? now : time );
 
-		if (terminate_)
-			return;
-
-		/* Если больше нечего анимировать - засыпаем */
-		if (!anim)
+		if (anim)
+			timer.wait();
+		else
 		{
-			mutex sleep_mutex;
-			scoped_lock lock(sleep_mutex);
-			anim_cond_.wait(lock);
+			/* Если больше нечего анимировать - засыпаем */
+			unique_lock<mutex> lock(anim_sleep_mutex_);
+			/* Блокировкой гарантируем атомарность операций:
+				сравнения и засыпания */
+			if (!stop_)
+				anim_sleep_cond_.wait(lock);
 		}
-
-		timer.wait();
 	}
 }
 
 /* Анимация карты - запуск потока, если он был остановлен */
 void window::animate(void)
 {
-	anim_cond_.notify_all();
+	anim_sleep_cond_.notify_one();
 }
 
 
@@ -517,34 +509,56 @@ void window::paint_( void)
 			active_scheme_->paint( canvas_.get() );
 
 #ifdef _DEBUG
-#if 0
-			POINT pt;
+
+			Gdiplus::PointF pt(4, 8);
+
+			wchar_t buf[200];
+			Gdiplus::Font font(L"Tahoma", 12, 0, Gdiplus::UnitPixel);
+			Gdiplus::SolidBrush brush( Gdiplus::Color(255, 255, 255) );
+
+			static int count = 0;
+
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"hwnd: 0x%08X", hwnd_);
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+			pt.Y += 12;
+
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"thread: 0x%08X", GetCurrentThreadId());
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+			pt.Y += 12;
+
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"paint_count: %d", ++count);
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+			pt.Y += 12;
+
+			swprintf_s( buf, sizeof(buf)/sizeof(*buf), L"scale=%.1f (%dx)",
+				active_scheme_->scale(),
+				scheme::z(active_scheme_->scale()));
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+			pt.Y += 12;
+
+			POINT pos;
 			RECT rt;
+			GetCursorPos(&pos);
+			GetWindowRect(hwnd_, &rt);
 
-			GetCursorPos(&pt);
-			GetWindowRect( hwnd_, &rt);
-
-			float x = (float)( pt.x - rt.left );
-			float y = (float)( pt.y - rt.top );
+			float x = (float)(pos.x - rt.left);
+			float y = (float)(pos.y - rt.top);
 			active_scheme_->parent_to_client(&x, &y);
 
 			widget *widg = active_scheme_->hittest(x, y);
 
-			Gdiplus::Font font(L"Tahoma", 10, 0, Gdiplus::UnitPixel);
-			Gdiplus::SolidBrush brush( Gdiplus::Color(0, 0, 0) );
+			swprintf_s( buf, sizeof(buf) / sizeof(*buf), L"mouse: x=%0.1f, y=%0.1f", x, y);
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+			pt.Y += 12;
 
-			wchar_t buf[200];
+#if 0
+			swprintf_s( buf, sizeof(buf) / sizeof(*buf), L"object: type=%s, childs=%d, parent_type=%s",
+				widget_type(widg),
+				widg->childs().size(),
+				widget_type(widg->parent()));
 
-			swprintf_s( buf, sizeof(buf) / sizeof(*buf), L"cursor: x=%0.1f, y=%0.1f", x, y);
-			canvas_->DrawString( buf, wcslen(buf),
-					&font, Gdiplus::PointF(0.0f, 0.0f), &brush);
-
-			swprintf_s( buf, sizeof(buf) / sizeof(*buf), L"object: [%s], childs=%d, parent=[%s]",
-					widget_type(widg),
-					widg->childs().size(),
-					widget_type(widg->parent()));
-			canvas_->DrawString( buf, wcslen(buf),
-					&font, Gdiplus::PointF(0.0f, 12.0f), &brush);
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+			pt.Y += 12;
 
 			swprintf_s( buf, sizeof(buf) / sizeof(*buf), L"mouse_mode: %s",
 					mouse_mode_ == mousemode::none ? L"none"
@@ -552,18 +566,20 @@ void window::paint_( void)
 					: mouse_mode_ == mousemode::move ? L"move"
 					: mouse_mode_ == mousemode::select ? L"select"
 					: mouse_mode_ == mousemode::capture ? L"edit" : L"-");
-			canvas_->DrawString( buf, wcslen(buf),
-					&font, Gdiplus::PointF(0.0f, 24.0f), &brush);
+
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+			pt.Y += 12;
 
 			if (mouse_mode_ == mousemode::select
 				|| mouse_mode_ == mousemode::edit)
 			{
-				swprintf_s( buf, sizeof(buf) / sizeof(*buf), L"selection: select_parent=[%s], x=%0.1f, y=%0.1f, w=%0.1f, h=%0.1f",
+				swprintf_s( buf, sizeof(buf) / sizeof(*buf), L"selection: select_parent_type=%s, x=%0.1f, y=%0.1f, w=%0.1f, h=%0.1f",
 					widget_type(select_parent_),
 					select_rect_.X, select_rect_.Y,
 					select_rect_.Width, select_rect_.Height);
-				canvas_->DrawString( buf, wcslen(buf),
-					&font, Gdiplus::PointF(0.0f, 36.0f), &brush);
+
+				canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+				pt.Y += 12;
 			}
 #endif
 #endif

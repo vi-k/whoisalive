@@ -18,8 +18,8 @@ typedef boost::condition_variable_any condition_variable;
 typedef boost::mutex u_mutex;
 typedef boost::mutex::scoped_lock u_scoped_lock;
 
-typedef boost::shared_mutex s_mutex;
-typedef boost::shared_lock<s_mutex> s_shared_lock;
-typedef boost::unique_lock<s_mutex> s_unique_lock;
+using boost::shared_mutex;
+using boost::shared_lock;
+using boost::unique_lock;
 
 #endif

@@ -38,7 +38,7 @@ void server::thread_proc()
 
 		/* Ищем первый попавшийся незагруженный тайл */
 		{
-			s_shared_lock l(tiles_mutex_);
+			shared_lock<shared_mutex> l(tiles_mutex_);
 			int map_id = server_.active_map_id();
 
 			for (tiles_list::iterator it = tiles_.begin();
@@ -102,7 +102,7 @@ void server::thread_proc()
 
         /* Вносим изменения в список загруженных тайлов */
 		{
-			s_shared_lock l(tiles_mutex_);
+			shared_lock<shared_mutex> l(tiles_mutex_);
 
 			tiles_list::iterator it = tiles_.find(tile_id);
 			if (it != tiles_.end())
@@ -128,7 +128,7 @@ tile::ptr server::get_tile(int map_id, int z, int x, int y)
 	tile_id id(map_id, z, x, y);
 
 	{
-		s_shared_lock l(tiles_mutex_);
+		shared_lock<shared_mutex> l(tiles_mutex_);
 
 		tiles_list::iterator it = tiles_.find(id);
 		if (it != tiles_.end())
@@ -136,7 +136,7 @@ tile::ptr server::get_tile(int map_id, int z, int x, int y)
 	}
 
 	{
-		s_unique_lock l(tiles_mutex_);
+		unique_lock<shared_mutex> l(tiles_mutex_);
 	
 		tile::ptr ptr = tiles_[id];
 		wake_up();
