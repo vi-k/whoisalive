@@ -187,8 +187,8 @@ wx_Ping::~wx_Ping()
 
 	stop_ = true;
 
-	//states_socket_.close();
-	//pings_socket_.close();
+	states_socket_.close();
+	pings_socket_.close();
 
 	unique_lock<shared_mutex> l(i_work_mutex_);
 }
@@ -203,7 +203,7 @@ void wx_Ping::OnClose(wxCloseEvent& event)
 void wx_Ping::states_handle_read( shared_lock_ptr lock_ptr,
 	const boost::system::error_code& error, size_t bytes_transferred )
 {
-	//if (stop_) return;
+	if (stop_) return;
 
 	if (!error)
 	{
@@ -294,7 +294,7 @@ void wx_Ping::states_handle_read( shared_lock_ptr lock_ptr,
 void wx_Ping::pings_handle_read( shared_lock_ptr lock_ptr,
 	const boost::system::error_code& error, size_t bytes_transferred )
 {
-	//if (stop_) return;
+	if (stop_) return;
 
 	if (!error)
 	{
