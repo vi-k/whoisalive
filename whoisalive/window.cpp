@@ -12,10 +12,6 @@
 
 #include <windowsx.h>
 
-#ifdef _DEBUG
-extern HWND g_parent_wnd; /* Для отладки */
-#endif
-
 namespace who {
 
 const wchar_t* widget_type(widget *widg)

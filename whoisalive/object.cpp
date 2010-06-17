@@ -9,10 +9,6 @@
 //#include <boost/spirit/include/classic_core.hpp> /* boost::spirit */
 #include <boost/spirit/include/qi.hpp> /* boost::spirit:qi */
 
-#ifdef _DEBUG
-extern HWND g_parent_wnd; /* Для отладки */
-#endif
-
 #define PI 3.1415926535897932384626433832795f
 #define EXCT 0.081819790992f
 
