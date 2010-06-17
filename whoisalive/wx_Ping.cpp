@@ -50,7 +50,7 @@ void destroy(wxFrame *frame)
 }
 
 wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
-	: terminate_(false)
+	: stop_(false)
 	, server_(server)
 	, object_(object)
 	, pings_socket_(server.io_service())
@@ -132,8 +132,9 @@ void wx_Ping::Start(wxWindow* parent, who::server &server, who::object *object)
 {
 	try
 	{
-		shared_ptr<wx_Ping> ptr
-			= shared_ptr<wx_Ping>(new wx_Ping(parent, server, object), destroy);
+		//shared_ptr<wx_Ping> ptr
+		//	= shared_ptr<wx_Ping>(new wx_Ping(parent, server, object), destroy);
+		wx_Ping *ptr = new wx_Ping(parent, server, object);
 		ptr->start();
 	}
 	catch(my::exception &e)
@@ -153,10 +154,13 @@ void wx_Ping::start()
 	states_reply_.buf_.consume(states_reply_.buf_.size());
 	states_reply_.buf_.prepare(65536);
 
+	shared_lock_ptr lock_ptr(new shared_lock<shared_mutex>(i_work_mutex_));
+
 	asio::async_read_until(
 		states_socket_, states_reply_.buf_, "\r\n",
-		boost::bind(&wx_Ping::states_handle_read, shared_from_this(),
-            boost::asio::placeholders::error,
+		boost::bind(&wx_Ping::states_handle_read, this,
+            lock_ptr,
+			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
 	/* pings */
@@ -168,8 +172,9 @@ void wx_Ping::start()
 
 	asio::async_read_until(
 		pings_socket_, pings_reply_.buf_, "\r\n",
-		boost::bind(&wx_Ping::pings_handle_read, shared_from_this(),
-            boost::asio::placeholders::error,
+		boost::bind(&wx_Ping::pings_handle_read, this,
+            lock_ptr,
+			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
 	server_.io_wake_up();
@@ -179,29 +184,26 @@ wx_Ping::~wx_Ping()
 {
 	//(*Destroy(wx_Ping)
 	//*)
+
+	stop_ = true;
+
+	//states_socket_.close();
+	//pings_socket_.close();
+
+	unique_lock<shared_mutex> l(i_work_mutex_);
 }
 
 void wx_Ping::OnClose(wxCloseEvent& event)
 {
-	terminate_ = true;
-
-	scoped_lock ls(states_read_mutex_);
-	states_socket_.close();
-
-	scoped_lock lp(pings_read_mutex_);
-	pings_socket_.close();
-
-	event.Veto();
+	//event.Veto();
+	Destroy();
 }
 
 /* Асинхронное чтение состояний */
-void wx_Ping::states_handle_read(const boost::system::error_code& error,
-	size_t bytes_transferred)
+void wx_Ping::states_handle_read( shared_lock_ptr lock_ptr,
+	const boost::system::error_code& error, size_t bytes_transferred )
 {
-	scoped_lock l(states_read_mutex_);
-
-	if (terminate_)
-		return;
+	//if (stop_) return;
 
 	if (!error)
 	{
@@ -217,7 +219,8 @@ void wx_Ping::states_handle_read(const boost::system::error_code& error,
 		{
 			asio::async_read_until(
 				states_socket_, states_reply_.buf_, "END_ARCHIVE\r\n",
-				boost::bind(&wx_Ping::states_handle_read, shared_from_this(),
+				boost::bind(&wx_Ping::states_handle_read, this,
+					lock_ptr,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 		}
@@ -258,7 +261,8 @@ void wx_Ping::states_handle_read(const boost::system::error_code& error,
 
 			asio::async_read_until(
 				states_socket_, states_reply_.buf_, "\r\n",
-				boost::bind(&wx_Ping::states_handle_read, shared_from_this(),
+				boost::bind(&wx_Ping::states_handle_read, this,
+					lock_ptr,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 
@@ -287,13 +291,10 @@ void wx_Ping::states_handle_read(const boost::system::error_code& error,
 }
 
 /* Асинхронное чтение пингов */
-void wx_Ping::pings_handle_read(const boost::system::error_code& error,
-	size_t bytes_transferred)
+void wx_Ping::pings_handle_read( shared_lock_ptr lock_ptr,
+	const boost::system::error_code& error, size_t bytes_transferred )
 {
-	scoped_lock l(pings_read_mutex_);
-
-	if (terminate_)
-		return;
+	//if (stop_) return;
 
 	if (!error)
 	{
@@ -309,7 +310,8 @@ void wx_Ping::pings_handle_read(const boost::system::error_code& error,
 		{
 			asio::async_read_until(
 				pings_socket_, pings_reply_.buf_, "END_ARCHIVE\r\n",
-				boost::bind(&wx_Ping::pings_handle_read, shared_from_this(),
+				boost::bind(&wx_Ping::pings_handle_read, this,
+					lock_ptr,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 		}
@@ -391,7 +393,8 @@ void wx_Ping::pings_handle_read(const boost::system::error_code& error,
 
 			asio::async_read_until(
 				pings_socket_, pings_reply_.buf_, "\r\n",
-				boost::bind(&wx_Ping::pings_handle_read, shared_from_this(),
+				boost::bind(&wx_Ping::pings_handle_read, this,
+					lock_ptr,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 
