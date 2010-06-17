@@ -50,8 +50,7 @@ void destroy(wxFrame *frame)
 }
 
 wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
-	: stop_(false)
-	, server_(server)
+	: server_(server)
 	, object_(object)
 	, pings_socket_(server.io_service())
 	, pings_(1000)
@@ -154,12 +153,10 @@ void wx_Ping::start()
 	states_reply_.buf_.consume(states_reply_.buf_.size());
 	states_reply_.buf_.prepare(65536);
 
-	shared_lock_ptr lock_ptr(new shared_lock<shared_mutex>(i_work_mutex_));
-
 	asio::async_read_until(
 		states_socket_, states_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::states_handle_read, this,
-            lock_ptr,
+            lock_for_worker(),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
@@ -173,7 +170,7 @@ void wx_Ping::start()
 	asio::async_read_until(
 		pings_socket_, pings_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::pings_handle_read, this,
-            lock_ptr,
+            lock_for_worker(),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
@@ -185,12 +182,12 @@ wx_Ping::~wx_Ping()
 	//(*Destroy(wx_Ping)
 	//*)
 
-	stop_ = true;
+	stop();
 
 	states_socket_.close();
 	pings_socket_.close();
 
-	unique_lock<shared_mutex> l(i_work_mutex_);
+	wait_for_workers();
 }
 
 void wx_Ping::OnClose(wxCloseEvent& event)
@@ -200,10 +197,11 @@ void wx_Ping::OnClose(wxCloseEvent& event)
 }
 
 /* Асинхронное чтение состояний */
-void wx_Ping::states_handle_read( shared_lock_ptr lock_ptr,
+void wx_Ping::states_handle_read( my::many_workers::lock lock,
 	const boost::system::error_code& error, size_t bytes_transferred )
 {
-	if (stop_) return;
+	if (need_for_stop())
+		return;
 
 	if (!error)
 	{
@@ -220,7 +218,7 @@ void wx_Ping::states_handle_read( shared_lock_ptr lock_ptr,
 			asio::async_read_until(
 				states_socket_, states_reply_.buf_, "END_ARCHIVE\r\n",
 				boost::bind(&wx_Ping::states_handle_read, this,
-					lock_ptr,
+					lock,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 		}
@@ -262,7 +260,7 @@ void wx_Ping::states_handle_read( shared_lock_ptr lock_ptr,
 			asio::async_read_until(
 				states_socket_, states_reply_.buf_, "\r\n",
 				boost::bind(&wx_Ping::states_handle_read, this,
-					lock_ptr,
+					lock,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 
@@ -291,10 +289,11 @@ void wx_Ping::states_handle_read( shared_lock_ptr lock_ptr,
 }
 
 /* Асинхронное чтение пингов */
-void wx_Ping::pings_handle_read( shared_lock_ptr lock_ptr,
+void wx_Ping::pings_handle_read( my::many_workers::lock lock,
 	const boost::system::error_code& error, size_t bytes_transferred )
 {
-	if (stop_) return;
+	if (need_for_stop())
+		return;
 
 	if (!error)
 	{
@@ -311,7 +310,7 @@ void wx_Ping::pings_handle_read( shared_lock_ptr lock_ptr,
 			asio::async_read_until(
 				pings_socket_, pings_reply_.buf_, "END_ARCHIVE\r\n",
 				boost::bind(&wx_Ping::pings_handle_read, this,
-					lock_ptr,
+					lock,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 		}
@@ -394,7 +393,7 @@ void wx_Ping::pings_handle_read( shared_lock_ptr lock_ptr,
 			asio::async_read_until(
 				pings_socket_, pings_reply_.buf_, "\r\n",
 				boost::bind(&wx_Ping::pings_handle_read, this,
-					lock_ptr,
+					lock,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 
