@@ -108,7 +108,7 @@ private:
 	who::server &server_;
 	maps_list maps_;
 	tiles_list tiles_;
-	s_mutex tiles_mutex_; /* shared_mutex */
+	shared_mutex tiles_mutex_;
 	mutex maps_mutex_;
 	condition_variable cond_;
 	boost::function<void ()> on_update_;

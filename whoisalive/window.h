@@ -31,10 +31,13 @@ namespace mousekeys
 class window
 {
 private:
-	bool terminate_;
+	bool stop_;
+	shared_mutex i_work_mutex_;
+	
+	mutex anim_sleep_mutex_;
+	condition_variable anim_sleep_cond_;
+
 	server &server_;
-	boost::thread anim_thread_;
-	condition_variable anim_cond_;
 	HWND hwnd_;
 	bool focused_;
 	int w_;
