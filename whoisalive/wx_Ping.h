@@ -27,16 +27,59 @@ class wxBoxSizer;
 #include <wx/textctrl.h>
 #include <wx/bitmap.h>
 
-class wx_Ping : public wxFrame
+namespace my {
+
+class many_workers
+{
+public:
+	typedef shared_ptr< unique_lock<mutex> > lock;
+
+private:
+	bool stop_;
+	lock lock_ptr_;
+	mutex mutex_;
+	
+public:
+	many_workers() : stop_(false) {};
+
+	lock lock_for_worker()
+	{
+		if (!lock_ptr_)
+			lock_ptr_.reset( new unique_lock<mutex>(mutex_) );
+
+		return lock_ptr_;
+	}
+
+	bool need_for_stop()
+	{
+		return stop_;
+	}
+
+	void stop()
+	{
+		stop_ = true;
+	}
+
+	int workers()
+	{
+		return lock_ptr_.use_count();
+	}
+
+	void wait_for_workers()
+	{
+		lock_ptr_.reset();
+		unique_lock<mutex> l(mutex_);
+	}
+};
+
+}
+
+class wx_Ping : public wxFrame, public my::many_workers
 {
 private:
 
 	typedef my::mru::list<unsigned short, pinger::ping_result> pings_list;
 	typedef std::map<posix_time::ptime, pinger::host_state> states_list;
-	typedef shared_ptr< shared_lock<shared_mutex> > shared_lock_ptr;
-
-	bool stop_;
-	shared_mutex i_work_mutex_;
 
 	who::server &server_;
 	who::object *object_;
@@ -61,10 +104,10 @@ private:
 	mutex states_bitmap_mutex_;
 	int states_active_index_;
 
-	void states_handle_read( shared_lock_ptr lock_ptr,
+	void states_handle_read( my::many_workers::lock lock,
 		const boost::system::error_code& error, size_t bytes_transferred );
 
-	void pings_handle_read( shared_lock_ptr lock_ptr,
+	void pings_handle_read( my::many_workers::lock lock,
 		const boost::system::error_code& error, size_t bytes_transferred );
 
 	void states_repaint();
