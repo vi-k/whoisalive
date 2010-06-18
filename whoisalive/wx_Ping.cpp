@@ -183,7 +183,8 @@ wx_Ping::~wx_Ping()
 	while (number_of_workers() != 1 && App->Pending())
 		App->Dispatch();
 
-	wait_for_workers();
+	/* Ждём завершения - теперь уже только себя :) */
+	wait_for_finish();
 }
 
 /* Асинхронное чтение состояний */

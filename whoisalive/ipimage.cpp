@@ -46,7 +46,7 @@ ipimage_t::ipimage_t(who::server &server, const xml::wptree *pt)
 
 /******************************************************************************
 */
-Gdiplus::RectF ipimage_t::own_rect( void)
+Gdiplus::RectF ipimage_t::own_rect()
 {
 	return Gdiplus::RectF( -w_/2.0f, -h_/2.0f, w_, h_);
 }
@@ -158,7 +158,7 @@ who::widget* ipimage_t::hittest(float x, float y)
 	return widg;
 }
 
-bool ipimage_t::animate_calc(void)
+bool ipimage_t::animate_calc()
 {
 	return widget::animate_calc();
 }

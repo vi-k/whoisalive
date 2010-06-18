@@ -52,21 +52,21 @@ public:
 	*/
 
 	/* Вернуть rect объекта. Ф-я должна быть перегружена */
-	virtual Gdiplus::RectF own_rect(void) = 0;
+	virtual Gdiplus::RectF own_rect() = 0;
 	/* Rect объекта вместе с детьми */
-	virtual Gdiplus::RectF client_rect(void);
+	virtual Gdiplus::RectF client_rect();
 	/* Только объекты и никто другой */
-	Gdiplus::RectF objects_rect(void);
+	Gdiplus::RectF objects_rect();
 
 	/* Анимация объекта (без прорисовки). При перегрузке
 		класс-наследник может/должен вызвать ф-ю наследуемого класса */
-	virtual bool animate_calc(void);
+	virtual bool animate_calc();
 
 	/* Нарисовать объект. Ф-я должна быть перегружена */
 	virtual void paint_self(Gdiplus::Graphics *canvas) = 0;
 
 	/* Запуск анимации */
-	virtual void animate(void)
+	virtual void animate()
 		{ if (parent_) parent_->animate(); }
 
 	/* Кто в координатах? */
@@ -80,26 +80,26 @@ public:
 		{ return parent_->create_lock(); }
 		//{ return parent_ ? parent_->create_lock() : unique_lock<mutex>(); }
 
-	virtual window* get_window(void)
+	virtual window* get_window()
 		{ return parent_ ? parent_->get_window() : NULL; }
-	virtual who::scheme* get_scheme(void)
+	virtual who::scheme* get_scheme()
 		{ return parent_ ? parent_->get_scheme() : NULL; }
 
-	virtual float alpha(void)
+	virtual float alpha()
 		{ return (parent_ ? parent_->alpha() : 1.0f) * alpha_; }
 		
-	inline widget* parent(void)
+	inline widget* parent()
 		{ return parent_; }
 	virtual void set_parent(widget *parent);
 
 	/* Rect объекта вместе с детьми в родителе */
-	Gdiplus::RectF rect_in_parent(void)
+	Gdiplus::RectF rect_in_parent()
 	{
 		Gdiplus::RectF rect = client_rect();
 		client_to_parent(&rect);
 		return rect;
 	}
-	Gdiplus::RectF rect_in_window(void)
+	Gdiplus::RectF rect_in_window()
 	{
 		Gdiplus::RectF rect = client_rect();
 		client_to_window(&rect);
@@ -110,18 +110,18 @@ public:
 	void paint(Gdiplus::Graphics *canvas);
 
 	/* Масштаб */
-	float scale(void) { return scale_; }
+	float scale() { return scale_; }
 	void set_scale( float new_scale, int steps = 1);
 
 	/* Функции перемещения объекта */
-	float x(void)
+	float x()
 		{ return x_; }
-	float y(void)
+	float y()
 		{ return y_; }
 	void set_pos(float new_x, float new_y, int steps = 1);
 	void move(float dx, float dy, int steps = 1)
 		{ set_pos(x_ + dx, y_ + dy, steps); }
-	void save_pos(void)
+	void save_pos()
 	{
 		saved_x_ = x_;
 		saved_y_ = y_;
@@ -132,18 +132,18 @@ public:
 		{ set_pos(saved_x_ + dx, saved_y_ + dy, steps); }
 
 	/* Функции выделения объекта */
-	inline bool selected(void)
+	inline bool selected()
 		{ return selected_ || tmp_selected_; }
 
-	void select(void);
-	void unselect(void);
-	void unselect_all(void);
+	void select();
+	void unselect();
+	void unselect_all();
 
-	bool tmp_selected(void)
+	bool tmp_selected()
 		{ return tmp_selected_; }
-	void tmp_select(void)
+	void tmp_select()
 		{ tmp_selected_ = true; }
-	void tmp_unselect(void)
+	void tmp_unselect()
 		{ tmp_selected_ = false; }
 
 	boost::ptr_list<widget>& childs() { return childs_; }
@@ -205,14 +205,14 @@ public:
 		parent_to_client(prect);
 	}
 
-	virtual void do_check_state(void);
+	virtual void do_check_state();
 
 	inline bool operator <(const widget &rhs) const
 		{ return y_ < rhs.y_ || y_ == rhs.y_ && x_ < rhs.x_; }
 
-	inline float lim_scale_min(void)
+	inline float lim_scale_min()
 		{ return lim_scale_min_; };
-	inline float lim_scale_max(void)
+	inline float lim_scale_max()
 		{ return lim_scale_max_; };
 };
 

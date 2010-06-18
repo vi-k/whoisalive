@@ -42,30 +42,30 @@ public:
 	virtual unique_lock<mutex> create_lock()
 		{ return unique_lock<mutex>(scheme_mutex_); }
 
-	inline const wchar_t* get_name(void)
+	inline const wchar_t* get_name()
 		{ return name_.c_str(); }
 
-	inline bool first_activation(void)
+	inline bool first_activation()
 		{ return first_activation_; }
 	inline void set_first_activation(bool f)
 		{ first_activation_ = f; }
 
-	virtual Gdiplus::RectF own_rect(void);
-	virtual Gdiplus::RectF client_rect(void);
+	virtual Gdiplus::RectF own_rect();
+	virtual Gdiplus::RectF client_rect();
 	virtual void paint_self(Gdiplus::Graphics *canvas);
-	virtual bool animate_calc(void);
+	virtual bool animate_calc();
 	virtual widget* hittest(float x, float y);
 
 	virtual void set_parent(widget *parent) {} /* Блокируем изменение parent'а */
 
-	virtual window* get_window(void)
+	virtual window* get_window()
 		{ return window_; }
 	inline void set_window(who::window *window)
 		{ window_ = window; }
-	virtual scheme* get_scheme(void)
+	virtual scheme* get_scheme()
 		{ return this; }
 
-	virtual void animate(void);
+	virtual void animate();
 
 	inline void zoom(float ds, float fix_x, float fix_y, int steps = 2)
 		{ scale__(new_scale_ * ds, fix_x, fix_y, steps); }
@@ -86,7 +86,7 @@ public:
 		return _z ? _z : 1;
 	}
 
-	inline bool show_names(void)
+	inline bool show_names()
 		{ return show_names_; }
 };
 

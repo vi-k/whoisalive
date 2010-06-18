@@ -14,6 +14,7 @@
 #include "../common/my_xml.h"
 #include "../common/my_ptr.h"
 #include "../common/my_time.h"
+#include "../common/my_many_workers.h"
 
 #include <map>
 #include <memory>
@@ -26,20 +27,18 @@ namespace who
 
 /* Сервер (по отношению к модулям приложения,
 	а не в терминах клиент-серверной технологии) */
-class server
+class server : my::many_workers
 {
 public:
 	typedef shared_ptr<server> ptr;
 	typedef boost::unordered_map<std::wstring, pinger::host_state> hosts_list;
 
 private:
-	bool terminate_;
 	asio::io_service io_service_;
-	boost::thread io_thread_;
-	condition_variable io_cond_;
+	mutex io_sleep_mutex_;
+	condition_variable io_sleep_cond_;
 	tcp::endpoint server_endpoint_;
 	tcp::socket state_log_socket_;
-	boost::thread state_log_thread_;
 	ULONG_PTR gdiplus_token_;
 	boost::unordered_map<std::wstring, obj_class::ptr> classes_;
 	boost::ptr_list<window> windows_;
@@ -49,25 +48,26 @@ private:
 	tiler::server tiler_;
 	int active_map_id_;
 
-	void load_classes_(void);
-	void load_maps_(void);
+	void load_classes_();
+	void load_maps_();
 
-	void state_log_thread_proc(void);
-	void io_thread_proc();
+	void state_log_thread_proc(my::many_workers::lock lock);
+	void io_thread_proc(my::many_workers::lock lock);
 
 public:
 	server(const xml::wptree &config);
 	~server();
 
 	inline void io_wake_up()
-		{ io_cond_.notify_all(); }
+		{ io_sleep_cond_.notify_all(); }
 
-	inline int def_anim_steps(void) { return def_anim_steps_; }
-	inline posix_time::time_duration anim_period(void) { return anim_period_; }
+	inline int def_anim_steps()
+		{ return def_anim_steps_; }
+	inline posix_time::time_duration anim_period()
+		{ return anim_period_; }
 		
-	inline obj_class::ptr
-		obj_class(const std::wstring &class_name)
-			{ return classes_[class_name]; }
+	inline obj_class::ptr obj_class(const std::wstring &class_name)
+		{ return classes_[class_name]; }
 
 	window* add_window(HWND hwnd);
 
@@ -86,10 +86,10 @@ public:
 	
 	void acknowledge(const std::wstring &host);
 	void unacknowledge(const std::wstring &host);
-	void acknowledge_all(void);
-	void unacknowledge_all(void);
+	void acknowledge_all();
+	void unacknowledge_all();
 
-	void check_state_notify(void);
+	void check_state_notify();
 
 	inline tiler::tile::ptr get_tile(int z, int x, int y)
 		{ return tiler_.get_tile(active_map_id_, z, x, y); }

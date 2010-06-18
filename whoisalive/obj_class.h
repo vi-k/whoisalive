@@ -37,17 +37,17 @@ public:
 	obj_class(server &server, const xml::wptree &config);
 	~obj_class() {}
 
-	inline const std::wstring& name(void)
+	inline const std::wstring& name()
 		{ return name_; }
 
-	inline float w(void)
+	inline float w()
 		{ return w_; }
-	inline float h(void)
+	inline float h()
 		{ return h_; }
 
-	inline float xc(void)
+	inline float xc()
 		{ return xc_; }
-	inline float yc(void)
+	inline float yc()
 		{ return yc_; }
 
 	inline bitmap_ptr bitmap(pinger::host_state::state_t st)

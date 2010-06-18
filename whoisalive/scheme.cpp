@@ -75,7 +75,7 @@ scheme::scheme(who::server &server, const xml::wptree *pt)
 
 /******************************************************************************
 */
-void scheme::animate(void)
+void scheme::animate()
 {
 	if (window_)
 		window_->animate();
@@ -128,7 +128,7 @@ void scheme::scale__(float new_scale, float fix_x, float fix_y, int steps)
 /******************************************************************************
 * Координаты и размеры карты
 */
-Gdiplus::RectF scheme::own_rect(void)
+Gdiplus::RectF scheme::own_rect()
 {
 	/* У карты нет своего rect'а */
 	return Gdiplus::RectF(0.0f, 0.0f, 0.0f, 0.0f);
@@ -137,7 +137,7 @@ Gdiplus::RectF scheme::own_rect(void)
 /******************************************************************************
 * Координаты и размеры карты
 */
-Gdiplus::RectF scheme::client_rect(void)
+Gdiplus::RectF scheme::client_rect()
 {
 	Gdiplus::RectF rect = own_rect();
 	bool rect_is_empty = true;
@@ -216,7 +216,7 @@ void scheme::align(float scr_w, float scr_h, int steps)
 	}
 }
 
-bool scheme::animate_calc(void)
+bool scheme::animate_calc()
 {
 	unique_lock<mutex> l(scheme_mutex_);
 
