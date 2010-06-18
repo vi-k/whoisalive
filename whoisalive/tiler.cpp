@@ -66,7 +66,7 @@ void server::thread_proc()
 		tiler::map *map;
 
 		{
-			unique_lock<mutex> l(maps_mutex_);
+			unique_lock<recursive_mutex> l(maps_mutex_);
 			map = &maps_[ tile_id.map_id ];
 		}
 
@@ -117,7 +117,7 @@ void server::thread_proc()
 
 int server::add_map(const tiler::map &map)
 {
-	unique_lock<mutex> l(maps_mutex_);
+	unique_lock<recursive_mutex> l(maps_mutex_);
 	int id = get_new_map_id_();
 	maps_[id] = map;
 	return id;

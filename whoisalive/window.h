@@ -32,8 +32,8 @@ namespace mousekeys
 class window : public my::many_workers
 {
 private:
-	mutex anim_sleep_mutex_;
-	condition_variable anim_sleep_cond_;
+	recursive_mutex anim_sleep_mutex_;
+	condition_variable_any anim_sleep_cond_;
 
 	server &server_;
 	HWND hwnd_;
@@ -52,7 +52,7 @@ private:
 	int mouse_end_y_;
 	widget *select_parent_;
 	Gdiplus::RectF select_rect_;
-	mutex canvas_mutex_;
+	recursive_mutex canvas_mutex_;
 
 	void paint_();
 

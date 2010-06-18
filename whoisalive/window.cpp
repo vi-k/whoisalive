@@ -69,7 +69,7 @@ window::~window()
 
 	/* Будим поток animate, если он спит */
 	{
-		unique_lock<mutex> l(anim_sleep_mutex_);
+		unique_lock<recursive_mutex> l(anim_sleep_mutex_);
 		/* Блокировкой гарантируем, что не попытаемся разбудить поток,
 			когда он ещё не спит, но уже собрался (т.е., что не окажемся
 			между if (!finish()) и последующим wait() */
@@ -114,7 +114,7 @@ void window::anim_thread_proc(my::many_workers::lock lock)
 		else
 		{
 			/* Если больше нечего анимировать - засыпаем */
-			unique_lock<mutex> lock(anim_sleep_mutex_);
+			unique_lock<recursive_mutex> lock(anim_sleep_mutex_);
 			/* Блокировкой гарантируем атомарность операций:
 				сравнения и засыпания */
 			if (!finish())
@@ -185,7 +185,7 @@ LRESULT window::wndproc_(HWND hwnd, UINT uMsg, WPARAM wParam,
 			HDC hdc = BeginPaint(hwnd, &ps);
 
 			{
-				unique_lock<mutex> l(canvas_mutex_);
+				unique_lock<recursive_mutex> l(canvas_mutex_);
 
 				if (bitmap_.get())
 				{
@@ -442,7 +442,7 @@ void window::on_destroy()
 */
 void window::paint_()
 {
-	unique_lock<mutex> l(canvas_mutex_);
+	unique_lock<recursive_mutex> l(canvas_mutex_);
 
 	if (canvas_.get())
 	{
@@ -642,7 +642,7 @@ void window::set_size(int w, int h)
 	if (w == 0 || h == 0 || w == w_ && h == h_) return;
 
 	{
-		unique_lock<mutex> l(canvas_mutex_);
+		unique_lock<recursive_mutex> l(canvas_mutex_);
 
 		/* Создаём новый */
 		Gdiplus::Graphics g(NULL, FALSE);

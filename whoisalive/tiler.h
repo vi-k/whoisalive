@@ -109,7 +109,7 @@ private:
 	maps_list maps_;
 	tiles_list tiles_;
 	shared_mutex tiles_mutex_;
-	mutex maps_mutex_;
+	recursive_mutex maps_mutex_;
 	condition_variable cond_;
 	boost::function<void ()> on_update_;
 

@@ -162,7 +162,7 @@ void connection::run()
 					address = server_.pinger().resolve(address_s).address().to_v4();
 
 				/* Блокируем отправку событий, пока не передадим архив */
-				unique_lock<mutex> lock( server_.ping_eventer().get_lock() );
+				unique_lock<recursive_mutex> lock( server_.ping_eventer().get_lock() );
 
 				wostringstream out;
 
@@ -225,7 +225,7 @@ void connection::run()
 					address = server_.pinger().resolve(address_s).address().to_v4();
 
 				/* Блокируем отправку событий, пока не передадим архив */
-				unique_lock<mutex> lock( server_.state_eventer().get_lock() );
+				unique_lock<recursive_mutex> lock( server_.state_eventer().get_lock() );
 
 				wostringstream out;
 

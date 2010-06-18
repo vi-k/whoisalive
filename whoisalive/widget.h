@@ -76,9 +76,9 @@ public:
 	virtual bool in_rect(Gdiplus::RectF rect);
 
 	/* Блокировка */
-	virtual unique_lock<mutex> create_lock()
+	virtual unique_lock<recursive_mutex> create_lock()
 		{ return parent_->create_lock(); }
-		//{ return parent_ ? parent_->create_lock() : unique_lock<mutex>(); }
+		//{ return parent_ ? parent_->create_lock() : unique_lock<recursive_mutex>(); }
 
 	virtual window* get_window()
 		{ return parent_ ? parent_->get_window() : NULL; }

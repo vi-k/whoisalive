@@ -239,7 +239,7 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 				wostringstream out;
 
 				{
-					unique_lock<mutex> l(states_mutex_);
+					unique_lock<recursive_mutex> l(states_mutex_);
 					states_[utc_time] = state;
 					states_active_index_ = -1;
 				}
@@ -341,7 +341,7 @@ void wx_Ping::pings_handle_read( my::worker::ptr worker,
 				else
 				{
 					{
-						unique_lock<mutex> l(pings_mutex_);
+						unique_lock<recursive_mutex> l(pings_mutex_);
 						pings_[num] = ping;
 						pings_active_index_ = -1;
 					}
@@ -411,7 +411,7 @@ void wx_Ping::pings_handle_read( my::worker::ptr worker,
 /* Прорисовка состояний */
 void wx_Ping::states_repaint()
 {
-	unique_lock<mutex> l(states_bitmap_mutex_);
+	unique_lock<recursive_mutex> l(states_bitmap_mutex_);
 
 	first_state_time_ = last_state_time_ = posix_time::ptime();
 
@@ -442,7 +442,7 @@ void wx_Ping::states_repaint()
 	int prev_y = -1;
 	int index = 0;
 
-	unique_lock<mutex> ll(states_mutex_);
+	unique_lock<recursive_mutex> ll(states_mutex_);
 
 	/*-
 	for (states_list::iterator iter = states_.begin();
@@ -483,7 +483,7 @@ void wx_Ping::states_repaint()
 
 void wx_Ping::pings_repaint()
 {
-	unique_lock<mutex> l(pings_bitmap_mutex_);
+	unique_lock<recursive_mutex> l(pings_bitmap_mutex_);
 
 	first_ping_time_ = last_ping_time_ = posix_time::ptime();
 
@@ -514,7 +514,7 @@ void wx_Ping::pings_repaint()
 	int prev_y = -1;
 	int index = 0;
 
-	unique_lock<mutex> ll(pings_mutex_);
+	unique_lock<recursive_mutex> ll(pings_mutex_);
 
 	for (pings_list::iterator iter = pings_.begin();
 		iter != pings_.end(); iter++)
@@ -559,7 +559,7 @@ void wx_Ping::on_pingpanel_mousemove(wxMouseEvent& event)
 	pings_active_index_ = (w - event.GetX() + 1) / BLOCK_W;
 	PingPanel->Refresh();
 
-	unique_lock<mutex> l(pings_mutex_);
+	unique_lock<recursive_mutex> l(pings_mutex_);
 
 	int index = pings_active_index_;
 	pings_list::iterator iter = pings_.begin();
@@ -586,7 +586,7 @@ void wx_Ping::on_pingpanel_mouseleave(wxMouseEvent& event)
 
 void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
 {
-	unique_lock<mutex> l(states_bitmap_mutex_);
+	unique_lock<recursive_mutex> l(states_bitmap_mutex_);
 
 	if (states_bitmap_.IsOk())
 	{
@@ -612,7 +612,7 @@ void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
 
 void wx_Ping::OnPingPanelPaint(wxPaintEvent& event)
 {
-	unique_lock<mutex> l(pings_bitmap_mutex_);
+	unique_lock<recursive_mutex> l(pings_bitmap_mutex_);
 
 	if (pings_bitmap_.IsOk())
 	{
@@ -658,7 +658,7 @@ void wx_Ping::OnStatePanelMouseMove(wxMouseEvent& event)
 	states_active_index_ = (w - event.GetX() + 1) / BLOCK_W;
 	StatePanel->Refresh();
 
-	unique_lock<mutex> l(states_mutex_);
+	unique_lock<recursive_mutex> l(states_mutex_);
 
 	int index = states_active_index_;
 	states_list::iterator iter = states_.begin();
@@ -688,7 +688,7 @@ void wx_Ping::OnPingPanelMouseMove(wxMouseEvent& event)
 	pings_active_index_ = (w - event.GetX() + 1) / BLOCK_W;
 	PingPanel->Refresh();
 
-	unique_lock<mutex> l(pings_mutex_);
+	unique_lock<recursive_mutex> l(pings_mutex_);
 
 	int index = pings_active_index_;
 	pings_list::iterator iter = pings_.begin();

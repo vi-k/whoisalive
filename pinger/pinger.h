@@ -58,7 +58,7 @@ private:
 	asio::deadline_timer timer_;
 	posix_time::time_duration timeout_; /* Время ожидания ответа */
 	posix_time::time_duration request_period_; /* Период опроса */
-	mutex pinger_mutex_; /* Блокировка всего пингера */
+	recursive_mutex pinger_mutex_; /* Блокировка всего пингера */
 
 	void handle_timeout_(unsigned short sequence_number);
 	
@@ -82,7 +82,7 @@ public:
 	/* Чтение параметров пингера */
 	ip::address_v4 address()
 	{
-		unique_lock<mutex> l(pinger_mutex_); /* Блокируем пингер */
+		unique_lock<recursive_mutex> l(pinger_mutex_); /* Блокируем пингер */
 		return endpoint_.address().to_v4();
 	}
 
@@ -92,7 +92,7 @@ public:
 
 	host_state last_state()
 	{
-		unique_lock<mutex> l(pinger_mutex_);
+		unique_lock<recursive_mutex> l(pinger_mutex_);
 		return states_.empty() ? host_state() : states_.front();
 	}
 
@@ -100,7 +100,7 @@ public:
 
 	ping_result last_result()
 	{
-		unique_lock<mutex> l(pinger_mutex_);
+		unique_lock<recursive_mutex> l(pinger_mutex_);
 		return results_.empty() ? ping_result() : results_.front().value();
 	}
 	
@@ -109,13 +109,13 @@ public:
 	/* Изменение параметров пингера */
 	void set_request_period(posix_time::time_duration request_period)
 	{
-		unique_lock<mutex> l(pinger_mutex_);
+		unique_lock<recursive_mutex> l(pinger_mutex_);
 		request_period_ = request_period;
 	}
 
 	void set_timeout(posix_time::time_duration timeout)
 	{
-		unique_lock<mutex> l(pinger_mutex_);
+		unique_lock<recursive_mutex> l(pinger_mutex_);
 		timeout_ = timeout;
 	}
 };

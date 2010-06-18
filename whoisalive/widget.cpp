@@ -92,7 +92,7 @@ bool widget::animate_calc()
 void widget::set_scale(float new_scale, int steps)
 {
 	{
-		unique_lock<mutex> l = create_lock();
+		unique_lock<recursive_mutex> l = create_lock();
 
 		if (steps <= 0)
 			steps = 1;
@@ -109,7 +109,7 @@ void widget::set_scale(float new_scale, int steps)
 void widget::set_pos(float new_x, float new_y, int steps)
 {
 	{
-		unique_lock<mutex> l = create_lock();
+		unique_lock<recursive_mutex> l = create_lock();
 
 		if (steps <= 0)
 			steps = 1;

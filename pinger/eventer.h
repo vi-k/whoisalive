@@ -45,8 +45,8 @@ class server
 	private:
 		boost::ptr_list<handler> handlers_;
 		std::list<event> events_;
-		mutex handlers_mutex_; /* Блокировка списка обработчиков */
-		mutex events_mutex_; /* Блокировка списка событий */
+		recursive_mutex handlers_mutex_; /* Блокировка списка обработчиков */
+		recursive_mutex events_mutex_; /* Блокировка списка событий */
 		condition_variable cond_;
 
 	public:
@@ -58,8 +58,8 @@ class server
 		void run();
 		void start();
 
-		unique_lock<mutex> get_lock()
-			{ return unique_lock<mutex>(handlers_mutex_); }
+		unique_lock<recursive_mutex> get_lock()
+			{ return unique_lock<recursive_mutex>(handlers_mutex_); }
 
 		void add_handler(acceptor::connection *connection,
 			ip::address_v4 for_whom);
