@@ -9,7 +9,6 @@
 #include "../common/my_thread.h"
 #include "../common/my_mru.h"
 #include "../common/my_time.h"
-//#include "../common/my_many_workers.h"
 #include "../common/my_employer.h"
 
 #include <memory>
@@ -43,9 +42,9 @@ private:
 	my::http::reply pings_reply_;
 	posix_time::ptime first_ping_time_;
 	posix_time::ptime last_ping_time_;
-	mutex pings_mutex_;
+	recursive_mutex pings_mutex_;
 	wxBitmap pings_bitmap_;
-	mutex pings_bitmap_mutex_;
+	recursive_mutex pings_bitmap_mutex_;
 	int pings_active_index_;
 
 	states_list states_;
@@ -53,9 +52,9 @@ private:
 	my::http::reply states_reply_;
 	posix_time::ptime first_state_time_;
 	posix_time::ptime last_state_time_;
-	mutex states_mutex_;
+	recursive_mutex states_mutex_;
 	wxBitmap states_bitmap_;
-	mutex states_bitmap_mutex_;
+	recursive_mutex states_bitmap_mutex_;
 	int states_active_index_;
 
 	void states_handle_read( my::worker::ptr worker,

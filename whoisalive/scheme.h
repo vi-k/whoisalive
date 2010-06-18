@@ -28,7 +28,7 @@ private:
 	window *window_;
 	wstring name_;
 	bool first_activation_;
-	mutex scheme_mutex_;
+	recursive_mutex scheme_mutex_;
 	float min_scale_;
 	float max_scale_;
 	std::auto_ptr<Gdiplus::Bitmap> bitmap_;
@@ -39,8 +39,8 @@ public:
 	scheme(server &server, const xml::wptree *pt = NULL);
 	virtual ~scheme() {}
 
-	virtual unique_lock<mutex> create_lock()
-		{ return unique_lock<mutex>(scheme_mutex_); }
+	virtual unique_lock<recursive_mutex> create_lock()
+		{ return unique_lock<recursive_mutex>(scheme_mutex_); }
 
 	inline const wchar_t* get_name()
 		{ return name_.c_str(); }

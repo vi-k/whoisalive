@@ -35,8 +35,8 @@ public:
 
 private:
 	asio::io_service io_service_;
-	mutex io_sleep_mutex_;
-	condition_variable io_sleep_cond_;
+	recursive_mutex io_sleep_mutex_;
+	condition_variable_any io_sleep_cond_;
 	tcp::endpoint server_endpoint_;
 	tcp::socket state_log_socket_;
 	ULONG_PTR gdiplus_token_;

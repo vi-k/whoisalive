@@ -66,13 +66,13 @@ host_pinger::host_pinger(server &parent,
 
 host_pinger_copy host_pinger::copy()
 {
-	unique_lock<mutex> l(pinger_mutex_); /* Блокируем пингер */
+	unique_lock<recursive_mutex> l(pinger_mutex_); /* Блокируем пингер */
 	return host_pinger_copy(*this);
 }
 
 void host_pinger::states_copy(vector<host_state> &v)
 {
-	unique_lock<mutex> l(pinger_mutex_);
+	unique_lock<recursive_mutex> l(pinger_mutex_);
 
 	for (states_list::iterator iter = states_.begin();
 		iter != states_.end(); iter++)
@@ -83,7 +83,7 @@ void host_pinger::states_copy(vector<host_state> &v)
 
 void host_pinger::results_copy(vector<ping_result> &v)
 {
-	unique_lock<mutex> l(pinger_mutex_);
+	unique_lock<recursive_mutex> l(pinger_mutex_);
 
 	for (results_list::iterator iter = results_.begin();
 		iter != results_.end(); iter++)
@@ -128,7 +128,7 @@ void host_pinger::acknowledge(bool ack)
 
 	/* Блокируем пингер */
 	{
-		unique_lock<mutex> l(pinger_mutex_);
+		unique_lock<recursive_mutex> l(pinger_mutex_);
 
 		if (!states_.empty())
 			prev_state = states_.front();
@@ -171,7 +171,7 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 
 	/* Блокируем пингер */
 	{
-		unique_lock<mutex> l(pinger_mutex_);
+		unique_lock<recursive_mutex> l(pinger_mutex_);
 
 		/* Вполне может случиться так, что сначала прийдёт отклик,
 			но за время его обработки сработает таймаут и функция запустится.
@@ -245,7 +245,7 @@ void host_pinger::on_receive(posix_time::ptime time,
 
 	/* Блокируем пингер */
 	{
-		unique_lock<mutex> l(pinger_mutex_);
+		unique_lock<recursive_mutex> l(pinger_mutex_);
 
 		/* При получении отклика, результат уже может быть в списке,
 			если таймаут уже сработал. В этом случае исправляем старый

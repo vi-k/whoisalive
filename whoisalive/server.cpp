@@ -69,7 +69,7 @@ server::~server()
 
 	/* Будим поток io, если он спит */
 	{
-		unique_lock<mutex> l(io_sleep_mutex_);
+		unique_lock<recursive_mutex> l(io_sleep_mutex_);
 		/* Блокировкой гарантируем, что не попытаемся разбудить поток,
 			когда он ещё не спит, но уже собрался (т.е., что не окажемся
 			между if (!finish()) и последующим wait() */
@@ -88,7 +88,7 @@ void server::io_thread_proc(my::many_workers::lock lock)
 		io_service_.run();
 		io_service_.reset();
 
-		unique_lock<mutex> lock(io_sleep_mutex_);
+		unique_lock<recursive_mutex> lock(io_sleep_mutex_);
 		if (!finish())
 			io_sleep_cond_.wait(lock);
 	}

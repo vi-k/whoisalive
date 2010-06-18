@@ -58,6 +58,12 @@ public:
 	{
 	}
 
+	~employer()
+	{
+		/* На всякий случай */
+		employer_workers_.clear();
+	}
+
 	worker::ptr new_worker(const std::string &name = std::string(),
 		boost::function<void ()> on_finish
 				= boost::function<void ()>())
