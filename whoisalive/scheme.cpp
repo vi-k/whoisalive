@@ -87,7 +87,7 @@ void scheme::animate(void)
 void scheme::scale__(float new_scale, float fix_x, float fix_y, int steps)
 {
 	{
-		scoped_lock l(scheme_mutex_);
+		unique_lock<mutex> l(scheme_mutex_);
 
 		if (steps <= 0)
 			steps = 1;
@@ -174,7 +174,7 @@ void scheme::align(float scr_w, float scr_h, int steps)
 	if (scr_w && scr_h)
 	{
 		{
-			scoped_lock l(scheme_mutex_);
+			unique_lock<mutex> l(scheme_mutex_);
 		
 			if (steps <= 0)
 				steps = 1;
@@ -218,7 +218,7 @@ void scheme::align(float scr_w, float scr_h, int steps)
 
 bool scheme::animate_calc(void)
 {
-	scoped_lock l(scheme_mutex_);
+	unique_lock<mutex> l(scheme_mutex_);
 
 	bool anim = widget::animate_calc();
 

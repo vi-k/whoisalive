@@ -187,7 +187,7 @@ LRESULT window::wndproc_(HWND hwnd, UINT uMsg, WPARAM wParam,
 			HDC hdc = BeginPaint(hwnd, &ps);
 
 			{
-				scoped_lock l(canvas_mutex_);
+				unique_lock<mutex> l(canvas_mutex_);
 
 				if (bitmap_.get())
 				{
@@ -444,7 +444,7 @@ void window::on_destroy( void)
 */
 void window::paint_( void)
 {
-	scoped_lock l(canvas_mutex_);
+	unique_lock<mutex> l(canvas_mutex_);
 
 	if (canvas_.get())
 	{
@@ -644,7 +644,7 @@ void window::set_size(int w, int h)
 	if (w == 0 || h == 0 || w == w_ && h == h_) return;
 
 	{
-		scoped_lock l(canvas_mutex_);
+		unique_lock<mutex> l(canvas_mutex_);
 
 		/* Создаём новый */
 		Gdiplus::Graphics g(NULL, FALSE);

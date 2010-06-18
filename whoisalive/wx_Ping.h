@@ -9,7 +9,7 @@
 #include "../common/my_thread.h"
 #include "../common/my_mru.h"
 #include "../common/my_time.h"
-#include "../common/my_ptr.h"
+#include "../common/my_many_workers.h"
 
 #include <memory>
 
@@ -26,53 +26,6 @@ class wxBoxSizer;
 
 #include <wx/textctrl.h>
 #include <wx/bitmap.h>
-
-namespace my {
-
-class many_workers
-{
-public:
-	typedef shared_ptr< unique_lock<mutex> > lock;
-
-private:
-	bool stop_;
-	lock lock_ptr_;
-	mutex mutex_;
-	
-public:
-	many_workers() : stop_(false) {};
-
-	lock lock_for_worker()
-	{
-		if (!lock_ptr_)
-			lock_ptr_.reset( new unique_lock<mutex>(mutex_) );
-
-		return lock_ptr_;
-	}
-
-	bool need_for_stop()
-	{
-		return stop_;
-	}
-
-	void stop()
-	{
-		stop_ = true;
-	}
-
-	int workers()
-	{
-		return lock_ptr_.use_count();
-	}
-
-	void wait_for_workers()
-	{
-		lock_ptr_.reset();
-		unique_lock<mutex> l(mutex_);
-	}
-};
-
-}
 
 class wx_Ping : public wxFrame, public my::many_workers
 {
@@ -114,7 +67,6 @@ private:
 	void pings_repaint();
 
 	//(*Handlers(wx_Ping)
-	void OnClose(wxCloseEvent& event);
 	void on_pingpanel_mousemove(wxMouseEvent& event);
 	void on_pingpanel_mouseleave(wxMouseEvent& event);
 	void OnStatePanelPaint(wxPaintEvent& event);
@@ -142,13 +94,11 @@ protected:
 	static const long ID_PINGTEXTCTRL;
 	//*)
 
-	void start();
-
 public:
 	wx_Ping(wxWindow* parent, who::server &server, who::object *object);
 	virtual ~wx_Ping();
 
-	static void Start(wxWindow* parent, who::server &server, who::object *object);
+	static void Open(wxWindow* parent, who::server &server, who::object *object);
 
 	//(*Declarations(wx_Ping)
 	wxPanel* StatePanel;

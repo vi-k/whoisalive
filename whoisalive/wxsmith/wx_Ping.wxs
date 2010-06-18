@@ -5,7 +5,6 @@
 		<bg>wxSYS_COLOUR_BTNFACE</bg>
 		<id_arg>0</id_arg>
 		<style>wxDEFAULT_DIALOG_STYLE|wxFRAME_TOOL_WINDOW|wxFRAME_FLOAT_ON_PARENT</style>
-		<handler function="OnClose" entry="EVT_CLOSE" />
 		<object class="wxFlexGridSizer" variable="FlexGridSizer1" member="no">
 			<cols>1</cols>
 			<rows>5</rows>
@@ -27,7 +26,7 @@
 				<object class="wxBoxSizer" variable="BoxSizer1" member="no">
 					<object class="sizeritem">
 						<object class="wxStaticText" name="ID_STATICTEXT1" variable="StateFirstText" member="yes">
-							<label></label>
+							<label>&#x0A;</label>
 							<font>
 								<size>6</size>
 							</font>
@@ -39,7 +38,7 @@
 					</object>
 					<object class="sizeritem">
 						<object class="wxStaticText" name="ID_STATICTEXT2" variable="StateLastText" member="yes">
-							<label></label>
+							<label>&#x0A;</label>
 							<font>
 								<size>6</size>
 							</font>
@@ -70,7 +69,7 @@
 				<object class="wxBoxSizer" variable="BoxSizer2" member="no">
 					<object class="sizeritem">
 						<object class="wxStaticText" name="ID_STATICTEXT3" variable="PingFirstText" member="yes">
-							<label></label>
+							<label>&#x0A;</label>
 							<font>
 								<size>6</size>
 							</font>
@@ -82,7 +81,7 @@
 					</object>
 					<object class="sizeritem">
 						<object class="wxStaticText" name="ID_STATICTEXT4" variable="PingLastText" member="yes">
-							<label></label>
+							<label>&#x0A;</label>
 							<font>
 								<size>6</size>
 							</font>

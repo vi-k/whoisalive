@@ -546,6 +546,6 @@ void wx_Frame::OnMenuPing_Selected(wxCommandEvent& event)
 	{
 		who::object *object = dynamic_cast<who::object*>(menu_widget_);
 		if (object)
-			wx_Ping::Start(this, *server_, object);
+			wx_Ping::Open(this, *server_, object);
 	}
 }

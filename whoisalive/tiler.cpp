@@ -55,8 +55,8 @@ void server::thread_proc()
 		/* Если нет такого - засыпаем */
 		if (!tile_id)
     	{
-    		mutex proc_mutex;
-			scoped_lock lock(proc_mutex);
+    		mutex sleep_mutex;
+			unique_lock<mutex> lock(sleep_mutex);
 			cond_.wait(lock);
 			continue;
 		}
@@ -66,7 +66,7 @@ void server::thread_proc()
 		tiler::map *map;
 
 		{
-			scoped_lock l(maps_mutex_);
+			unique_lock<mutex> l(maps_mutex_);
 			map = &maps_[ tile_id.map_id ];
 		}
 
@@ -117,7 +117,7 @@ void server::thread_proc()
 
 int server::add_map(const tiler::map &map)
 {
-	scoped_lock l(maps_mutex_);
+	unique_lock<mutex> l(maps_mutex_);
 	int id = get_new_map_id_();
 	maps_[id] = map;
 	return id;
