@@ -24,7 +24,7 @@ void server::run()
 
 	while (true)
 	{
-		scoped_lock lock(server_mutex);
+		unique_lock<mutex> lock(server_mutex);
 
 		/* Копируем события и сразу освобождаем список, чтобы не останавливать
 			работу pingera'а пока передаём данные */
@@ -32,7 +32,7 @@ void server::run()
 
 		{
 			/* Блокируем список событий на время копирования */
-			scoped_lock l(events_mutex_);
+			unique_lock<mutex> l(events_mutex_);
 			events_copy = events_;
 			events_.clear();
 		}
@@ -45,7 +45,7 @@ void server::run()
 			continue;
 		}
 
-		scoped_lock l(handlers_mutex_); /* Нельзя удалять и добавлять обработчики */
+		unique_lock<mutex> l(handlers_mutex_); /* Нельзя удалять и добавлять обработчики */
 
 		BOOST_FOREACH(handler &h, handlers_)
 		{
@@ -88,7 +88,7 @@ void server::start()
 void server::add_handler(acceptor::connection *connection,
 	ip::address_v4 for_whom)
 {
-	scoped_lock l(handlers_mutex_); /* Блокируем список обработчиков */
+	unique_lock<mutex> l(handlers_mutex_); /* Блокируем список обработчиков */
 	handlers_.push_back( new handler(connection, for_whom) );
 	start();
 }
@@ -96,7 +96,7 @@ void server::add_handler(acceptor::connection *connection,
 void server::add_event(ip::address_v4 who,
 	const wstring &what)
 {
-	scoped_lock l(events_mutex_); /* Блокируем список событий */
+	unique_lock<mutex> l(events_mutex_); /* Блокируем список событий */
 	events_.push_back( event(who, what) );
 	start();
 }

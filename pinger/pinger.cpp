@@ -66,13 +66,13 @@ host_pinger::host_pinger(server &parent,
 
 host_pinger_copy host_pinger::copy()
 {
-	scoped_lock l(pinger_mutex_); /* Блокируем пингер */
+	unique_lock<mutex> l(pinger_mutex_); /* Блокируем пингер */
 	return host_pinger_copy(*this);
 }
 
 void host_pinger::states_copy(vector<host_state> &v)
 {
-	scoped_lock l(pinger_mutex_);
+	unique_lock<mutex> l(pinger_mutex_);
 
 	for (states_list::iterator iter = states_.begin();
 		iter != states_.end(); iter++)
@@ -83,7 +83,7 @@ void host_pinger::states_copy(vector<host_state> &v)
 
 void host_pinger::results_copy(vector<ping_result> &v)
 {
-	scoped_lock l(pinger_mutex_);
+	unique_lock<mutex> l(pinger_mutex_);
 
 	for (results_list::iterator iter = results_.begin();
 		iter != results_.end(); iter++)
@@ -128,7 +128,7 @@ void host_pinger::acknowledge(bool ack)
 
 	/* Блокируем пингер */
 	{
-		scoped_lock l(pinger_mutex_);
+		unique_lock<mutex> l(pinger_mutex_);
 
 		if (!states_.empty())
 			prev_state = states_.front();
@@ -171,7 +171,7 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 
 	/* Блокируем пингер */
 	{
-		scoped_lock l(pinger_mutex_);
+		unique_lock<mutex> l(pinger_mutex_);
 
 		/* Вполне может случиться так, что сначала прийдёт отклик,
 			но за время его обработки сработает таймаут и функция запустится.
@@ -245,7 +245,7 @@ void host_pinger::on_receive(posix_time::ptime time,
 
 	/* Блокируем пингер */
 	{
-		scoped_lock l(pinger_mutex_);
+		unique_lock<mutex> l(pinger_mutex_);
 
 		/* При получении отклика, результат уже может быть в списке,
 			если таймаут уже сработал. В этом случае исправляем старый
@@ -395,7 +395,7 @@ bool server::add_pinger(const std::wstring &hostname,
 	posix_time::time_duration timeout,
 	posix_time::time_duration request_period)
 {
-	scoped_lock l(server_mutex_); /* Блокируем сервер */
+	unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 
 	icmp::endpoint endpoint = resolve(hostname);
 
@@ -422,7 +422,7 @@ bool server::add_pinger(const std::wstring &hostname,
 host_pinger* server::find_pinger_(const ip::address_v4 &address,
 	bool throw_if_not_found)
 {
-	scoped_lock l(server_mutex_); /* Блокируем сервер */
+	unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 
 	BOOST_FOREACH(host_pinger &pinger, pingers_)
 		if (pinger.address() == address)
@@ -465,7 +465,7 @@ void server::handle_receive_(size_t length)
 	if ( is && icmp_hdr.type() == icmp_header::echo_reply
 		&& icmp_hdr.identifier() == pinger::get_id() )
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 
 		/* Проверяем, что адрес есть в списке */
 		host_pinger *host_pinger =
@@ -480,7 +480,7 @@ void server::handle_receive_(size_t length)
 
 void server::pingers_copy(std::vector<host_pinger_copy> &v)
 {
-	scoped_lock l(server_mutex_); /* Блокируем сервер */
+	unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 
 	BOOST_FOREACH(host_pinger &pinger, pingers_)
 		v.push_back( pinger.copy() );

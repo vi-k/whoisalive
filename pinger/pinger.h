@@ -82,7 +82,7 @@ public:
 	/* Чтение параметров пингера */
 	ip::address_v4 address()
 	{
-		scoped_lock l(pinger_mutex_); /* Блокируем пингер */
+		unique_lock<mutex> l(pinger_mutex_); /* Блокируем пингер */
 		return endpoint_.address().to_v4();
 	}
 
@@ -92,7 +92,7 @@ public:
 
 	host_state last_state()
 	{
-		scoped_lock l(pinger_mutex_);
+		unique_lock<mutex> l(pinger_mutex_);
 		return states_.empty() ? host_state() : states_.front();
 	}
 
@@ -100,7 +100,7 @@ public:
 
 	ping_result last_result()
 	{
-		scoped_lock l(pinger_mutex_);
+		unique_lock<mutex> l(pinger_mutex_);
 		return results_.empty() ? ping_result() : results_.front().value();
 	}
 	
@@ -109,13 +109,13 @@ public:
 	/* Изменение параметров пингера */
 	void set_request_period(posix_time::time_duration request_period)
 	{
-		scoped_lock l(pinger_mutex_);
+		unique_lock<mutex> l(pinger_mutex_);
 		request_period_ = request_period;
 	}
 
 	void set_timeout(posix_time::time_duration timeout)
 	{
-		scoped_lock l(pinger_mutex_);
+		unique_lock<mutex> l(pinger_mutex_);
 		timeout_ = timeout;
 	}
 };
@@ -149,7 +149,7 @@ private:
 	asio::streambuf reply_buffer_;
 	posix_time::time_duration def_timeout_;
 	posix_time::time_duration def_request_period_;
-	mutex server_mutex_;
+	recursive_mutex server_mutex_;
 
 	void receive_();
 	void handle_receive_(std::size_t length);
@@ -195,14 +195,14 @@ public:
 	
 	host_pinger_copy pinger_copy(const ip::address_v4 &address)
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true);
 		return host_pinger_copy(*pinger);
 	}
 
 	void acknowledge(const ip::address_v4 &address, bool ack)
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true);
 		if (pinger)
 			pinger->acknowledge(ack);
@@ -210,7 +210,7 @@ public:
 
 	host_state last_state(const ip::address_v4 &address)
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true);
 		return pinger->last_state();
 	}
@@ -218,14 +218,14 @@ public:
 	void states_copy(const ip::address_v4 &address,
 		std::vector<host_state> &v)
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true);
 		pinger->states_copy(v);
 	}
 
 	ping_result last_result(const ip::address_v4 &address)
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true);
 		return pinger->last_result();
 	}
@@ -233,7 +233,7 @@ public:
 	void results_copy(const ip::address_v4 &address,
 		std::vector<ping_result> &v)
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true);
 		pinger->results_copy(v);
 	}
@@ -242,13 +242,13 @@ public:
 	
 	inline posix_time::time_duration def_timeout()
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		return def_timeout_;
 	}
 
 	inline posix_time::time_duration def_request_period()
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		return def_request_period_;
 	}
 
@@ -258,14 +258,14 @@ public:
 	void set_def_timeout(posix_time::time_duration time)
 	{
 		my::time::throw_if_fail(time);
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		def_timeout_ = time;
 	}
 
 	void set_def_request_period(posix_time::time_duration time)
 	{
 		my::time::throw_if_fail(time);
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		def_request_period_ = time;
 	}
 
@@ -274,14 +274,14 @@ public:
 #if 0
 	posix_time::time_duration timeout(const ip::address_v4 &address)
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true /*throw_if_not_found*/);
 		return pinger->timeout();
 	}
 
 	posix_time::time_duration request_period(const ip::address_v4 &address)
 	{
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true /*throw_if_not_found*/);
 		return pinger->request_period();
 	}
@@ -293,7 +293,7 @@ public:
 		posix_time::time_duration time)
 	{
 		my::time::throw_if_fail(time);
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true /*throw_if_not_found*/);
 		pinger->set_timeout(time);
 	}
@@ -302,7 +302,7 @@ public:
 		posix_time::time_duration time)
 	{
 		my::time::throw_if_fail(time);
-		scoped_lock l(server_mutex_); /* Блокируем сервер */
+		unique_lock<recursive_mutex> l(server_mutex_); /* Блокируем сервер */
 		host_pinger *pinger = find_pinger_(address, true /*throw_if_not_found*/);
 		pinger->set_request_period(time);
 	}
