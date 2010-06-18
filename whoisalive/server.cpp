@@ -70,7 +70,7 @@ void server::io_thread_proc()
 		if (terminate_)
 			break;
 
-		scoped_lock lock(io_mutex);
+		unique_lock<mutex> lock(io_mutex);
 		io_cond_.wait(lock);
 	}
 }

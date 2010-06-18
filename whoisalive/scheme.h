@@ -39,8 +39,8 @@ public:
 	scheme(server &server, const xml::wptree *pt = NULL);
 	virtual ~scheme() {}
 
-	virtual scoped_lock create_lock()
-		{ return scoped_lock(scheme_mutex_); }
+	virtual unique_lock<mutex> create_lock()
+		{ return unique_lock<mutex>(scheme_mutex_); }
 
 	inline const wchar_t* get_name(void)
 		{ return name_.c_str(); }

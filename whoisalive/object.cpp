@@ -374,7 +374,7 @@ void object::do_check_state()
 	if (new_state != state_)
 	{
 		{
-			scoped_lock l = create_lock();
+			unique_lock<mutex> l = create_lock();
 
 			state_ = new_state;
 			state_step_ = 2 * server_.def_anim_steps();
@@ -398,7 +398,7 @@ void object::do_check_state()
 void object::acknowledge()
 {
 	{
-		scoped_lock l = create_lock();
+		unique_lock<mutex> l = create_lock();
 
 		BOOST_FOREACH(const wstring &host, hosts_)
 			server_.acknowledge(host);
@@ -411,7 +411,7 @@ void object::acknowledge()
 void object::unacknowledge()
 {
 	{
-		scoped_lock l = create_lock();
+		unique_lock<mutex> l = create_lock();
 	
 		BOOST_FOREACH(const wstring &host, hosts_)
 			server_.unacknowledge(host);

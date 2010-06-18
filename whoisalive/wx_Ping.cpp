@@ -1,4 +1,5 @@
 #include "wx_Ping.h"
+#include "wx_App.h"
 
 #include "../common/my_exception.h"
 #include "../common/my_str.h"
@@ -75,11 +76,11 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	StatePanel = new wxPanel(this, ID_STATEPANEL, wxDefaultPosition, wxSize(400,61), wxTAB_TRAVERSAL, _T("ID_STATEPANEL"));
 	FlexGridSizer1->Add(StatePanel, 1, wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	BoxSizer1 = new wxBoxSizer(wxHORIZONTAL);
-	StateFirstText = new wxStaticText(this, ID_STATICTEXT1, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT, _T("ID_STATICTEXT1"));
+	StateFirstText = new wxStaticText(this, ID_STATICTEXT1, _("\n"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT, _T("ID_STATICTEXT1"));
 	wxFont StateFirstTextFont(6,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
 	StateFirstText->SetFont(StateFirstTextFont);
 	BoxSizer1->Add(StateFirstText, 1, wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StateLastText = new wxStaticText(this, ID_STATICTEXT2, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE|wxALIGN_RIGHT, _T("ID_STATICTEXT2"));
+	StateLastText = new wxStaticText(this, ID_STATICTEXT2, _("\n"), wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE|wxALIGN_RIGHT, _T("ID_STATICTEXT2"));
 	wxFont StateLastTextFont(6,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
 	StateLastText->SetFont(StateLastTextFont);
 	BoxSizer1->Add(StateLastText, 1, wxLEFT|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
@@ -87,11 +88,11 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	PingPanel = new wxPanel(this, ID_PINGPANEL, wxDefaultPosition, wxSize(400,61), wxTAB_TRAVERSAL, _T("ID_PINGPANEL"));
 	FlexGridSizer1->Add(PingPanel, 1, wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	BoxSizer2 = new wxBoxSizer(wxHORIZONTAL);
-	PingFirstText = new wxStaticText(this, ID_STATICTEXT3, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT, _T("ID_STATICTEXT3"));
+	PingFirstText = new wxStaticText(this, ID_STATICTEXT3, _("\n"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT, _T("ID_STATICTEXT3"));
 	wxFont PingFirstTextFont(6,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
 	PingFirstText->SetFont(PingFirstTextFont);
 	BoxSizer2->Add(PingFirstText, 1, wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	PingLastText = new wxStaticText(this, ID_STATICTEXT4, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE|wxALIGN_RIGHT, _T("ID_STATICTEXT4"));
+	PingLastText = new wxStaticText(this, ID_STATICTEXT4, _("\n"), wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE|wxALIGN_RIGHT, _T("ID_STATICTEXT4"));
 	wxFont PingLastTextFont(6,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
 	PingLastText->SetFont(PingLastTextFont);
 	BoxSizer2->Add(PingLastText, 1, wxLEFT|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
@@ -111,7 +112,6 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	PingPanel->Connect(ID_PINGPANEL,wxEVT_ERASE_BACKGROUND,(wxObjectEventFunction)&wx_Ping::OnPanelsEraseBackground,0,this);
 	PingPanel->Connect(ID_PINGPANEL,wxEVT_MOTION,(wxObjectEventFunction)&wx_Ping::OnPingPanelMouseMove,0,this);
 	PingPanel->Connect(ID_PINGPANEL,wxEVT_LEAVE_WINDOW,(wxObjectEventFunction)&wx_Ping::OnPingPanelMouseLeave,0,this);
-	Connect(wxID_ANY,wxEVT_CLOSE_WINDOW,(wxObjectEventFunction)&wx_Ping::OnClose);
 	//*)
 
 	if (object->hosts().empty())
@@ -124,39 +124,14 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	wstring name = object->name() + L" / " + host;
 	SetLabel(name);
 
-	Show();
-}
-
-void wx_Ping::Start(wxWindow* parent, who::server &server, who::object *object)
-{
-	try
-	{
-		//shared_ptr<wx_Ping> ptr
-		//	= shared_ptr<wx_Ping>(new wx_Ping(parent, server, object), destroy);
-		wx_Ping *ptr = new wx_Ping(parent, server, object);
-		ptr->start();
-	}
-	catch(my::exception &e)
-	{
-		wxMessageBox(e.message(), L"Ошибка", wxOK | wxICON_ERROR, parent);
-	}
-}
-
-void wx_Ping::start()
-{
-	wstring host = object_->hosts().front();
-
-	/* states */
+	/* Запускаем получатель состояний для хоста */
 	server_.get_header(states_socket_, states_reply_,
 		L"/pinger/state.log?address=" + host);
-	
-	states_reply_.buf_.consume(states_reply_.buf_.size());
-	states_reply_.buf_.prepare(65536);
 
 	asio::async_read_until(
 		states_socket_, states_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::states_handle_read, this,
-            lock_for_worker(),
+            get_lock_for_worker(),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
@@ -164,43 +139,58 @@ void wx_Ping::start()
 	server_.get_header(pings_socket_, pings_reply_,
 		L"/pinger/ping.log?address=" + host);
 
-	pings_reply_.buf_.consume(pings_reply_.buf_.size());
-	pings_reply_.buf_.prepare(65536);
-
 	asio::async_read_until(
 		pings_socket_, pings_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::pings_handle_read, this,
-            lock_for_worker(),
+            get_lock_for_worker(),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
 	server_.io_wake_up();
+
+	Show();
 }
+
+void wx_Ping::Open(wxWindow* parent, who::server &server, who::object *object)
+{
+	try
+	{
+		new wx_Ping(parent, server, object); /* Удалит себя сам */
+	}
+	catch(my::exception &e)
+	{
+		wxMessageBox(e.message(), L"Ошибка", wxOK | wxICON_ERROR, parent);
+	}
+}
+
+extern wx_App *App;
 
 wx_Ping::~wx_Ping()
 {
 	//(*Destroy(wx_Ping)
 	//*)
 
-	stop();
+	/* Уведомляем "работников" об окончании работы */
+	lets_finish();
 
+	/* Помогаем им узнать об окончании побыстрее */
 	states_socket_.close();
 	pings_socket_.close();
 
-	wait_for_workers();
-}
+	/* Наши асинхронные "работники" активно задействуют контролы формы,
+		а это требует реакции основного (т.е. данного) потока,
+		и поэтому его никак нельзя останавливать на wait_for_workers() */
+	while (number_of_workers() != 1 && App->Pending())
+		App->Dispatch();
 
-void wx_Ping::OnClose(wxCloseEvent& event)
-{
-	//event.Veto();
-	Destroy();
+	wait_for_workers();
 }
 
 /* Асинхронное чтение состояний */
 void wx_Ping::states_handle_read( my::many_workers::lock lock,
 	const boost::system::error_code& error, size_t bytes_transferred )
 {
-	if (need_for_stop())
+	if (finish())
 		return;
 
 	if (!error)
@@ -217,8 +207,7 @@ void wx_Ping::states_handle_read( my::many_workers::lock lock,
 		{
 			asio::async_read_until(
 				states_socket_, states_reply_.buf_, "END_ARCHIVE\r\n",
-				boost::bind(&wx_Ping::states_handle_read, this,
-					lock,
+				boost::bind(&wx_Ping::states_handle_read, this, lock,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 		}
@@ -249,7 +238,7 @@ void wx_Ping::states_handle_read( my::many_workers::lock lock,
 				wostringstream out;
 
 				{
-					scoped_lock l(states_mutex_);
+					unique_lock<mutex> l(states_mutex_);
 					states_[utc_time] = state;
 					states_active_index_ = -1;
 				}
@@ -259,8 +248,7 @@ void wx_Ping::states_handle_read( my::many_workers::lock lock,
 
 			asio::async_read_until(
 				states_socket_, states_reply_.buf_, "\r\n",
-				boost::bind(&wx_Ping::states_handle_read, this,
-					lock,
+				boost::bind(&wx_Ping::states_handle_read, this, lock,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 
@@ -292,7 +280,7 @@ void wx_Ping::states_handle_read( my::many_workers::lock lock,
 void wx_Ping::pings_handle_read( my::many_workers::lock lock,
 	const boost::system::error_code& error, size_t bytes_transferred )
 {
-	if (need_for_stop())
+	if (finish())
 		return;
 
 	if (!error)
@@ -309,8 +297,7 @@ void wx_Ping::pings_handle_read( my::many_workers::lock lock,
 		{
 			asio::async_read_until(
 				pings_socket_, pings_reply_.buf_, "END_ARCHIVE\r\n",
-				boost::bind(&wx_Ping::pings_handle_read, this,
-					lock,
+				boost::bind(&wx_Ping::pings_handle_read, this, lock,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 		}
@@ -353,7 +340,7 @@ void wx_Ping::pings_handle_read( my::many_workers::lock lock,
 				else
 				{
 					{
-						scoped_lock l(pings_mutex_);
+						unique_lock<mutex> l(pings_mutex_);
 						pings_[num] = ping;
 						pings_active_index_ = -1;
 					}
@@ -392,8 +379,7 @@ void wx_Ping::pings_handle_read( my::many_workers::lock lock,
 
 			asio::async_read_until(
 				pings_socket_, pings_reply_.buf_, "\r\n",
-				boost::bind(&wx_Ping::pings_handle_read, this,
-					lock,
+				boost::bind(&wx_Ping::pings_handle_read, this, lock,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 
@@ -424,7 +410,7 @@ void wx_Ping::pings_handle_read( my::many_workers::lock lock,
 /* Прорисовка состояний */
 void wx_Ping::states_repaint()
 {
-	scoped_lock l(states_bitmap_mutex_);
+	unique_lock<mutex> l(states_bitmap_mutex_);
 
 	first_state_time_ = last_state_time_ = posix_time::ptime();
 
@@ -455,7 +441,7 @@ void wx_Ping::states_repaint()
 	int prev_y = -1;
 	int index = 0;
 
-	scoped_lock ll(states_mutex_);
+	unique_lock<mutex> ll(states_mutex_);
 
 	/*-
 	for (states_list::iterator iter = states_.begin();
@@ -496,7 +482,7 @@ void wx_Ping::states_repaint()
 
 void wx_Ping::pings_repaint()
 {
-	scoped_lock l(pings_bitmap_mutex_);
+	unique_lock<mutex> l(pings_bitmap_mutex_);
 
 	first_ping_time_ = last_ping_time_ = posix_time::ptime();
 
@@ -527,7 +513,7 @@ void wx_Ping::pings_repaint()
 	int prev_y = -1;
 	int index = 0;
 
-	scoped_lock ll(pings_mutex_);
+	unique_lock<mutex> ll(pings_mutex_);
 
 	for (pings_list::iterator iter = pings_.begin();
 		iter != pings_.end(); iter++)
@@ -572,7 +558,7 @@ void wx_Ping::on_pingpanel_mousemove(wxMouseEvent& event)
 	pings_active_index_ = (w - event.GetX() + 1) / BLOCK_W;
 	PingPanel->Refresh();
 
-	scoped_lock l(pings_mutex_);
+	unique_lock<mutex> l(pings_mutex_);
 
 	int index = pings_active_index_;
 	pings_list::iterator iter = pings_.begin();
@@ -599,7 +585,7 @@ void wx_Ping::on_pingpanel_mouseleave(wxMouseEvent& event)
 
 void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
 {
-	scoped_lock l(states_bitmap_mutex_);
+	unique_lock<mutex> l(states_bitmap_mutex_);
 
 	if (states_bitmap_.IsOk())
 	{
@@ -625,7 +611,7 @@ void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
 
 void wx_Ping::OnPingPanelPaint(wxPaintEvent& event)
 {
-	scoped_lock l(pings_bitmap_mutex_);
+	unique_lock<mutex> l(pings_bitmap_mutex_);
 
 	if (pings_bitmap_.IsOk())
 	{
@@ -671,7 +657,7 @@ void wx_Ping::OnStatePanelMouseMove(wxMouseEvent& event)
 	states_active_index_ = (w - event.GetX() + 1) / BLOCK_W;
 	StatePanel->Refresh();
 
-	scoped_lock l(states_mutex_);
+	unique_lock<mutex> l(states_mutex_);
 
 	int index = states_active_index_;
 	states_list::iterator iter = states_.begin();
@@ -701,7 +687,7 @@ void wx_Ping::OnPingPanelMouseMove(wxMouseEvent& event)
 	pings_active_index_ = (w - event.GetX() + 1) / BLOCK_W;
 	PingPanel->Refresh();
 
-	scoped_lock l(pings_mutex_);
+	unique_lock<mutex> l(pings_mutex_);
 
 	int index = pings_active_index_;
 	pings_list::iterator iter = pings_.begin();
