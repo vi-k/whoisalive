@@ -39,7 +39,7 @@ widget::widget(who::server &server, const xml::wptree *pt)
 	}
 }
 
-bool widget::animate_calc(void)
+bool widget::animate_calc()
 {
 	bool anim = false;
 
@@ -142,7 +142,7 @@ widget* widget::hittest(float x, float y)
 
 /* Выделение объекта. Для этого снимаем выделение со всех родителей и детей,
 	т.к. у нас родитель не может быть выделен одновременно с детьми */
-void widget::select(void)
+void widget::select()
 {
 	widget *parent = parent_;
 	while (parent)
@@ -159,7 +159,7 @@ void widget::select(void)
 	animate();
 }
 
-void widget::unselect(void)
+void widget::unselect()
 {
 	if (tmp_selected_) {
 		tmp_selected_ = false;
@@ -172,7 +172,7 @@ void widget::unselect(void)
 	}
 }
 
-void widget::unselect_all(void)
+void widget::unselect_all()
 {
 	unselect();
 
@@ -354,7 +354,7 @@ void widget::paint(Gdiplus::Graphics *canvas)
 /******************************************************************************
 * Координаты и размеры widget'а
 */
-Gdiplus::RectF widget::client_rect(void)
+Gdiplus::RectF widget::client_rect()
 {
 	Gdiplus::RectF rect = own_rect();
 
@@ -371,7 +371,7 @@ Gdiplus::RectF widget::client_rect(void)
 /******************************************************************************
 * Координаты и размеры widget'а
 */
-Gdiplus::RectF widget::objects_rect(void)
+Gdiplus::RectF widget::objects_rect()
 {
 	Gdiplus::RectF rect(0.0f, 0.0f, -10.0f, -10.0f);
 
@@ -398,7 +398,7 @@ void widget::set_parent(widget *parent)
 	animate();
 }
 
-void widget::do_check_state(void)
+void widget::do_check_state()
 {
 	BOOST_FOREACH(widget &child, childs_)
 		child.do_check_state();

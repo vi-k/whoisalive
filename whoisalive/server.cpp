@@ -27,8 +27,7 @@ using namespace std;
 namespace who {
 
 server::server(const xml::wptree &config)
-	: terminate_(false)
-	, gdiplus_token_(0)
+	: gdiplus_token_(0)
 	, io_service_()
 	, state_log_socket_(io_service_)
 	, anim_period_( posix_time::milliseconds(40) )  /* 20 40 200 */
@@ -50,34 +49,17 @@ server::server(const xml::wptree &config)
 	load_maps_();
 
 	/* Потока для приёма журнала состояний хостов */
-	state_log_thread_ = boost::thread(
-		boost::bind(&server::state_log_thread_proc, this) );
+	boost::thread( boost::bind(
+		&server::state_log_thread_proc, this, get_lock_for_worker() ) );
 
 	/* Поток работы с io_service */
-	io_thread_ = boost::thread(
-		boost::bind(&server::io_thread_proc, this) );
-}
-
-void server::io_thread_proc()
-{
-	mutex io_mutex;
-
-	while (!terminate_)
-	{
-		io_service_.run();
-		io_service_.reset();
-
-		if (terminate_)
-			break;
-
-		unique_lock<mutex> lock(io_mutex);
-		io_cond_.wait(lock);
-	}
+	boost::thread( boost::bind(
+		&server::io_thread_proc, this, get_lock_for_worker() ) );
 }
 
 server::~server()
 {
-	terminate_ = true;
+	lets_finish();
 
 	windows_.clear();
 	classes_.clear();
@@ -85,14 +67,34 @@ server::~server()
 	//TODO: (ptr_list-объекты будут очищены после, так что здесь нельзя закрывать Gdi+)
 	//Gdiplus::GdiplusShutdown(gdiplus_token_);
 
-	io_wake_up();
-	io_thread_.join();
-	
+	/* Будим поток io, если он спит */
+	{
+		unique_lock<mutex> l(io_sleep_mutex_);
+		/* Блокировкой гарантируем, что не попытаемся разбудить поток,
+			когда он ещё не спит, но уже собрался (т.е., что не окажемся
+			между if (!finish()) и последующим wait() */
+		io_wake_up();
+	}
+
 	state_log_socket_.close();
-	state_log_thread_.join();
+
+	wait_for_finish();
 }
 
-void server::state_log_thread_proc( void)
+void server::io_thread_proc(my::many_workers::lock lock)
+{
+	while (!finish())
+	{
+		io_service_.run();
+		io_service_.reset();
+
+		unique_lock<mutex> lock(io_sleep_mutex_);
+		if (!finish())
+			io_sleep_cond_.wait(lock);
+	}
+}
+
+void server::state_log_thread_proc(my::many_workers::lock lock)
 {
 	try
 	{
@@ -104,11 +106,11 @@ void server::state_log_thread_proc( void)
 				<< my::param(L"http-status-code", reply.status_code)
 				<< my::param(L"http-status-message", reply.status_message);
 	
-		while (!terminate_)
+		while (!finish())
 		{
 			size_t n = asio::read_until(state_log_socket_, reply.buf_, "\r\n");
 
-			if (terminate_)
+			if (finish())
 				break;
 
 			reply.body.resize(n);
@@ -140,12 +142,12 @@ void server::state_log_thread_proc( void)
 	}
 	catch (my::exception &e)
 	{
-		if (!terminate_)
+		if (!finish())
 			throw e;
 	}
 	catch(exception &e)
 	{
-		if (!terminate_)
+		if (!finish())
 			throw my::exception(e)
 				<< my::param(L"where", L"who::server::state_log_thread_proc()");
 	}
@@ -154,7 +156,7 @@ void server::state_log_thread_proc( void)
 /******************************************************************************
 * Загрузка классов
 */
-void server::load_classes_(void)
+void server::load_classes_()
 {
 	try
 	{
@@ -193,7 +195,7 @@ void server::load_classes_(void)
 	}
 }
 
-void server::load_maps_(void)
+void server::load_maps_()
 {
 	try
 	{
@@ -267,7 +269,7 @@ void server::unacknowledge(const std::wstring &host)
 	cmd(L"/pinger/unacknowledge?host=" + host);
 }
 
-void server::acknowledge_all(void)
+void server::acknowledge_all()
 {
 	for( hosts_list::iterator it = hosts_.begin();
 		it != hosts_.end(); it++)
@@ -278,7 +280,7 @@ void server::acknowledge_all(void)
 	check_state_notify();
 }
 
-void server::unacknowledge_all(void)
+void server::unacknowledge_all()
 {
 	for( hosts_list::iterator it = hosts_.begin();
 		it != hosts_.end(); it++)
@@ -289,7 +291,7 @@ void server::unacknowledge_all(void)
 	check_state_notify();
 }
 
-void server::check_state_notify(void)
+void server::check_state_notify()
 {
 	/*TODO: sync */
 	

@@ -26,8 +26,7 @@ const wchar_t* widget_type(widget *widg)
 #pragma warning(disable:4355) /* 'this' : used in base member initializer list */
 
 window::window(server &server, HWND parent)
-	: stop_(false)
-	, server_(server)
+	: server_(server)
 	, hwnd_(NULL)
 	, focused_(false)
 	, w_(0)
@@ -59,24 +58,26 @@ window::window(server &server, HWND parent)
 
 	set_link(parent);
 
-	boost::thread( boost::bind(&window::anim_thread_proc, this) );
+	boost::thread( boost::bind(&window::anim_thread_proc,
+		this, get_lock_for_worker()) );
 }
 
 window::~window()
 {
-	stop_ = true;
+	/* Уведомляем "работников" об окончании работы */
+	lets_finish();
 
 	/* Будим поток animate, если он спит */
 	{
 		unique_lock<mutex> l(anim_sleep_mutex_);
 		/* Блокировкой гарантируем, что не попытаемся разбудить поток,
 			когда он ещё не спит, но уже собрался (т.е., что не окажемся
-			между if (!stop_) и последующим wait() */
+			между if (!finish()) и последующим wait() */
 		animate();
 	}
 
-	/* Ждём завершения работы всех, кто заявил о себе */
-	unique_lock<shared_mutex> l(i_work_mutex_);
+	/* Ждём завершения */
+	wait_for_finish();
 
 	delete_link();
 
@@ -84,15 +85,12 @@ window::~window()
 }
 
 /* Анимация карты */
-void window::anim_thread_proc(void)
+void window::anim_thread_proc(my::many_workers::lock lock)
 {
-	/* Заявляем, что мы работаем */
-	shared_lock<shared_mutex> l(i_work_mutex_);
-
 	asio::io_service io_service;
 	asio::deadline_timer timer(io_service, posix_time::microsec_clock::universal_time());
 	
-	while (!stop_)
+	while (!finish())
 	{
 		/* Анимируются все карты */
 		bool anim = false;
@@ -119,14 +117,14 @@ void window::anim_thread_proc(void)
 			unique_lock<mutex> lock(anim_sleep_mutex_);
 			/* Блокировкой гарантируем атомарность операций:
 				сравнения и засыпания */
-			if (!stop_)
+			if (!finish())
 				anim_sleep_cond_.wait(lock);
 		}
 	}
 }
 
 /* Анимация карты - запуск потока, если он был остановлен */
-void window::animate(void)
+void window::animate()
 {
 	anim_sleep_cond_.notify_one();
 }
@@ -426,7 +424,7 @@ void window::set_link(HWND parent)
 /******************************************************************************
 * Удаление связи
 */
-void window::delete_link( void)
+void window::delete_link()
 {
 	if (hwnd_) DestroyWindow(hwnd_);
 }
@@ -434,7 +432,7 @@ void window::delete_link( void)
 /******************************************************************************
 * Реакция на "разрушение" окна. Вызывается из wndproc
 */
-void window::on_destroy( void)
+void window::on_destroy()
 {
 	//
 }
@@ -442,7 +440,7 @@ void window::on_destroy( void)
 /******************************************************************************
 * Перерисовка буфера и сброс его в окно
 */
-void window::paint_( void)
+void window::paint_()
 {
 	unique_lock<mutex> l(canvas_mutex_);
 
@@ -658,7 +656,7 @@ void window::set_size(int w, int h)
 	animate();
 }
 
-void window::do_check_state(void)
+void window::do_check_state()
 {
 	BOOST_FOREACH(who::scheme &scheme, schemes_)
 		scheme.do_check_state();
@@ -818,7 +816,7 @@ void window::mouse_end(int x, int y)
 /******************************************************************************
 * Отмена сдвига карты
 */
-void window::mouse_cancel(void)
+void window::mouse_cancel()
 {
 	switch (mouse_mode_)
 	{
@@ -870,7 +868,7 @@ widget* window::hittest(int x, int y)
 /******************************************************************************
 * Очистить
 */
-void window::clear(void)
+void window::clear()
 {
 	active_scheme_ = NULL;
 	schemes_.clear();

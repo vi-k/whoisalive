@@ -8,6 +8,7 @@
 #include "../common/my_thread.h"
 #include "../common/my_http.h"
 #include "../common/my_inet.h"
+#include "../common/my_many_workers.h"
 
 #include <memory>
 
@@ -28,12 +29,9 @@ namespace selectmode
 namespace mousekeys
 { enum : int { ctrl = 1, shift = 2, lbutton = 4, rbutton = 8, mbutton = 16 }; }
 
-class window
+class window : public my::many_workers
 {
 private:
-	bool stop_;
-	shared_mutex i_work_mutex_;
-	
 	mutex anim_sleep_mutex_;
 	condition_variable anim_sleep_cond_;
 
@@ -56,7 +54,7 @@ private:
 	Gdiplus::RectF select_rect_;
 	mutex canvas_mutex_;
 
-	void paint_(void);
+	void paint_();
 
 	static LRESULT CALLBACK static_wndproc_(HWND hwnd, UINT uMsg,
 			WPARAM wParam, LPARAM lParam);
@@ -71,7 +69,7 @@ private:
 		
 	static int window::wparam_to_keys_(WPARAM wparam);
 
-	void anim_thread_proc(void);
+	void anim_thread_proc(my::many_workers::lock lock);
 
 public:
 	/* События */
@@ -92,30 +90,30 @@ public:
 	window(server &server, HWND parent);
 	~window();
 
-	inline HWND hwnd(void)
+	inline HWND hwnd()
 		{ return hwnd_; }
-	inline widget* select_parent(void)
+	inline widget* select_parent()
 		{ return select_parent_; }
-	inline Gdiplus::RectF select_rect(void)
+	inline Gdiplus::RectF select_rect()
 		{ return select_rect_; }
-	inline int w(void)
+	inline int w()
 		{ return w_; }
-	inline int h(void)
+	inline int h()
 		{ return h_; }
 
-	void animate(void);
+	void animate();
 
 	void add_schemes(xml::wptree &config);
 
 	void set_link(HWND parent);
-	void delete_link(void);
-	void on_destroy(void);
+	void delete_link();
+	void on_destroy();
 
 	void set_active_scheme(int index);
-	inline scheme* active_scheme(void)
+	inline scheme* active_scheme()
 		{ return active_scheme_; }
 	scheme* get_scheme(int index);
-	inline int get_schemes_count(void)
+	inline int get_schemes_count()
 		{ return schemes_.size(); }
 
 	void set_size(int w, int h);
@@ -124,9 +122,9 @@ public:
 		selectmode::t sm = selectmode::normal);
 	void mouse_move_to(int x, int y);
 	void mouse_end(int x, int y);
-	void mouse_cancel(void);
+	void mouse_cancel();
 
-	virtual void do_check_state(void);
+	virtual void do_check_state();
 
 	void zoom(float ds);
 
@@ -142,10 +140,10 @@ public:
 			active_scheme_->set_pos(x, y);
 	}
 
-	inline mousemode::t mouse_mode(void)
+	inline mousemode::t mouse_mode()
 		{ return mouse_mode_; }
 
-	void align(void)
+	void align()
 	{
 		if (active_scheme_)
 			active_scheme_->align( (float)w_, (float)h_ );
@@ -153,7 +151,7 @@ public:
 
 	widget* hittest(int x, int y);
 
-	void clear(void);
+	void clear();
 };
 
 }

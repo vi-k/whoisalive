@@ -42,13 +42,13 @@ public:
 	inline bool finish()
 		{ return finish_; }
 
-	void lets_finish()
+	inline void lets_finish()
 		{ finish_ = true; }
 
-	long number_of_workers()
+	inline long number_of_workers()
 		{ return lock_ptr_.use_count(); }
 
-	void wait_for_workers()
+	inline void wait_for_finish()
 	{
 		lock_ptr_.reset();
 		unique_lock<mutex> l(mutex_);

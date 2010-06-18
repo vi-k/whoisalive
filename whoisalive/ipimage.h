@@ -21,10 +21,10 @@ class ipimage_t : public who::widget {
 		ipimage_t(who::server &server,
 			const xml::wptree *pt = NULL);
 
-		virtual Gdiplus::RectF own_rect( void);
+		virtual Gdiplus::RectF own_rect();
 		virtual void paint_self( Gdiplus::Graphics *canvas);
 		virtual who::widget* hittest(float x, float y);
-		virtual bool animate_calc(void);
+		virtual bool animate_calc();
 };
 
 #endif
