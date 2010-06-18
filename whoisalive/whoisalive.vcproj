@@ -183,6 +183,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\handle_exception.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ipgui.cpp"
 				>
 			</File>
@@ -270,6 +274,10 @@
 			>
 			<File
 				RelativePath=".\config.h"
+				>
+			</File>
+			<File
+				RelativePath=".\handle_exception.h"
 				>
 			</File>
 			<File

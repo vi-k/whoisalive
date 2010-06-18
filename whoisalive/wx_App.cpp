@@ -12,6 +12,8 @@
 #include "ipgui.h"
 #include "wx_App.h"
 
+#include "handle_exception.h"
+
 //(*AppHeaders
 #include "wx_Main.h"
 #include <wx/image.h>
@@ -55,27 +57,13 @@ bool wx_App::OnExceptionInMainLoop()
 	{
 		throw;
 	}
-	catch (my::exception &e)
-	{
-		wstring error = e.message();
-		main_log << L"my::exception (App::ExceptionInMainLoop)\n"
-			<< error << main_log;
-		wxMessageBox(error.c_str(), L"Ошибка", wxOK | wxICON_ERROR);
-	}
 	catch (exception &e)
 	{
-		my::exception my_e(e);
-		wstring error = my_e.message();
-		main_log << L"std::exception (App::ExceptionInMainLoop)\n"
-			<< error << main_log;
-		wxMessageBox(error.c_str(),
-			L"std::exception", wxOK | wxICON_ERROR);
+		handle_exception(&e, L"in App::OnExceptionInMainLoop", L"Ошибка");
 	}
 	catch (...)
 	{
-		main_log << L"unknown exception (App::ExceptionInMainLoop)" << main_log;
-		wxMessageBox( L"Неизвестное исключение в MainLoop",
-			L"Ошибка", wxOK | wxICON_ERROR);
+		handle_exception(0, L"in App::OnExceptionInMainLoop", L"Ошибка");
 	}
 
 	return true;
@@ -87,33 +75,28 @@ void wx_App::OnUnhandledException()
 	{
 		throw;
 	}
-	catch (my::exception &e)
-	{
-		wstring error = e.message();
-		main_log << L"my::exception (App::UnhandledException)\n"
-			<< error << main_log;
-		wxMessageBox(error.c_str(), L"Ошибка", wxOK | wxICON_ERROR);
-	}
 	catch (exception &e)
 	{
-		my::exception my_e(e);
-		wstring error = my_e.message();
-		main_log << L"std::exception (App::UnhandledException)\n"
-			<< error << main_log;
-		wxMessageBox(error.c_str(),
-			L"std::exception", wxOK | wxICON_ERROR);
+		handle_exception(&e, L"in App::OnUnhandledException", L"Ошибка");
 	}
-	catch ( ... )
+	catch (...)
 	{
-		main_log << L"unknown exception (App::UnhandledException)" << main_log;
-		wxMessageBox(L"Неизвестное исключение, программа будет закрыта.",
-			L"Ошибка", wxOK | wxICON_ERROR);
+		handle_exception(0, L"in App::OnUnhandledException", L"Ошибка");
 	}
 }
 
 void wx_App::OnFatalException()
 {
-	main_log << L"unknown exception (App::FatalException)" << main_log;
-	wxMessageBox( L"Program has crashed and will terminate.",
-		L"Критическая ошибка", wxOK | wxICON_ERROR);
+	try
+	{
+		throw;
+	}
+	catch (exception &e)
+	{
+		handle_exception(&e, L"in App::OnFatalException", L"Критическая ошибка");
+	}
+	catch (...)
+	{
+		handle_exception(0, L"in App::OnFatalException", L"Критическая ошибка");
+	}
 }

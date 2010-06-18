@@ -164,11 +164,21 @@ wx_Frame::wx_Frame(wxWindow* parent, wxWindowID id)
 
 	if (!log_exists)
 		main_log_stream << L"\xEF\xBB\xBF";
+	else
+		main_log_stream << endl;
 
 	main_log_stream.imbue( locale( main_log_stream.getloc(),
 		new boost::archive::detail::utf8_codecvt_facet) );
 
-	main_log << L"Start" << main_log;
+	#ifdef _DEBUG
+	main_log << L"Start\n"
+		<< L"Debug: " VERSION L" " BUILDNO L" " BUILDDATE L" " BUILDTIME
+		<< main_log;
+	#else
+	main_log << L"Start\n"
+		<< L"Release: " VERSION
+		<< main_log;
+	#endif
 
 #ifndef _DEBUG
 	m_object_menu.Remove(m_objectmenu_unack);

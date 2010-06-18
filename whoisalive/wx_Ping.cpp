@@ -1,5 +1,8 @@
 #include "wx_Ping.h"
 #include "wx_App.h"
+extern wx_App *App;
+
+#include "handle_exception.h"
 
 #include "../common/my_exception.h"
 #include "../common/my_str.h"
@@ -45,18 +48,14 @@ END_EVENT_TABLE()
 
 #define BLOCK_W 4
 
-void destroy(wxFrame *frame)
-{
-	frame->Destroy();
-}
-
 wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	: server_(server)
 	, object_(object)
-	, pings_socket_(server.io_service())
+	, io_service_()
+	, pings_socket_(io_service_)
 	, pings_(1000)
 	, pings_active_index_(-1)
-	, states_socket_(server.io_service())
+	, states_socket_(io_service_)
 	, states_(/*1000*/)
 	, states_active_index_(-1)
 {
@@ -124,31 +123,84 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	wstring name = object->name() + L" / " + host;
 	SetLabel(name);
 
-	/* Запускаем получатель состояний для хоста */
+
+	/* Асинхронное чтение состояний для хоста */
 	server_.get_header(states_socket_, states_reply_,
 		L"/pinger/state.log?address=" + host);
 
 	asio::async_read_until(
 		states_socket_, states_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::states_handle_read, this,
-            new_worker("states_thread"),
+            new_worker("states_async_read", boost::bind(
+            	&tcp::socket::close, boost::ref(states_socket_))),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
-	/* pings */
+	/* Асинхронное чтение пингов хоста */
 	server_.get_header(pings_socket_, pings_reply_,
 		L"/pinger/ping.log?address=" + host);
 
 	asio::async_read_until(
 		pings_socket_, pings_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::pings_handle_read, this,
-            new_worker("pings_thread"),
+            new_worker("pings_async_read", boost::bind(
+            	&tcp::socket::close, boost::ref(pings_socket_))),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
-	server_.io_wake_up();
+	/* Поток для io_service_. Используем отдельный поток
+		для обеспечения надёжности. При сбое, просто завершаем
+		работу и закрываем окно */
+	boost::thread( boost::bind(
+		&wx_Ping::io_thread_proc, this, new_worker("io_thread") ) );
 
 	Show();
+}
+
+wx_Ping::~wx_Ping()
+{
+	/* Оповещаем о завершении работы */
+	lets_finish();
+
+	/* Помогаем им узнать об окончании побыстрее */
+	//states_socket_.close();
+	//pings_socket_.close();
+
+	/* Наши асинхронные "работники" активно задействуют контролы формы,
+		а это требует реакции основного (т.е. данного) потока,
+		и поэтому его никак нельзя останавливать на wait_for_workers() */
+	while (!check_for_finish() && App->Pending())
+    {
+    	#ifdef _DEBUG
+    	vector<std::string> v;
+    	workers_state(v);
+    	#endif
+		App->Dispatch();
+    }
+
+	/* Ждём завершения - теперь уже только себя :) */
+	//wait_for_finish();
+
+	//(*Destroy(wx_Ping)
+	//*)
+}
+
+void wx_Ping::io_thread_proc(my::worker::ptr worker)
+{
+	try
+	{
+		io_service_.run(); /* Работаем */
+	}
+	catch (std::exception &e)
+	{
+		handle_exception(&e, L"in wx_Ping", L"Ошибка");
+		Destroy();
+    }
+	catch(...)
+	{
+		handle_exception(0, L"in wx_Ping", L"Ошибка");
+		Destroy();
+	}
 }
 
 void wx_Ping::Open(wxWindow* parent, who::server &server, who::object *object)
@@ -161,30 +213,6 @@ void wx_Ping::Open(wxWindow* parent, who::server &server, who::object *object)
 	{
 		wxMessageBox(e.message(), L"Ошибка", wxOK | wxICON_ERROR, parent);
 	}
-}
-
-extern wx_App *App;
-
-wx_Ping::~wx_Ping()
-{
-	//(*Destroy(wx_Ping)
-	//*)
-
-	/* Уведомляем "работников" об окончании работы */
-	lets_finish();
-
-	/* Помогаем им узнать об окончании побыстрее */
-	states_socket_.close();
-	pings_socket_.close();
-
-	/* Наши асинхронные "работники" активно задействуют контролы формы,
-		а это требует реакции основного (т.е. данного) потока,
-		и поэтому его никак нельзя останавливать на wait_for_workers() */
-	while (check_for_finish() != 0 && App->Pending())
-		App->Dispatch();
-
-	/* Ждём завершения - теперь уже только себя :) */
-	wait_for_finish();
 }
 
 /* Асинхронное чтение состояний */

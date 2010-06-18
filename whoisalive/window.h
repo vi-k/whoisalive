@@ -8,7 +8,7 @@
 #include "../common/my_thread.h"
 #include "../common/my_http.h"
 #include "../common/my_inet.h"
-#include "../common/my_many_workers.h"
+#include "../common/my_employer.h"
 
 #include <memory>
 
@@ -29,11 +29,10 @@ namespace selectmode
 namespace mousekeys
 { enum : int { ctrl = 1, shift = 2, lbutton = 4, rbutton = 8, mbutton = 16 }; }
 
-class window : public my::many_workers
+class window : my::employer
 {
 private:
-	recursive_mutex anim_sleep_mutex_;
-	condition_variable_any anim_sleep_cond_;
+	my::worker::ptr anim_worker_;
 
 	server &server_;
 	HWND hwnd_;
@@ -69,7 +68,7 @@ private:
 		
 	static int window::wparam_to_keys_(WPARAM wparam);
 
-	void anim_thread_proc(my::many_workers::lock lock);
+	void anim_thread_proc(my::worker::ptr worker);
 
 public:
 	/* События */

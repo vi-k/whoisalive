@@ -4,6 +4,8 @@
 #include <cstddef> /* std::size_t */
 #include <algorithm>
 #include <iterator>
+#include <string>
+#include <vector>
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
@@ -27,7 +29,7 @@ private:
 	condition_variable sleep_cond_;
 	boost::function<void ()> on_finish_;
 
-	void do_finish()
+	void on_finish()
 	{
 		if (on_finish_)
 			on_finish_();
@@ -65,8 +67,7 @@ public:
 	}
 
 	worker::ptr new_worker(const std::string &name = std::string(),
-		boost::function<void ()> on_finish
-				= boost::function<void ()>())
+		boost::function<void ()> on_finish = boost::function<void ()>())
 	{
 		worker::ptr ptr( new worker(employer_mutex_, name, on_finish) );
 		
@@ -79,8 +80,6 @@ public:
 		не было команды завершить работу) */
 	bool sleep(worker::ptr &ptr)
 	{
-		cout << "sleep" << endl;
-
 		/* Блокировкой гарантируем атомарность операций:
 			сравнения и засыпания */
 		unique_lock<mutex> lock(ptr->sleep_mutex_);
@@ -97,8 +96,6 @@ public:
 	/* Разбудить поток */
 	void wake_up(worker::ptr &ptr)
 	{
-		cout << "wake_up" << endl;
-
 		/* Блокировкой гарантируем, что не окажемся
 			между if (!finish()) и wait(). Иначе мы
 			"разбудим" ещё не спящий поток, но который
@@ -107,25 +104,22 @@ public:
 		ptr->sleep_cond_.notify_all();
 	}
 
-	inline std::string worker_name(worker::ptr &ptr)
-		{ return ptr->name_; }
-
-	inline bool worker_finished(worker::ptr &ptr)
-		{ return ptr.unique(); }
-
-
-	std::size_t number_of_workers()
+	inline void dismiss(worker::ptr &ptr)
 	{
-		return employer_workers_.size();
+		ptr.reset();
 	}
 
-	worker::ptr& operator[](long index)
+	void workers_state(std::vector<std::string> &v)
 	{
-		workers_list::iterator iter = employer_workers_.begin();
-		std::advance(iter, index);
-		return *iter;
-	}
+		v.clear();
 
+		for (workers_list::iterator iter = employer_workers_.begin();
+			iter != employer_workers_.end(); ++iter)
+		{
+			v.push_back( (*iter)->name_ + " - "
+				+ (iter->unique() ? "finished" : "works") );
+		}
+	}
     
     /* Проверка флага завершения работы */
 	inline bool finish()
@@ -141,13 +135,13 @@ public:
 		for_each(employer_workers_.begin(), employer_workers_.end(),
 			boost::bind(&employer::wake_up, this, _1));
 
-		/* Вызываем обработчик завершения */
+		/* Вызываем обработчики завершения */
 		for_each(employer_workers_.begin(), employer_workers_.end(),
-			boost::bind(&worker::do_finish, _1));
+			boost::bind(&worker::on_finish, _1));
 	}
 
 	/* Проверка - завершили ли "работники" работу */
-	std::size_t check_for_finish()
+	bool check_for_finish()
 	{
 		std::size_t count = 0;
 
@@ -158,7 +152,7 @@ public:
 				count++;
 		}
 		
-		return count;
+		return count == 0;
 	}
 
     /* Ожидаем, когда все "работники" завершат работу */
