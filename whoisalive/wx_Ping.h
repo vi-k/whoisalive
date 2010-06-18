@@ -9,7 +9,8 @@
 #include "../common/my_thread.h"
 #include "../common/my_mru.h"
 #include "../common/my_time.h"
-#include "../common/my_many_workers.h"
+//#include "../common/my_many_workers.h"
+#include "../common/my_employer.h"
 
 #include <memory>
 
@@ -27,7 +28,7 @@ class wxBoxSizer;
 #include <wx/textctrl.h>
 #include <wx/bitmap.h>
 
-class wx_Ping : public wxFrame, public my::many_workers
+class wx_Ping : public wxFrame, public my::employer
 {
 private:
 
@@ -57,10 +58,10 @@ private:
 	mutex states_bitmap_mutex_;
 	int states_active_index_;
 
-	void states_handle_read( my::many_workers::lock lock,
+	void states_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
 
-	void pings_handle_read( my::many_workers::lock lock,
+	void pings_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
 
 	void states_repaint();
