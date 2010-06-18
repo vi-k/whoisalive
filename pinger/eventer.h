@@ -58,8 +58,8 @@ class server
 		void run();
 		void start();
 
-		scoped_lock get_lock()
-			{ return scoped_lock(handlers_mutex_); }
+		unique_lock<mutex> get_lock()
+			{ return unique_lock<mutex>(handlers_mutex_); }
 
 		void add_handler(acceptor::connection *connection,
 			ip::address_v4 for_whom);
