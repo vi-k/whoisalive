@@ -131,7 +131,7 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	asio::async_read_until(
 		states_socket_, states_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::states_handle_read, this,
-            get_lock_for_worker(),
+            new_worker("states_thread"),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
@@ -142,7 +142,7 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	asio::async_read_until(
 		pings_socket_, pings_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::pings_handle_read, this,
-            get_lock_for_worker(),
+            new_worker("pings_thread"),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
@@ -180,7 +180,7 @@ wx_Ping::~wx_Ping()
 	/* Наши асинхронные "работники" активно задействуют контролы формы,
 		а это требует реакции основного (т.е. данного) потока,
 		и поэтому его никак нельзя останавливать на wait_for_workers() */
-	while (number_of_workers() != 1 && App->Pending())
+	while (check_for_finish() != 0 && App->Pending())
 		App->Dispatch();
 
 	/* Ждём завершения - теперь уже только себя :) */
@@ -188,7 +188,7 @@ wx_Ping::~wx_Ping()
 }
 
 /* Асинхронное чтение состояний */
-void wx_Ping::states_handle_read( my::many_workers::lock lock,
+void wx_Ping::states_handle_read( my::worker::ptr worker,
 	const boost::system::error_code& error, size_t bytes_transferred )
 {
 	if (finish())
@@ -208,7 +208,7 @@ void wx_Ping::states_handle_read( my::many_workers::lock lock,
 		{
 			asio::async_read_until(
 				states_socket_, states_reply_.buf_, "END_ARCHIVE\r\n",
-				boost::bind(&wx_Ping::states_handle_read, this, lock,
+				boost::bind(&wx_Ping::states_handle_read, this, worker,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 		}
@@ -249,7 +249,7 @@ void wx_Ping::states_handle_read( my::many_workers::lock lock,
 
 			asio::async_read_until(
 				states_socket_, states_reply_.buf_, "\r\n",
-				boost::bind(&wx_Ping::states_handle_read, this, lock,
+				boost::bind(&wx_Ping::states_handle_read, this, worker,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 
@@ -278,7 +278,7 @@ void wx_Ping::states_handle_read( my::many_workers::lock lock,
 }
 
 /* Асинхронное чтение пингов */
-void wx_Ping::pings_handle_read( my::many_workers::lock lock,
+void wx_Ping::pings_handle_read( my::worker::ptr worker,
 	const boost::system::error_code& error, size_t bytes_transferred )
 {
 	if (finish())
@@ -298,7 +298,7 @@ void wx_Ping::pings_handle_read( my::many_workers::lock lock,
 		{
 			asio::async_read_until(
 				pings_socket_, pings_reply_.buf_, "END_ARCHIVE\r\n",
-				boost::bind(&wx_Ping::pings_handle_read, this, lock,
+				boost::bind(&wx_Ping::pings_handle_read, this, worker,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 		}
@@ -380,7 +380,7 @@ void wx_Ping::pings_handle_read( my::many_workers::lock lock,
 
 			asio::async_read_until(
 				pings_socket_, pings_reply_.buf_, "\r\n",
-				boost::bind(&wx_Ping::pings_handle_read, this, lock,
+				boost::bind(&wx_Ping::pings_handle_read, this, worker,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred) );
 
