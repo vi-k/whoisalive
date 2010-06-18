@@ -58,37 +58,47 @@ window::window(server &server, HWND parent)
 
 	set_link(parent);
 
-	boost::thread( boost::bind(&window::anim_thread_proc,
-		this, get_lock_for_worker()) );
+	anim_worker_ = new_worker("anim_thread");
+	boost::thread( boost::bind( &window::anim_thread_proc,
+		this, anim_worker_) );
 }
 
 window::~window()
 {
-	/* Уведомляем "работников" об окончании работы */
+	/* Оповещаем о завершении работы */
 	lets_finish();
+	
+	/* Мы должны сами "уволить" тех, кого храним */
+	dismiss(anim_worker_);
 
-	/* Будим поток animate, если он спит */
-	{
-		unique_lock<recursive_mutex> l(anim_sleep_mutex_);
-		/* Блокировкой гарантируем, что не попытаемся разбудить поток,
-			когда он ещё не спит, но уже собрался (т.е., что не окажемся
-			между if (!finish()) и последующим wait() */
-		animate();
-	}
-
-	/* Ждём завершения */
+    /* Ждём завершения */
+   	#ifdef _DEBUG
+    while (!check_for_finish())
+    {
+    	vector<std::string> v;
+    	workers_state(v);
+    	size_t n = v.size();
+    }
+    #else
 	wait_for_finish();
+	#endif
 
 	delete_link();
-
 	schemes_.clear();
 }
 
+void window::animate()
+{
+	if (anim_worker_)
+		wake_up(anim_worker_);
+}
+
 /* Анимация карты */
-void window::anim_thread_proc(my::many_workers::lock lock)
+void window::anim_thread_proc(my::worker::ptr worker)
 {
 	asio::io_service io_service;
-	asio::deadline_timer timer(io_service, posix_time::microsec_clock::universal_time());
+	asio::deadline_timer timer(io_service,
+		posix_time::microsec_clock::universal_time());
 	
 	while (!finish())
 	{
@@ -112,21 +122,8 @@ void window::anim_thread_proc(my::many_workers::lock lock)
 		if (anim)
 			timer.wait();
 		else
-		{
-			/* Если больше нечего анимировать - засыпаем */
-			unique_lock<recursive_mutex> lock(anim_sleep_mutex_);
-			/* Блокировкой гарантируем атомарность операций:
-				сравнения и засыпания */
-			if (!finish())
-				anim_sleep_cond_.wait(lock);
-		}
+			sleep(worker);
 	}
-}
-
-/* Анимация карты - запуск потока, если он был остановлен */
-void window::animate()
-{
-	anim_sleep_cond_.notify_one();
 }
 
 

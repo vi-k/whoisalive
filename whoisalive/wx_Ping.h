@@ -27,7 +27,7 @@ class wxBoxSizer;
 #include <wx/textctrl.h>
 #include <wx/bitmap.h>
 
-class wx_Ping : public wxFrame, public my::employer
+class wx_Ping : public wxFrame, my::employer
 {
 private:
 
@@ -36,6 +36,8 @@ private:
 
 	who::server &server_;
 	who::object *object_;
+
+	asio::io_service io_service_;
 
 	pings_list pings_;
 	tcp::socket pings_socket_;
@@ -56,6 +58,8 @@ private:
 	wxBitmap states_bitmap_;
 	recursive_mutex states_bitmap_mutex_;
 	int states_active_index_;
+
+	void io_thread_proc(my::worker::ptr worker);
 
 	void states_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );

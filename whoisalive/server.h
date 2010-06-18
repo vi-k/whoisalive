@@ -14,7 +14,7 @@
 #include "../common/my_xml.h"
 #include "../common/my_ptr.h"
 #include "../common/my_time.h"
-#include "../common/my_many_workers.h"
+#include "../common/my_employer.h"
 
 #include <map>
 #include <memory>
@@ -27,7 +27,7 @@ namespace who
 
 /* Сервер (по отношению к модулям приложения,
 	а не в терминах клиент-серверной технологии) */
-class server : my::many_workers
+class server : my::employer
 {
 public:
 	typedef shared_ptr<server> ptr;
@@ -35,8 +35,8 @@ public:
 
 private:
 	asio::io_service io_service_;
-	recursive_mutex io_sleep_mutex_;
-	condition_variable_any io_sleep_cond_;
+	my::worker::ptr io_worker_;
+
 	tcp::endpoint server_endpoint_;
 	tcp::socket state_log_socket_;
 	ULONG_PTR gdiplus_token_;
@@ -51,15 +51,15 @@ private:
 	void load_classes_();
 	void load_maps_();
 
-	void state_log_thread_proc(my::many_workers::lock lock);
-	void io_thread_proc(my::many_workers::lock lock);
+	void state_log_thread_proc(my::worker::ptr worker);
+	void io_thread_proc(my::worker::ptr worker);
 
 public:
 	server(const xml::wptree &config);
 	~server();
 
 	inline void io_wake_up()
-		{ io_sleep_cond_.notify_all(); }
+		{ wake_up(io_worker_); }
 
 	inline int def_anim_steps()
 		{ return def_anim_steps_; }

@@ -48,53 +48,60 @@ server::server(const xml::wptree &config)
 	load_classes_();
 	load_maps_();
 
-	/* Потока для приёма журнала состояний хостов */
+	/* Поток для приёма журнала состояний хостов */
 	boost::thread( boost::bind(
-		&server::state_log_thread_proc, this, get_lock_for_worker() ) );
+		&server::state_log_thread_proc, this,
+		new_worker("state_log_thread", boost::bind(
+            &tcp::socket::close, boost::ref(state_log_socket_))) ) );
 
 	/* Поток работы с io_service */
-	boost::thread( boost::bind(
-		&server::io_thread_proc, this, get_lock_for_worker() ) );
+    io_worker_ = new_worker("io_thread");
+    boost::thread( boost::bind(
+		&server::io_thread_proc, this, io_worker_) );
 }
 
 server::~server()
 {
+	/* Оповещаем о завершении работы */
 	lets_finish();
 
-	windows_.clear();
-	classes_.clear();
+	//state_log_socket_.close();
+
+	/* Мы должны сами "уволить" тех, кого храним */
+	dismiss(io_worker_);
+
+    /* Ждём завершения */
+   	#ifdef _DEBUG
+    while (!check_for_finish())
+    {
+    	vector<std::string> v;
+    	workers_state(v);
+    	size_t n = v.size();
+    }
+    #else
+	wait_for_finish();
+	#endif
 
 	//TODO: (ptr_list-объекты будут очищены после, так что здесь нельзя закрывать Gdi+)
 	//Gdiplus::GdiplusShutdown(gdiplus_token_);
 
-	/* Будим поток io, если он спит */
-	{
-		unique_lock<recursive_mutex> l(io_sleep_mutex_);
-		/* Блокировкой гарантируем, что не попытаемся разбудить поток,
-			когда он ещё не спит, но уже собрался (т.е., что не окажемся
-			между if (!finish()) и последующим wait() */
-		io_wake_up();
-	}
-
-	state_log_socket_.close();
-
-	wait_for_finish();
+	windows_.clear();
+	classes_.clear();
 }
 
-void server::io_thread_proc(my::many_workers::lock lock)
+void server::io_thread_proc(my::worker::ptr worker)
 {
 	while (!finish())
 	{
-		io_service_.run();
+		io_service_.run(); /* Запускаем */
 		io_service_.reset();
 
-		unique_lock<recursive_mutex> lock(io_sleep_mutex_);
-		if (!finish())
-			io_sleep_cond_.wait(lock);
+		/* Если нет задач, засыпаем */
+		sleep(worker);
 	}
 }
 
-void server::state_log_thread_proc(my::many_workers::lock lock)
+void server::state_log_thread_proc(my::worker::ptr worker)
 {
 	try
 	{
