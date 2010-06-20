@@ -29,12 +29,8 @@ using namespace std;
 
 IMPLEMENT_APP(wx_App);
 
-wx_App *App;
-
 bool wx_App::OnInit()
 {
-	App =  this;
-
 	wxHandleFatalExceptions(true);
 
 	//(*AppInitialize

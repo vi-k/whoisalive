@@ -11,7 +11,6 @@
 
 #include <wx/msgdlg.h>
 #include "wx_Main.h"
-#include "wx_App.h"
 #include "wx_Ping.h"
 
 #include "config.h"
@@ -44,7 +43,6 @@ HWND g_parent_wnd = NULL;
 #endif
 
 WNDPROC g_OldMapPanelWndProc;
-extern wx_App *App;
 
 wofstream main_log_stream;
 void on_main_log(const wstring &text)
