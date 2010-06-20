@@ -1,7 +1,4 @@
 #include "wx_Ping.h"
-#include "wx_App.h"
-extern wx_App *App;
-
 #include "handle_exception.h"
 
 #include "../common/my_exception.h"
@@ -16,6 +13,7 @@ using namespace std;
 #include <boost/bind.hpp>
 #include <boost/system/system_error.hpp>
 
+#include <wx/app.h>
 #include <wx/msgdlg.h>
 #include <wx/dcclient.h>
 #include <wx/dcmemory.h>
@@ -169,13 +167,13 @@ wx_Ping::~wx_Ping()
 	/* Наши асинхронные "работники" активно задействуют контролы формы,
 		а это требует реакции основного (т.е. данного) потока,
 		и поэтому его никак нельзя останавливать на wait_for_workers() */
-	while (!check_for_finish() && App->Pending())
+	while (!check_for_finish() && wxTheApp->Pending())
     {
     	#ifdef _DEBUG
     	vector<std::string> v;
     	workers_state(v);
     	#endif
-		App->Dispatch();
+		wxTheApp->Dispatch();
     }
 
 	/* Ждём завершения - теперь уже только себя :) */
