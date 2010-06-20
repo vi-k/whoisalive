@@ -116,8 +116,16 @@ public:
 		for (workers_list::iterator iter = employer_workers_.begin();
 			iter != employer_workers_.end(); ++iter)
 		{
-			v.push_back( (*iter)->name_ + " - "
-				+ (iter->unique() ? "finished" : "works") );
+			std::ostringstream out;
+			long count = iter->use_count();
+
+			out << (*iter)->name_ << " - "
+				<< (count == 0 ? "???"
+					: count == 1 ? "finished"
+					: "works")
+				<< " (use: " << iter->use_count() << ")";
+			
+			v.push_back(out.str());
 		}
 	}
     
