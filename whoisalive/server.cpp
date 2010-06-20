@@ -65,13 +65,11 @@ server::~server()
 	/* Оповещаем о завершении работы */
 	lets_finish();
 
-	//state_log_socket_.close();
-
-	/* Мы должны сами "уволить" тех, кого храним */
+	/* "Увольняем" все ссылки на "работников" */
 	dismiss(io_worker_);
 
     /* Ждём завершения */
-   	#ifdef _DEBUG
+   	#if 0
     while (!check_for_finish())
     {
     	vector<std::string> v;

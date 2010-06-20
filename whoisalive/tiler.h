@@ -6,6 +6,7 @@
 #include "../common/my_thread.h"
 #include "../common/my_inet.h"
 #include "../common/my_mru.h"
+#include "../common/my_employer.h"
 
 #include <string>
 #include <list>
@@ -97,20 +98,19 @@ struct tile
 };
 
 /* Tiler-сервер */
-class server
+class server : my::employer
 {
 private:
 	typedef std::map<int, map> maps_list;
 	typedef my::mru::list<tile_id, tile::ptr> tiles_list;
 
-	bool terminate_;
-	boost::thread thread_;
+	my::worker::ptr tiler_worker_;
+
 	who::server &server_;
 	maps_list maps_;
 	tiles_list tiles_;
 	shared_mutex tiles_mutex_;
 	recursive_mutex maps_mutex_;
-	condition_variable cond_;
 	boost::function<void ()> on_update_;
 
 	static int get_new_map_id_()
@@ -119,14 +119,11 @@ private:
 		return ++id;
 	}
 	
-	void thread_proc();
+	void thread_proc(my::worker::ptr this_worker);
 
 public:
 	server(who::server &server, size_t max_tiles, boost::function<void ()> on_update_proc);
 	~server();
-
-	inline void wake_up()
-		{ cond_.notify_all(); }
 
 	int add_map(const tiler::map &map);
 	tile::ptr get_tile(int map_id, int z, int x, int y);
