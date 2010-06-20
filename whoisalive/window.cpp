@@ -71,8 +71,8 @@ window::~window()
 	/* Мы должны сами "уволить" тех, кого храним */
 	dismiss(anim_worker_);
 
-    /* Ждём завершения */
-   	#ifdef _DEBUG
+    /* Ждём завершения */  	
+	#if 0
     while (!check_for_finish())
     {
     	vector<std::string> v;

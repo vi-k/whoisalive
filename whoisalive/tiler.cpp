@@ -14,25 +14,40 @@ namespace who { namespace tiler {
 #pragma warning(disable:4355) /* 'this' : used in base member initializer list */
 
 server::server(who::server &server, size_t max_tiles, boost::function<void ()> on_update_proc)
-	: terminate_(false)
-	, server_(server)
+	: server_(server)
 	, tiles_(max_tiles)
 	, on_update_(on_update_proc)
 {
 	/* Запускаем после инициализации */
-	thread_ = boost::thread( boost::bind(&server::thread_proc, this) );
+	tiler_worker_ = new_worker("tiler_thread");
+    boost::thread( boost::bind(
+		&server::thread_proc, this, tiler_worker_) );
 }
 
 server::~server()
 {
-	terminate_ = true;
-	wake_up(); /* Будим поток, чтобы он завершил работу */
-	thread_.join(); /* Ждём его завершения */
+	/* Оповещаем о завершении работы */
+	lets_finish();
+
+	/* "Увольняем" все ссылки на "работников" */
+	dismiss(tiler_worker_);
+
+    /* Ждём завершения */
+   	#if 0
+    while (!check_for_finish())
+    {
+    	vector<std::string> v;
+    	workers_state(v);
+    	size_t n = v.size();
+    }
+    #else
+	wait_for_finish();
+	#endif
 }
 
-void server::thread_proc()
+void server::thread_proc(my::worker::ptr this_worker)
 {
-	while (!terminate_)
+	while (!finish())
 	{
 		tiler::tile_id tile_id;
 
@@ -54,10 +69,8 @@ void server::thread_proc()
 
 		/* Если нет такого - засыпаем */
 		if (!tile_id)
-    	{
-    		mutex sleep_mutex;
-			unique_lock<mutex> lock(sleep_mutex);
-			cond_.wait(lock);
+		{
+			sleep(this_worker);
 			continue;
 		}
 
@@ -137,9 +150,10 @@ tile::ptr server::get_tile(int map_id, int z, int x, int y)
 
 	{
 		unique_lock<shared_mutex> l(tiles_mutex_);
-	
 		tile::ptr ptr = tiles_[id];
-		wake_up();
+
+		wake_up(tiler_worker_);
+
 		return ptr;
 	}
 }
