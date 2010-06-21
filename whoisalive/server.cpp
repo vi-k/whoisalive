@@ -76,9 +76,9 @@ server::~server()
     	workers_state(v);
     	size_t n = v.size();
     }
-    #else
+    #endif
+
 	wait_for_finish();
-	#endif
 
 	//TODO: (ptr_list-объекты будут очищены после, так что здесь нельзя закрывать Gdi+)
 	//Gdiplus::GdiplusShutdown(gdiplus_token_);
