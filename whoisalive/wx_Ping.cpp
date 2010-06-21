@@ -50,12 +50,14 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	: server_(server)
 	, object_(object)
 	, io_service_()
+	, anim_started_(false)
+	, anim_timer_(io_service_)
+	, states_socket_(io_service_)
+	, states_()
+	, states_active_index_(-1)
 	, pings_socket_(io_service_)
 	, pings_(1000)
 	, pings_active_index_(-1)
-	, states_socket_(io_service_)
-	, states_(/*1000*/)
-	, states_active_index_(-1)
 {
 	wxWindowID id = -1;
 
@@ -160,24 +162,25 @@ wx_Ping::~wx_Ping()
 	/* Оповещаем о завершении работы */
 	lets_finish();
 
-	/* Помогаем им узнать об окончании побыстрее */
-	//states_socket_.close();
-	//pings_socket_.close();
+	/* "Увольняем" все ссылки на "работников" */
+	/* ... */
 
 	/* Наши асинхронные "работники" активно задействуют контролы формы,
 		а это требует реакции основного (т.е. данного) потока,
 		и поэтому его никак нельзя останавливать на wait_for_workers() */
 	while (!check_for_finish() && wxTheApp->Pending())
     {
-    	#ifdef _DEBUG
+    	#if 0
     	vector<std::string> v;
     	workers_state(v);
     	#endif
+
 		wxTheApp->Dispatch();
     }
 
-	/* Ждём завершения - теперь уже только себя :) */
-	//wait_for_finish();
+	/* Обязательно ждём, т.к. даже после check_for_finish()
+		есть вероятность запуска start_animate() */
+	wait_for_finish();
 
 	//(*Destroy(wx_Ping)
 	//*)
@@ -198,6 +201,46 @@ void wx_Ping::io_thread_proc(my::worker::ptr worker)
 	{
 		handle_exception(0, L"in wx_Ping", L"Ошибка");
 		Destroy();
+	}
+}
+
+void wx_Ping::start_animate()
+{
+	unique_lock<mutex> l(anim_mutex_);
+
+	if (!finish() && !anim_started_)
+	{
+		anim_started_ = true;
+		flash_ = true;
+
+		anim_timer_.expires_from_now(posix_time::milliseconds(0));
+		anim_timer_.async_wait(
+			boost::bind(&wx_Ping::animate_proc, this,
+				new_worker("animate_timer", boost::bind(
+            		&wx_Ping::stop_animate, this))) );
+	}
+}
+
+void wx_Ping::stop_animate()
+{
+	unique_lock<mutex> l(anim_mutex_);
+	anim_started_ = false;
+	anim_timer_.cancel();
+}
+
+void wx_Ping::animate_proc(my::worker::ptr this_worker)
+{
+	unique_lock<mutex> l(anim_mutex_);
+
+	if (!finish() && anim_started_)
+	{
+		flash_ = !flash_;
+		
+		StatePanel->Refresh();
+		
+		anim_timer_.expires_from_now(posix_time::milliseconds(500));
+		anim_timer_.async_wait(
+			boost::bind(&wx_Ping::animate_proc, this, this_worker) );
 	}
 }
 
@@ -265,7 +308,7 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 				wostringstream out;
 
 				{
-					unique_lock<recursive_mutex> l(states_mutex_);
+					unique_lock<shared_mutex> l(states_mutex_);
 					states_[utc_time] = state;
 					states_active_index_ = -1;
 				}
@@ -301,6 +344,149 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 		wxMessageBox(str, L"Ошибка чтения данных",
 			wxOK | wxICON_ERROR, this);
 	}
+}
+
+/* Прорисовка состояний */
+void wx_Ping::states_repaint()
+{
+	bool anim = false;
+
+	{
+		unique_lock<mutex> l(states_bitmap_mutex_);
+
+		first_state_time_ = last_state_time_ = posix_time::ptime();
+
+		int w, h;
+		StatePanel->GetClientSize(&w, &h);
+
+		if (states_bitmap_1_.GetWidth() != w || states_bitmap_1_.GetHeight() != h)
+		{
+			states_bitmap_1_.Create(w, h);
+			states_bitmap_2_.Create(w, h);
+		}
+
+		wxMemoryDC dc1(states_bitmap_1_);
+		wxMemoryDC dc2(states_bitmap_2_);
+
+		int ok_y = h - 4;
+		int warn_y = h /2;
+		int fail_y = 3;
+
+		/* Стираем */
+		dc1.SetBrush(*wxBLACK_BRUSH);
+		dc1.DrawRectangle(0, 0, w, h);
+		dc2.SetBrush(*wxBLACK_BRUSH);
+		dc2.DrawRectangle(0, 0, w, h);
+
+		/* Рисуем границы */
+		dc1.SetPen(*wxGREY_PEN);
+		dc1.DrawLine(0, ok_y, w, ok_y);
+		dc1.DrawLine(0, warn_y, w, warn_y);
+		dc1.DrawLine(0, fail_y, w, fail_y);
+		dc2.SetPen(*wxGREY_PEN);
+		dc2.DrawLine(0, ok_y, w, ok_y);
+		dc2.DrawLine(0, warn_y, w, warn_y);
+		dc2.DrawLine(0, fail_y, w, fail_y);
+
+		{
+			shared_lock<shared_mutex> l(states_mutex_);
+
+			int prev_y;
+			int index = 0;
+			wxPen pen;
+			bool ack;
+
+			for (states_list::reverse_iterator iter = states_.rbegin();
+				iter != states_.rend(); iter++)
+			{
+				++index;
+
+				pinger::host_state state = iter->second;
+
+				if (index == 1)
+					last_state_time_ = state.time();
+
+				int x = w - index * BLOCK_W;
+
+				if (x <= 0 && x > -BLOCK_W)
+					first_state_time_ = state.time();
+
+				int y;
+
+				switch (state.state())
+				{
+					case pinger::host_state::ok:
+						pen.SetColour(0, 255, 0);
+						y = ok_y;
+						break;
+
+					case pinger::host_state::warn:
+						pen.SetColour(255, 255, 0);
+						y = warn_y;
+						break;
+
+					case pinger::host_state::fail:
+						pen.SetColour(255, 0, 0);
+						y = fail_y;
+						break;
+				}
+
+				if (index != 1)
+				{
+					dc1.DrawLine(x + BLOCK_W, prev_y, x + BLOCK_W, y);
+					if (ack)
+						dc2.DrawLine(x + BLOCK_W, prev_y, x + BLOCK_W, y);
+				}
+
+				dc1.SetPen(pen);
+				dc1.DrawLine(x + BLOCK_W, y, x, y);
+
+				ack = state.acknowledged();
+				if (!ack)
+				{
+					anim = true;
+				}
+				else
+				{
+					dc2.SetPen(pen);
+					dc2.DrawLine(x + BLOCK_W, y, x, y);
+				}
+
+				prev_y = y;
+			}
+		} /* shared_lock<shared_mutex> l(states_mutex_) */
+	} /* unique_lock<mutex> l(states_bitmap_mutex_) */
+
+	if (!anim)
+		stop_animate();
+	else
+		start_animate();
+}
+
+void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
+{
+	unique_lock<mutex> l(states_bitmap_mutex_);
+
+	wxBitmap *bitmap = flash_ ? &states_bitmap_1_ : &states_bitmap_2_;
+
+	if (bitmap->IsOk())
+	{
+		wxPaintDC dc(StatePanel);
+		dc.DrawBitmap(*bitmap, 0, 0);
+
+		if (states_active_index_ >= 0)
+		{
+			int w, h;
+			StatePanel->GetClientSize(&w, &h);
+
+			dc.SetPen(*wxWHITE_PEN);
+			int x = w - states_active_index_ * BLOCK_W - BLOCK_W / 2;
+
+			dc.DrawLine(x, 0, x, h);
+		}
+	}
+	
+	event.Skip(false);
 }
 
 /* Асинхронное чтение пингов */
@@ -367,7 +553,7 @@ void wx_Ping::pings_handle_read( my::worker::ptr worker,
 				else
 				{
 					{
-						unique_lock<recursive_mutex> l(pings_mutex_);
+						unique_lock<shared_mutex> l(pings_mutex_);
 						pings_[num] = ping;
 						pings_active_index_ = -1;
 					}
@@ -434,211 +620,86 @@ void wx_Ping::pings_handle_read( my::worker::ptr worker,
 	}
 }
 
-/* Прорисовка состояний */
-void wx_Ping::states_repaint()
-{
-	unique_lock<recursive_mutex> l(states_bitmap_mutex_);
-
-	first_state_time_ = last_state_time_ = posix_time::ptime();
-
-	int w, h;
-	StatePanel->GetClientSize(&w, &h);
-
-	if (states_bitmap_.GetWidth() != w || states_bitmap_.GetHeight() != h)
-		states_bitmap_.Create(w, h);
-
-	wxMemoryDC dc(states_bitmap_);
-
-	int ok_y = h - 4;
-	int warn_y = h /2;
-	int fail_y = 3;
-
-	/* Стираем */
-	dc.SetBrush(*wxBLACK_BRUSH);
-	dc.DrawRectangle(0, 0, w, h);
-
-	/* Рисуем границы */
-	dc.SetPen(*wxGREY_PEN);
-	dc.DrawLine(0, ok_y, w, ok_y);
-	dc.DrawLine(0, warn_y, w, warn_y);
-	dc.DrawLine(0, fail_y, w, fail_y);
-
-	//dc.SetPen(*wxGREEN_PEN);
-
-	int prev_y = -1;
-	int index = 0;
-
-	unique_lock<recursive_mutex> ll(states_mutex_);
-
-	/*-
-	for (states_list::iterator iter = states_.begin();
-		iter != states_.end(); iter++)
-	{
-		pinger::host_state state = iter->value();
-
-		if (index++ == 0)
-			last_state_time_ = state.time();
-
-		int x = w - index * BLOCK_W;
-
-		if (x <= 0 && x > -BLOCK_W)
-			first_state_time_ = state.time();
-
-		if (state.state() == pinger::ping_result::timeout)
-		{
-			prev_y = -1;
-			continue;
-		}
-
-		int y = zero_y - (double)ping.duration().total_milliseconds()
-			/ timeout * (zero_y - timeout_y);
-		if (y < 0)
-			y = 0;
-
-		if (prev_y != -1)
-			dc.DrawLine(x + BLOCK_W, prev_y, x + BLOCK_W, y);
-
-		dc.DrawLine(x + BLOCK_W, y, x, y);
-
-		prev_y = y;
-	}
-	-*/
-
-	StatePanel->Refresh();
-}
-
 void wx_Ping::pings_repaint()
 {
-	unique_lock<recursive_mutex> l(pings_bitmap_mutex_);
-
-	first_ping_time_ = last_ping_time_ = posix_time::ptime();
-
-	int w, h;
-	PingPanel->GetClientSize(&w, &h);
-
-	if (pings_bitmap_.GetWidth() != w || pings_bitmap_.GetHeight() != h)
-		pings_bitmap_.Create(w, h);
-
-	wxMemoryDC dc(pings_bitmap_);
-
-	int zero_y = h - 4;
-
-	double timeout = 2000; /*TODO: не должно быть жестко зашито */
-	int timeout_y = h * 0.2;
-
-	/* Стираем */
-	dc.SetBrush(*wxBLACK_BRUSH);
-	dc.DrawRectangle(0, 0, w, h);
-
-	/* Рисуем нижнюю и верхнюю границы */
-	dc.SetPen(*wxGREY_PEN);
-	dc.DrawLine(0, zero_y, w, zero_y);
-	dc.DrawLine(0, timeout_y, w, timeout_y);
-
-	dc.SetPen(*wxGREEN_PEN);
-
-	int prev_y = -1;
-	int index = 0;
-
-	unique_lock<recursive_mutex> ll(pings_mutex_);
-
-	for (pings_list::iterator iter = pings_.begin();
-		iter != pings_.end(); iter++)
 	{
-		pinger::ping_result ping = iter->value();
+		unique_lock<mutex> l(pings_bitmap_mutex_);
 
-		if (index++ == 0)
-			last_ping_time_ = ping.time();
+		first_ping_time_ = last_ping_time_ = posix_time::ptime();
 
-		int x = w - index * BLOCK_W;
+		int w, h;
+		PingPanel->GetClientSize(&w, &h);
 
-		if (x <= 0 && x > -BLOCK_W)
-			first_ping_time_ = ping.time();
+		if (pings_bitmap_.GetWidth() != w || pings_bitmap_.GetHeight() != h)
+			pings_bitmap_.Create(w, h);
 
-		if (ping.state() == pinger::ping_result::timeout)
+		wxMemoryDC dc(pings_bitmap_);
+
+		int zero_y = h - 4;
+
+		double timeout = 2000; /*TODO: не должно быть жестко зашито */
+		int timeout_y = h * 0.2;
+
+		/* Стираем */
+		dc.SetBrush(*wxBLACK_BRUSH);
+		dc.DrawRectangle(0, 0, w, h);
+
+		/* Рисуем нижнюю и верхнюю границы */
+		dc.SetPen(*wxGREY_PEN);
+		dc.DrawLine(0, zero_y, w, zero_y);
+		dc.DrawLine(0, timeout_y, w, timeout_y);
+
+		dc.SetPen(*wxGREEN_PEN);
+
 		{
-			prev_y = -1;
-			continue;
-		}
+			shared_lock<shared_mutex> l(pings_mutex_);
 
-		int y = zero_y - (double)ping.duration().total_milliseconds()
-			/ timeout * (zero_y - timeout_y);
-		if (y < 0)
-			y = 0;
+			int prev_y = -1;
+			int index = 0;
 
-		if (prev_y != -1)
-			dc.DrawLine(x + BLOCK_W, prev_y, x + BLOCK_W, y);
+			for (pings_list::iterator iter = pings_.begin();
+				iter != pings_.end(); iter++)
+			{
+				++index;
 
-		dc.DrawLine(x + BLOCK_W, y, x, y);
+				pinger::ping_result ping = iter->value();
 
-		prev_y = y;
-	}
+				if (index == 1)
+					last_ping_time_ = ping.time();
+
+				int x = w - index * BLOCK_W;
+
+				if (x <= 0 && x > -BLOCK_W)
+					first_ping_time_ = ping.time();
+
+				if (ping.state() == pinger::ping_result::timeout)
+				{
+					prev_y = -1;
+					continue;
+				}
+
+				int y = zero_y - (double)ping.duration().total_milliseconds()
+					/ timeout * (zero_y - timeout_y);
+				
+				if (y < 0)
+					y = 0;
+
+				if (prev_y != -1)
+					dc.DrawLine(x + BLOCK_W, prev_y, x + BLOCK_W, y);
+
+				dc.DrawLine(x + BLOCK_W, y, x, y);
+
+				prev_y = y;
+			}
+		} /* shared_lock<shared_mutex> l(pings_mutex_) */
+	} /* unique_lock<mutex> l(pings_bitmap_mutex_) */
 
 	PingPanel->Refresh();
-}
-
-void wx_Ping::on_pingpanel_mousemove(wxMouseEvent& event)
-{
-	int w, h;
-	PingPanel->GetClientSize(&w, &h);
-
-	pings_active_index_ = (w - event.GetX() + 1) / BLOCK_W;
-	PingPanel->Refresh();
-
-	unique_lock<recursive_mutex> l(pings_mutex_);
-
-	int index = pings_active_index_;
-	pings_list::iterator iter = pings_.begin();
-
-	while (iter != pings_.end() && index-- != 0)
-		iter++;
-
-	if (iter != pings_.end())
-	{
-		wostringstream out;
-
-		out << iter->value().state() << endl
-			<< my::time::to_wstring(iter->value().time(), L"%Y-%m-%d %H:%M:%S") << endl
-			<< L"icmp_seq=" << iter->key() << endl
-			<< L"time=" << iter->value().duration().total_milliseconds() << L" ms";
-
-		PingPanel->SetToolTip(out.str());
-	}
-}
-
-void wx_Ping::on_pingpanel_mouseleave(wxMouseEvent& event)
-{
-}
-
-void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
-{
-	unique_lock<recursive_mutex> l(states_bitmap_mutex_);
-
-	if (states_bitmap_.IsOk())
-	{
-		wxPaintDC dc(StatePanel);
-		dc.DrawBitmap(states_bitmap_, 0, 0);
-
-		/*-
-		if (states_active_index_ >= 0)
-		{
-			int w, h;
-			StatePanel->GetClientSize(&w, &h);
-
-			dc.SetPen(*wxWHITE_PEN);
-			int x = w - states_active_index_ * BLOCK_W - BLOCK_W / 2;
-
-			dc.DrawLine(x, 0, x, h);
-		}
-		-*/
-	}
-
-	event.Skip(false);
 }
 
 void wx_Ping::OnPingPanelPaint(wxPaintEvent& event)
 {
-	unique_lock<recursive_mutex> l(pings_bitmap_mutex_);
+	unique_lock<mutex> l(pings_bitmap_mutex_);
 
 	if (pings_bitmap_.IsOk())
 	{
@@ -656,17 +717,6 @@ void wx_Ping::OnPingPanelPaint(wxPaintEvent& event)
 			dc.DrawLine(x, 0, x, h);
 		}
 	}
-
-	event.Skip(false);
-}
-
-void wx_Ping::OnStatePanelEraseBackground(wxEraseEvent& event)
-{
-	event.Skip(false);
-}
-
-void wx_Ping::OnPingPanelEraseBackground(wxEraseEvent& event)
-{
 	event.Skip(false);
 }
 
@@ -678,31 +728,6 @@ void wx_Ping::OnPanelsEraseBackground(wxEraseEvent& event)
 void wx_Ping::OnStatePanelMouseMove(wxMouseEvent& event)
 {
 	/*-
-	int w, h;
-	StatePingPanel->GetClientSize(&w, &h);
-
-	states_active_index_ = (w - event.GetX() + 1) / BLOCK_W;
-	StatePanel->Refresh();
-
-	unique_lock<recursive_mutex> l(states_mutex_);
-
-	int index = states_active_index_;
-	states_list::iterator iter = states_.begin();
-
-	while (iter != states_.end() && index-- != 0)
-		iter++;
-
-	if (iter != states_.end())
-	{
-		wostringstream out;
-
-		out << iter->value().state() << endl
-			<< my::time::to_wstring(iter->value().time(), L"%Y-%m-%d %H:%M:%S") << endl
-			<< L"icmp_seq=" << iter->key() << endl
-			<< L"time=" << iter->value().duration().total_milliseconds() << L" ms";
-
-		StatePanel->SetToolTip(out.str());
-	}
 	-*/
 }
 
@@ -714,25 +739,31 @@ void wx_Ping::OnPingPanelMouseMove(wxMouseEvent& event)
 	pings_active_index_ = (w - event.GetX() + 1) / BLOCK_W;
 	PingPanel->Refresh();
 
-	unique_lock<recursive_mutex> l(pings_mutex_);
+	wostringstream out;
+	bool show_tool_tip = true;
 
-	int index = pings_active_index_;
-	pings_list::iterator iter = pings_.begin();
-
-	while (iter != pings_.end() && index-- != 0)
-		iter++;
-
-	if (iter != pings_.end())
 	{
-		wostringstream out;
+		shared_lock<shared_mutex> l(pings_mutex_);
 
-		out << iter->value().state() << endl
-			<< my::time::to_wstring(iter->value().time(), L"%Y-%m-%d %H:%M:%S") << endl
-			<< L"icmp_seq=" << iter->key() << endl
-			<< L"time=" << iter->value().duration().total_milliseconds() << L" ms";
+		/* Ищем ping, на который указывает pings_active_index_.
+			advance() не используем, т.к. pings_active_index_ может
+			указывать на несуществующий ping */
+		pings_list::iterator iter = pings_.begin();
+		int index = pings_active_index_;
+		while (iter != pings_.end() && index-- != 0)
+			iter++;
 
-		PingPanel->SetToolTip(out.str());
-	}
+		if (iter == pings_.end())
+			show_tool_tip = false;
+		else
+			out << iter->value().state() << endl
+				<< my::time::to_wstring(iter->value().time(), L"%Y-%m-%d %H:%M:%S") << endl
+				<< L"icmp_seq=" << iter->key() << endl
+				<< L"time=" << iter->value().duration().total_milliseconds() << L" ms";
+	
+	} /* shared_lock<shared_mutex> l(pings_mutex_) */
+
+	PingPanel->SetToolTip(out.str());
 }
 
 void wx_Ping::OnStatePanelMouseLeave(wxMouseEvent& event)

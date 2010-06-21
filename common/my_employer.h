@@ -62,8 +62,7 @@ public:
 
 	~employer()
 	{
-		/* На всякий случай */
-		employer_workers_.clear();
+		wait_for_finish();
 	}
 
 	worker::ptr new_worker(const std::string &name = std::string(),

@@ -37,46 +37,57 @@ private:
 	who::server &server_;
 	who::object *object_;
 
+	/* Асинронные операции */
 	asio::io_service io_service_;
+	void io_thread_proc(my::worker::ptr worker);
 
-	pings_list pings_;
-	tcp::socket pings_socket_;
-	my::http::reply pings_reply_;
-	posix_time::ptime first_ping_time_;
-	posix_time::ptime last_ping_time_;
-	recursive_mutex pings_mutex_;
-	wxBitmap pings_bitmap_;
-	recursive_mutex pings_bitmap_mutex_;
-	int pings_active_index_;
 
+	/* Анимация состояний */
+	asio::deadline_timer anim_timer_;
+	mutex anim_mutex_;
+	bool anim_started_;
+	bool flash_;
+	
+	void start_animate();
+	void stop_animate();
+	void animate_proc(my::worker::ptr this_worker);
+
+
+	/* Состояния */
 	states_list states_;
 	tcp::socket states_socket_;
 	my::http::reply states_reply_;
 	posix_time::ptime first_state_time_;
 	posix_time::ptime last_state_time_;
-	recursive_mutex states_mutex_;
-	wxBitmap states_bitmap_;
-	recursive_mutex states_bitmap_mutex_;
+	shared_mutex states_mutex_;
+	wxBitmap states_bitmap_1_, states_bitmap_2_;
+	mutex states_bitmap_mutex_;
 	int states_active_index_;
-
-	void io_thread_proc(my::worker::ptr worker);
-
+	
 	void states_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
+	void states_repaint();
+
+
+	/* Пинги */
+	pings_list pings_;
+	tcp::socket pings_socket_;
+	my::http::reply pings_reply_;
+	posix_time::ptime first_ping_time_;
+	posix_time::ptime last_ping_time_;
+	shared_mutex pings_mutex_;
+	wxBitmap pings_bitmap_;
+	mutex pings_bitmap_mutex_;
+	int pings_active_index_;
 
 	void pings_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
-
-	void states_repaint();
 	void pings_repaint();
 
+
 	//(*Handlers(wx_Ping)
-	void on_pingpanel_mousemove(wxMouseEvent& event);
-	void on_pingpanel_mouseleave(wxMouseEvent& event);
 	void OnStatePanelPaint(wxPaintEvent& event);
-	void OnStatePanelEraseBackground(wxEraseEvent& event);
 	void OnPingPanelPaint(wxPaintEvent& event);
-	void OnPingPanelEraseBackground(wxEraseEvent& event);
 	void OnPanelsEraseBackground(wxEraseEvent& event);
 	void OnPingPanelMouseMove(wxMouseEvent& event);
 	void OnPingPanelMouseLeave(wxMouseEvent& event);
