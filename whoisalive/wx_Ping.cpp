@@ -46,14 +46,25 @@ END_EVENT_TABLE()
 
 #define BLOCK_W 4
 
+int operator/(const posix_time::time_duration &td1, const posix_time::time_duration &td2)
+{
+	return static_cast<int>(td1.ticks() / td2.ticks());
+}
+
+posix_time::time_duration operator*(int k, const posix_time::time_duration &td)
+{
+	return td * k;
+}
+
 wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	: server_(server)
 	, object_(object)
 	, io_service_()
-	, anim_started_(false)
 	, anim_timer_(io_service_)
+	, flash_(true)
 	, states_socket_(io_service_)
 	, states_()
+	, states_resolution_(posix_time::milliseconds(1000))
 	, states_active_index_(-1)
 	, pings_socket_(io_service_)
 	, pings_(1000)
@@ -154,6 +165,12 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	boost::thread( boost::bind(
 		&wx_Ping::io_thread_proc, this, new_worker("io_thread") ) );
 
+	/* Асинхронный таймер для анимации */
+	anim_timer_.expires_from_now(posix_time::milliseconds(500));
+	anim_timer_.async_wait(
+		boost::bind(&wx_Ping::animate_proc, this, new_worker("animate_timer",
+			boost::bind(&asio::deadline_timer::cancel, &anim_timer_))) );
+
 	Show();
 }
 
@@ -204,41 +221,15 @@ void wx_Ping::io_thread_proc(my::worker::ptr worker)
 	}
 }
 
-void wx_Ping::start_animate()
-{
-	unique_lock<mutex> l(anim_mutex_);
-
-	if (!finish() && !anim_started_)
-	{
-		anim_started_ = true;
-		flash_ = true;
-
-		anim_timer_.expires_from_now(posix_time::milliseconds(0));
-		anim_timer_.async_wait(
-			boost::bind(&wx_Ping::animate_proc, this,
-				new_worker("animate_timer", boost::bind(
-            		&wx_Ping::stop_animate, this))) );
-	}
-}
-
-void wx_Ping::stop_animate()
-{
-	unique_lock<mutex> l(anim_mutex_);
-	anim_started_ = false;
-	anim_timer_.cancel();
-}
-
 void wx_Ping::animate_proc(my::worker::ptr this_worker)
 {
-	unique_lock<mutex> l(anim_mutex_);
-
-	if (!finish() && anim_started_)
+	if (!finish())
 	{
 		flash_ = !flash_;
 		
-		StatePanel->Refresh();
+		states_repaint();
 		
-		anim_timer_.expires_from_now(posix_time::milliseconds(500));
+		anim_timer_.expires_from_now(posix_time::milliseconds(400));
 		anim_timer_.async_wait(
 			boost::bind(&wx_Ping::animate_proc, this, this_worker) );
 	}
@@ -346,11 +337,20 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 	}
 }
 
+posix_time::ptime wx_Ping::states_start_time()
+{
+	posix_time::ptime start = states_start_.is_special() ?
+		posix_time::microsec_clock::universal_time() : states_start_;
+	
+	/* Округляем до мин. "целого", большего либо равного заданному */
+	posix_time::ptime cstart(start.date(), start.time_of_day()
+		/ states_resolution_ * states_resolution_);
+	return cstart == start ? cstart : cstart + states_resolution_;
+}
+
 /* Прорисовка состояний */
 void wx_Ping::states_repaint()
 {
-	bool anim = false;
-
 	{
 		unique_lock<mutex> l(states_bitmap_mutex_);
 
@@ -368,9 +368,10 @@ void wx_Ping::states_repaint()
 		wxMemoryDC dc1(states_bitmap_1_);
 		wxMemoryDC dc2(states_bitmap_2_);
 
-		int ok_y = h - 4;
-		int warn_y = h /2;
-		int fail_y = 3;
+		int cy = h / 2;
+		int ok_sz = 0;
+		int warn_sz = cy / 3 * 1;
+		int fail_sz = cy / 3 * 2;
 
 		/* Стираем */
 		dc1.SetBrush(*wxBLACK_BRUSH);
@@ -380,87 +381,81 @@ void wx_Ping::states_repaint()
 
 		/* Рисуем границы */
 		dc1.SetPen(*wxGREY_PEN);
-		dc1.DrawLine(0, ok_y, w, ok_y);
-		dc1.DrawLine(0, warn_y, w, warn_y);
-		dc1.DrawLine(0, fail_y, w, fail_y);
+		dc1.DrawLine(0, cy, w, cy);
 		dc2.SetPen(*wxGREY_PEN);
-		dc2.DrawLine(0, ok_y, w, ok_y);
-		dc2.DrawLine(0, warn_y, w, warn_y);
-		dc2.DrawLine(0, fail_y, w, fail_y);
+		dc2.DrawLine(0, cy, w, cy);
 
 		{
 			shared_lock<shared_mutex> l(states_mutex_);
 
-			int prev_y;
-			int index = 0;
-			wxPen pen;
-			bool ack;
+			posix_time::ptime start = states_start_time();
 
-			for (states_list::reverse_iterator iter = states_.rbegin();
-				iter != states_.rend(); iter++)
+			states_list::reverse_iterator iter = states_.rbegin();
+			for (; iter != states_.rend() && iter->first > start; ++iter);
+
+			int prev_x = w - 1;
+
+			while (iter != states_.rend())
 			{
-				++index;
-
 				pinger::host_state state = iter->second;
 
-				if (index == 1)
-					last_state_time_ = state.time();
-
-				int x = w - index * BLOCK_W;
-
-				if (x <= 0 && x > -BLOCK_W)
-					first_state_time_ = state.time();
-
-				int y;
+				int x = w - (start - iter->first) / states_resolution_ - 1;
+				wxColour colors[4];
+				int sz = 0;
 
 				switch (state.state())
 				{
 					case pinger::host_state::ok:
-						pen.SetColour(0, 255, 0);
-						y = ok_y;
+						colors[0].Set(0, 255, 0);
+						colors[1].Set(0, 224, 0);
+						colors[2].Set(0, 128, 0);
+						colors[3].Set(0, 112, 0);
+						sz = ok_sz;
 						break;
 
 					case pinger::host_state::warn:
-						pen.SetColour(255, 255, 0);
-						y = warn_y;
+						colors[0].Set(255, 255, 0);
+						colors[1].Set(224, 224, 0);
+						colors[2].Set(128, 128, 0);
+						colors[3].Set(112, 112, 0);
+						sz = warn_sz;
 						break;
 
 					case pinger::host_state::fail:
-						pen.SetColour(255, 0, 0);
-						y = fail_y;
+						colors[0].Set(255, 0, 0);
+						colors[1].Set(224, 0, 0);
+						colors[2].Set(128, 0, 0);
+						colors[3].Set(112, 0, 0);
+						sz = fail_sz;
 						break;
 				}
 
-				if (index != 1)
-				{
-					dc1.DrawLine(x + BLOCK_W, prev_y, x + BLOCK_W, y);
-					if (ack)
-						dc2.DrawLine(x + BLOCK_W, prev_y, x + BLOCK_W, y);
-				}
+				dc1.SetPen( wxPen(colors[0]) );
+				dc1.SetBrush( wxBrush(colors[1]) );
+				dc1.DrawRectangle(x, cy - sz, prev_x - x, 2 * sz + 1);
 
-				dc1.SetPen(pen);
-				dc1.DrawLine(x + BLOCK_W, y, x, y);
-
-				ack = state.acknowledged();
-				if (!ack)
+				if (state.acknowledged())
 				{
-					anim = true;
+					dc2.SetPen( wxPen(colors[0]) );
+					dc2.SetBrush( wxBrush(colors[1]) );
 				}
 				else
 				{
-					dc2.SetPen(pen);
-					dc2.DrawLine(x + BLOCK_W, y, x, y);
+					dc2.SetPen( wxPen(colors[2]) );
+					dc2.SetBrush( wxBrush(colors[3]) );
 				}
+				dc2.DrawRectangle(x, cy - sz, prev_x - x, 2 * sz + 1);
 
-				prev_y = y;
+				if (x < 0)
+					break;
+
+				prev_x = x;
+				++iter;
 			}
 		} /* shared_lock<shared_mutex> l(states_mutex_) */
 	} /* unique_lock<mutex> l(states_bitmap_mutex_) */
 
-	if (!anim)
-		stop_animate();
-	else
-		start_animate();
+	StatePanel->Refresh();
 }
 
 void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)

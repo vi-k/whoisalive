@@ -44,12 +44,8 @@ private:
 
 	/* Анимация состояний */
 	asio::deadline_timer anim_timer_;
-	mutex anim_mutex_;
-	bool anim_started_;
 	bool flash_;
 	
-	void start_animate();
-	void stop_animate();
 	void animate_proc(my::worker::ptr this_worker);
 
 
@@ -57,6 +53,8 @@ private:
 	states_list states_;
 	tcp::socket states_socket_;
 	my::http::reply states_reply_;
+	posix_time::ptime states_start_;
+	posix_time::time_duration states_resolution_;
 	posix_time::ptime first_state_time_;
 	posix_time::ptime last_state_time_;
 	shared_mutex states_mutex_;
@@ -64,6 +62,7 @@ private:
 	mutex states_bitmap_mutex_;
 	int states_active_index_;
 	
+	posix_time::ptime states_start_time();
 	void states_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
 	void states_repaint();
