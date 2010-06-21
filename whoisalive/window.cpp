@@ -79,9 +79,9 @@ window::~window()
     	workers_state(v);
     	size_t n = v.size();
     }
-    #else
+    #endif
+
 	wait_for_finish();
-	#endif
 
 	delete_link();
 	schemes_.clear();
