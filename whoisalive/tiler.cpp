@@ -40,9 +40,9 @@ server::~server()
     	workers_state(v);
     	size_t n = v.size();
     }
-    #else
+    #endif
+
 	wait_for_finish();
-	#endif
 }
 
 void server::thread_proc(my::worker::ptr this_worker)
