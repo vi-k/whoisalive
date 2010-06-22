@@ -143,7 +143,7 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 		states_socket_, states_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::states_handle_read, this,
             new_worker("states_async_read", boost::bind(
-            	&tcp::socket::close, boost::ref(states_socket_))),
+            	&tcp::socket::close, &states_socket_)),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
@@ -155,7 +155,7 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 		pings_socket_, pings_reply_.buf_, "\r\n",
 		boost::bind(&wx_Ping::pings_handle_read, this,
             new_worker("pings_async_read", boost::bind(
-            	&tcp::socket::close, boost::ref(pings_socket_))),
+            	&tcp::socket::close, &pings_socket_)),
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred) );
 
