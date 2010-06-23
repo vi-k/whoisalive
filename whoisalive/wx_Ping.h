@@ -15,6 +15,8 @@
 
 #include <boost/config/warning_disable.hpp> /* против unsafe */
 
+#include <wx/msw/setup.h>
+
 //(*Headers(wx_Ping)
 #include <wx/frame.h>
 class wxPanel;
@@ -39,15 +41,11 @@ private:
 
 	/* Асинронные операции */
 	asio::io_service io_service_;
-	void io_thread_proc(my::worker::ptr worker);
-
+	void io_thread_proc(my::worker::ptr this_worker);
 
 	/* Анимация состояний */
-	asio::deadline_timer anim_timer_;
-	bool flash_;
-	
-	void animate_proc(my::worker::ptr this_worker);
-
+	int anim_handler_index_;
+	void anim_handler(my::worker::ptr this_worker);
 
 	/* Состояния */
 	states_list states_;
@@ -55,17 +53,17 @@ private:
 	my::http::reply states_reply_;
 	posix_time::ptime states_start_;
 	posix_time::time_duration states_resolution_;
-	posix_time::ptime first_state_time_;
-	posix_time::ptime last_state_time_;
 	shared_mutex states_mutex_;
-	wxBitmap states_bitmap_1_, states_bitmap_2_;
+	wxBitmap states_bitmap_;
 	mutex states_bitmap_mutex_;
 	int states_active_index_;
-	
+
 	posix_time::ptime states_start_time();
 	void states_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
 	void states_repaint();
+
+	pinger::host_state get_state_by_offset(int offset);
 
 
 	/* Пинги */
@@ -92,6 +90,8 @@ private:
 	void OnPingPanelMouseLeave(wxMouseEvent& event);
 	void OnStatePanelMouseMove(wxMouseEvent& event);
 	void OnStatePanelMouseLeave(wxMouseEvent& event);
+	void OnStatePanelLeftDown(wxMouseEvent& event);
+	void OnStatePanelRightDown(wxMouseEvent& event);
 	//*)
 
 	DECLARE_EVENT_TABLE()
@@ -99,9 +99,9 @@ private:
 protected:
 
 	//(*Identifiers(wx_Ping)
+	static const long ID_STATICTEXT5;
 	static const long ID_STATEPANEL;
 	static const long ID_STATICTEXT1;
-	static const long ID_STATICTEXT2;
 	static const long ID_PINGPANEL;
 	static const long ID_STATICTEXT3;
 	static const long ID_STATICTEXT4;
@@ -115,9 +115,9 @@ public:
 	static void Open(wxWindow* parent, who::server &server, who::object *object);
 
 	//(*Declarations(wx_Ping)
+	wxStaticText* StaticText2;
 	wxPanel* StatePanel;
-	wxStaticText* StateFirstText;
-	wxStaticText* StateLastText;
+	wxStaticText* StaticText1;
 	wxStaticText* PingFirstText;
 	wxStaticText* PingLastText;
 	wxTextCtrl* PingTextCtrl;

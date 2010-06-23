@@ -8,11 +8,14 @@
 
 #include <sstream>
 #include <istream>
+#include <algorithm>
 using namespace std;
 
 #include <boost/bind.hpp>
 #include <boost/system/system_error.hpp>
 
+//#define wxUSE_GRAPHICS_CONTEXT 1
+#include <wx/graphics.h>
 #include <wx/app.h>
 #include <wx/msgdlg.h>
 #include <wx/dcclient.h>
@@ -30,9 +33,9 @@ using namespace std;
 //*)
 
 //(*IdInit(wx_Ping)
+const long wx_Ping::ID_STATICTEXT5 = wxNewId();
 const long wx_Ping::ID_STATEPANEL = wxNewId();
 const long wx_Ping::ID_STATICTEXT1 = wxNewId();
-const long wx_Ping::ID_STATICTEXT2 = wxNewId();
 const long wx_Ping::ID_PINGPANEL = wxNewId();
 const long wx_Ping::ID_STATICTEXT3 = wxNewId();
 const long wx_Ping::ID_STATICTEXT4 = wxNewId();
@@ -46,22 +49,11 @@ END_EVENT_TABLE()
 
 #define BLOCK_W 4
 
-int operator/(const posix_time::time_duration &td1, const posix_time::time_duration &td2)
-{
-	return static_cast<int>(td1.ticks() / td2.ticks());
-}
-
-posix_time::time_duration operator*(int k, const posix_time::time_duration &td)
-{
-	return td * k;
-}
-
 wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	: server_(server)
 	, object_(object)
 	, io_service_()
-	, anim_timer_(io_service_)
-	, flash_(true)
+	, anim_handler_index_(0)
 	, states_socket_(io_service_)
 	, states_()
 	, states_resolution_(posix_time::milliseconds(1000))
@@ -74,40 +66,38 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 
 	//(*Initialize(wx_Ping)
 	wxBoxSizer* BoxSizer2;
-	wxBoxSizer* BoxSizer1;
 	wxFlexGridSizer* FlexGridSizer1;
 
 	Create(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE|wxFRAME_TOOL_WINDOW|wxFRAME_FLOAT_ON_PARENT, _T("wxID_ANY"));
 	SetClientSize(wxSize(544,333));
 	SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
-	FlexGridSizer1 = new wxFlexGridSizer(5, 1, 0, 0);
+	FlexGridSizer1 = new wxFlexGridSizer(7, 1, 0, 0);
 	FlexGridSizer1->AddGrowableCol(0);
 	FlexGridSizer1->AddGrowableRow(2);
+	StaticText1 = new wxStaticText(this, ID_STATICTEXT5, _("Изменение состояний"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT5"));
+	wxFont StaticText1Font(8,wxDEFAULT,wxFONTSTYLE_NORMAL,wxBOLD,false,wxEmptyString,wxFONTENCODING_DEFAULT);
+	StaticText1->SetFont(StaticText1Font);
+	FlexGridSizer1->Add(StaticText1, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	StatePanel = new wxPanel(this, ID_STATEPANEL, wxDefaultPosition, wxSize(400,61), wxTAB_TRAVERSAL, _T("ID_STATEPANEL"));
-	FlexGridSizer1->Add(StatePanel, 1, wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	BoxSizer1 = new wxBoxSizer(wxHORIZONTAL);
-	StateFirstText = new wxStaticText(this, ID_STATICTEXT1, _("\n"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT, _T("ID_STATICTEXT1"));
-	wxFont StateFirstTextFont(6,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
-	StateFirstText->SetFont(StateFirstTextFont);
-	BoxSizer1->Add(StateFirstText, 1, wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StateLastText = new wxStaticText(this, ID_STATICTEXT2, _("\n"), wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE|wxALIGN_RIGHT, _T("ID_STATICTEXT2"));
-	wxFont StateLastTextFont(6,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
-	StateLastText->SetFont(StateLastTextFont);
-	BoxSizer1->Add(StateLastText, 1, wxLEFT|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	FlexGridSizer1->Add(BoxSizer1, 1, wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(StatePanel, 1, wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	StaticText2 = new wxStaticText(this, ID_STATICTEXT1, _("Пинги"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT1"));
+	wxFont StaticText2Font(8,wxDEFAULT,wxFONTSTYLE_NORMAL,wxBOLD,false,wxEmptyString,wxFONTENCODING_DEFAULT);
+	StaticText2->SetFont(StaticText2Font);
+	FlexGridSizer1->Add(StaticText2, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	PingPanel = new wxPanel(this, ID_PINGPANEL, wxDefaultPosition, wxSize(400,61), wxTAB_TRAVERSAL, _T("ID_PINGPANEL"));
-	FlexGridSizer1->Add(PingPanel, 1, wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(PingPanel, 1, wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	BoxSizer2 = new wxBoxSizer(wxHORIZONTAL);
-	PingFirstText = new wxStaticText(this, ID_STATICTEXT3, _("\n"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT, _T("ID_STATICTEXT3"));
+	PingFirstText = new wxStaticText(this, ID_STATICTEXT3, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT, _T("ID_STATICTEXT3"));
 	wxFont PingFirstTextFont(6,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
 	PingFirstText->SetFont(PingFirstTextFont);
 	BoxSizer2->Add(PingFirstText, 1, wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	PingLastText = new wxStaticText(this, ID_STATICTEXT4, _("\n"), wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE|wxALIGN_RIGHT, _T("ID_STATICTEXT4"));
+	PingLastText = new wxStaticText(this, ID_STATICTEXT4, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE|wxALIGN_RIGHT, _T("ID_STATICTEXT4"));
 	wxFont PingLastTextFont(6,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
 	PingLastText->SetFont(PingLastTextFont);
 	BoxSizer2->Add(PingLastText, 1, wxLEFT|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer1->Add(BoxSizer2, 1, wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	PingTextCtrl = new wxTextCtrl(this, ID_PINGTEXTCTRL, wxEmptyString, wxDefaultPosition, wxSize(400,97), wxTE_AUTO_SCROLL|wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH2|wxTE_NOHIDESEL, wxDefaultValidator, _T("ID_PINGTEXTCTRL"));
+	PingTextCtrl->Hide();
 	PingTextCtrl->SetForegroundColour(wxColour(192,192,192));
 	PingTextCtrl->SetBackgroundColour(wxColour(0,0,0));
 	FlexGridSizer1->Add(PingTextCtrl, 1, wxALL|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
@@ -116,6 +106,8 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 
 	StatePanel->Connect(ID_STATEPANEL,wxEVT_PAINT,(wxObjectEventFunction)&wx_Ping::OnStatePanelPaint,0,this);
 	StatePanel->Connect(ID_STATEPANEL,wxEVT_ERASE_BACKGROUND,(wxObjectEventFunction)&wx_Ping::OnPanelsEraseBackground,0,this);
+	StatePanel->Connect(ID_STATEPANEL,wxEVT_LEFT_DOWN,(wxObjectEventFunction)&wx_Ping::OnStatePanelLeftDown,0,this);
+	StatePanel->Connect(ID_STATEPANEL,wxEVT_RIGHT_DOWN,(wxObjectEventFunction)&wx_Ping::OnStatePanelRightDown,0,this);
 	StatePanel->Connect(ID_STATEPANEL,wxEVT_MOTION,(wxObjectEventFunction)&wx_Ping::OnStatePanelMouseMove,0,this);
 	StatePanel->Connect(ID_STATEPANEL,wxEVT_LEAVE_WINDOW,(wxObjectEventFunction)&wx_Ping::OnStatePanelMouseLeave,0,this);
 	PingPanel->Connect(ID_PINGPANEL,wxEVT_PAINT,(wxObjectEventFunction)&wx_Ping::OnPingPanelPaint,0,this);
@@ -165,12 +157,10 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	boost::thread( boost::bind(
 		&wx_Ping::io_thread_proc, this, new_worker("io_thread") ) );
 
-	/* Асинхронный таймер для анимации */
-	anim_timer_.expires_from_now(posix_time::milliseconds(500));
-	anim_timer_.async_wait(
-		boost::bind(&wx_Ping::animate_proc, this, new_worker("animate_timer",
-			boost::bind(&asio::deadline_timer::cancel, &anim_timer_))) );
-
+	/* Анимация */
+	//anim_handler_index_ = server_.add_anim_handler(
+	//	boost::bind(&wx_Ping::anim_handler, this, new_worker("animator")) );
+	
 	Show();
 }
 
@@ -181,6 +171,8 @@ wx_Ping::~wx_Ping()
 
 	/* "Увольняем" все ссылки на "работников" */
 	/* ... */
+	
+	server_.remove_anim_handler(anim_handler_index_);
 
 	/* Наши асинхронные "работники" активно задействуют контролы формы,
 		а это требует реакции основного (т.е. данного) потока,
@@ -203,7 +195,7 @@ wx_Ping::~wx_Ping()
 	//*)
 }
 
-void wx_Ping::io_thread_proc(my::worker::ptr worker)
+void wx_Ping::io_thread_proc(my::worker::ptr this_worker)
 {
 	try
 	{
@@ -221,18 +213,10 @@ void wx_Ping::io_thread_proc(my::worker::ptr worker)
 	}
 }
 
-void wx_Ping::animate_proc(my::worker::ptr this_worker)
+void wx_Ping::anim_handler(my::worker::ptr this_worker)
 {
 	if (!finish())
-	{
-		flash_ = !flash_;
-		
 		states_repaint();
-		
-		anim_timer_.expires_from_now(posix_time::milliseconds(400));
-		anim_timer_.async_wait(
-			boost::bind(&wx_Ping::animate_proc, this, this_worker) );
-	}
 }
 
 void wx_Ping::Open(wxWindow* parent, who::server &server, who::object *object)
@@ -314,18 +298,6 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 					boost::asio::placeholders::bytes_transferred) );
 
 		} /* else // if (states_reply_.body == "START_ARCHIVE\r\n") */
-
-		if (first_state_time_.is_special())
-			StateFirstText->SetLabel(L"");
-		else
-			StateFirstText->SetLabel(
-				my::time::to_wstring(first_state_time_, L"%d-%m-%Y\n%H:%M:%S") );
-
-		if (last_state_time_.is_special())
-			StateLastText->SetLabel(L"");
-		else
-			StateLastText->SetLabel(
-				my::time::to_wstring(last_state_time_, L"%d-%m-%Y\n%H:%M:%S") );
 	}
 	else
 	{
@@ -339,13 +311,10 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 
 posix_time::ptime wx_Ping::states_start_time()
 {
-	posix_time::ptime start = states_start_.is_special() ?
-		posix_time::microsec_clock::universal_time() : states_start_;
-	
-	/* Округляем до мин. "целого", большего либо равного заданному */
-	posix_time::ptime cstart(start.date(), start.time_of_day()
-		/ states_resolution_ * states_resolution_);
-	return cstart == start ? cstart : cstart + states_resolution_;
+	return my::time::ceil(
+		states_start_.is_special() ?
+			posix_time::microsec_clock::universal_time() : states_start_,
+		states_resolution_);
 }
 
 /* Прорисовка состояний */
@@ -354,41 +323,91 @@ void wx_Ping::states_repaint()
 	{
 		unique_lock<mutex> l(states_bitmap_mutex_);
 
-		first_state_time_ = last_state_time_ = posix_time::ptime();
-
 		int w, h;
 		StatePanel->GetClientSize(&w, &h);
 
-		if (states_bitmap_1_.GetWidth() != w || states_bitmap_1_.GetHeight() != h)
-		{
-			states_bitmap_1_.Create(w, h);
-			states_bitmap_2_.Create(w, h);
-		}
+		if (states_bitmap_.GetWidth() != w || states_bitmap_.GetHeight() != h)
+			states_bitmap_.Create(w, h);
 
-		wxMemoryDC dc1(states_bitmap_1_);
-		wxMemoryDC dc2(states_bitmap_2_);
+		wxMemoryDC dc(states_bitmap_);
+		scoped_ptr<wxGraphicsContext> gc( wxGraphicsContext::Create(dc) );
 
 		int cy = h / 2;
-		int ok_sz = 0;
+		int ok_sz = 1;
 		int warn_sz = cy / 3 * 1;
 		int fail_sz = cy / 3 * 2;
 
+		posix_time::ptime start = states_start_time();
+
 		/* Стираем */
-		dc1.SetBrush(*wxBLACK_BRUSH);
-		dc1.DrawRectangle(0, 0, w, h);
-		dc2.SetBrush(*wxBLACK_BRUSH);
-		dc2.DrawRectangle(0, 0, w, h);
+		gc->SetBrush(*wxBLACK_BRUSH);
+		gc->DrawRectangle(0, 0, w, h);
 
 		/* Рисуем границы */
-		dc1.SetPen(*wxGREY_PEN);
-		dc1.DrawLine(0, cy, w, cy);
-		dc2.SetPen(*wxGREY_PEN);
-		dc2.DrawLine(0, cy, w, cy);
+		gc->SetPen(*wxGREY_PEN);
+		gc->StrokeLine(0, cy, w, cy);
+
+#if 0
+		/* Рисуем сетку */
+		{
+			static const long grid[]
+				= {1, 5, 15, 60, 5*60, 15*60, 60*60, 3*60*60, 12*60*60, 24*60*60};
+			static const unsigned char levels[]
+				= {96, 64, 32};
+
+			long min_grid = (states_resolution_ * 5).total_seconds();
+
+			int min_grid_index;
+			for (int i = 0; i < sizeof(grid)/sizeof(*grid); ++i)
+			{
+				min_grid_index = i;
+				if (grid[i] >= min_grid)
+					break;
+			}
+
+			int max_grid_index = min(
+				sizeof(levels)/sizeof(*levels) + min_grid_index,
+				sizeof(grid)/sizeof(*grid));
+
+			gc->SetFont( wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL,
+				wxFONTWEIGHT_NORMAL), wxColour(255, 255, 255));
+
+			for (int i = min_grid_index; i < max_grid_index; ++i)
+			{
+				unsigned char l = levels[ max_grid_index - 1 - i ];
+
+				posix_time::time_duration grid_resolution = posix_time::seconds(grid[i]);
+				posix_time::ptime grid_start = my::time::floor(start, grid_resolution);
+
+				int grid_size = (int)(grid_resolution / states_resolution_);
+				int x = w - (int)((start - grid_start) / states_resolution_) - 1;
+
+				gc->SetPen( wxPen(wxColour(l, l, l)) );
+
+				while (x >= 0)
+				{
+					gc->StrokeLine(x, 0, x, h);
+
+					if (i == max_grid_index - 1)
+					{
+						wstring str = my::time::to_wstring(grid_start, L"%H:%M:%S");
+						wxDouble tw, th, descent, tx, ty;
+						gc->GetTextExtent(str, &tw, &th, &descent, 0);
+						tx = x - tw / 2;
+						ty = h - th;
+						gc->DrawText(str, tx, ty);
+					}
+
+					grid_start -= grid_resolution;
+					x -= grid_size;
+				}
+			}
+		}
+
+#endif
 
 		{
 			shared_lock<shared_mutex> l(states_mutex_);
-
-			posix_time::ptime start = states_start_time();
 
 			states_list::reverse_iterator iter = states_.rbegin();
 			for (; iter != states_.rend() && iter->first > start; ++iter);
@@ -403,48 +422,33 @@ void wx_Ping::states_repaint()
 				wxColour colors[4];
 				int sz = 0;
 
+				unsigned char alpha = state.acknowledged() ?
+					255 : (unsigned char)(255 * server_.flash_alpha());
+
 				switch (state.state())
 				{
 					case pinger::host_state::ok:
-						colors[0].Set(0, 255, 0);
-						colors[1].Set(0, 224, 0);
-						colors[2].Set(0, 128, 0);
-						colors[3].Set(0, 112, 0);
+						colors[0].Set(0, 255, 0, alpha);
+						colors[1].Set(0, 192, 0, alpha);
 						sz = ok_sz;
 						break;
 
 					case pinger::host_state::warn:
-						colors[0].Set(255, 255, 0);
-						colors[1].Set(224, 224, 0);
-						colors[2].Set(128, 128, 0);
-						colors[3].Set(112, 112, 0);
+						colors[0].Set(255, 255, 0, alpha);
+						colors[1].Set(192, 192, 0, alpha);
 						sz = warn_sz;
 						break;
 
 					case pinger::host_state::fail:
-						colors[0].Set(255, 0, 0);
-						colors[1].Set(224, 0, 0);
-						colors[2].Set(128, 0, 0);
-						colors[3].Set(112, 0, 0);
+						colors[0].Set(255, 0, 0, alpha);
+						colors[1].Set(192, 0, 0, alpha);
 						sz = fail_sz;
 						break;
 				}
 
-				dc1.SetPen( wxPen(colors[0]) );
-				dc1.SetBrush( wxBrush(colors[1]) );
-				dc1.DrawRectangle(x, cy - sz, prev_x - x, 2 * sz + 1);
-
-				if (state.acknowledged())
-				{
-					dc2.SetPen( wxPen(colors[0]) );
-					dc2.SetBrush( wxBrush(colors[1]) );
-				}
-				else
-				{
-					dc2.SetPen( wxPen(colors[2]) );
-					dc2.SetBrush( wxBrush(colors[3]) );
-				}
-				dc2.DrawRectangle(x, cy - sz, prev_x - x, 2 * sz + 1);
+				gc->SetPen( wxPen(colors[0]) );
+				gc->SetBrush( wxBrush(colors[1]) );
+				gc->DrawRectangle(x, cy - sz, prev_x - x - 1, 2 * sz);
 
 				if (x < 0)
 					break;
@@ -453,34 +457,42 @@ void wx_Ping::states_repaint()
 				++iter;
 			}
 		} /* shared_lock<shared_mutex> l(states_mutex_) */
-	} /* unique_lock<mutex> l(states_bitmap_mutex_) */
 
-	StatePanel->Refresh();
+		/*-
+		gc1->SetPen(*wxBLACK_PEN);
+		gc1->SetBrush(*wxTRANSPARENT_BRUSH);
+		gc1->DrawRectangle(0, 0, w, h);
+		-*/
+
+		scoped_ptr<wxGraphicsContext> gc2( wxGraphicsContext::Create(StatePanel) );
+		gc2->DrawBitmap(states_bitmap_, 0, 0, w, h);
+	} /* unique_lock<mutex> l(states_bitmap_mutex_) */
 }
 
 void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
 {
+	/*-
 	unique_lock<mutex> l(states_bitmap_mutex_);
 
-	wxBitmap *bitmap = flash_ ? &states_bitmap_1_ : &states_bitmap_2_;
-
-	if (bitmap->IsOk())
+	if (states_bitmap_.IsOk())
 	{
-		wxPaintDC dc(StatePanel);
-		dc.DrawBitmap(*bitmap, 0, 0);
+		scoped_ptr<wxGraphicsContext> gc( wxGraphicsContext::Create(StatePanel) );
+
+		int w, h;
+		StatePanel->GetClientSize(&w, &h);
+
+		gc->DrawBitmap(states_bitmap_, 0, 0, w, h);
 
 		if (states_active_index_ >= 0)
 		{
-			int w, h;
-			StatePanel->GetClientSize(&w, &h);
+			gc->SetPen(*wxWHITE_PEN);
+			int x = w - states_active_index_ - 1;
 
-			dc.SetPen(*wxWHITE_PEN);
-			int x = w - states_active_index_ * BLOCK_W - BLOCK_W / 2;
-
-			dc.DrawLine(x, 0, x, h);
+			gc->StrokeLine(x, 0, x, h);
 		}
 	}
-	
+	-*/
+
 	event.Skip(false);
 }
 
@@ -675,7 +687,7 @@ void wx_Ping::pings_repaint()
 
 				int y = zero_y - (double)ping.duration().total_milliseconds()
 					/ timeout * (zero_y - timeout_y);
-				
+
 				if (y < 0)
 					y = 0;
 
@@ -720,10 +732,46 @@ void wx_Ping::OnPanelsEraseBackground(wxEraseEvent& event)
 	event.Skip(false);
 }
 
+pinger::host_state wx_Ping::get_state_by_offset(int offset)
+{
+	posix_time::ptime start = states_start_time()
+		- states_resolution_ * offset;
+
+	states_list::reverse_iterator iter = states_.rbegin();
+	for (; iter != states_.rend() && iter->first > start; ++iter);
+
+	if (iter == states_.rend())
+		return pinger::host_state();
+
+	return iter->second;
+}
+
 void wx_Ping::OnStatePanelMouseMove(wxMouseEvent& event)
 {
-	/*-
-	-*/
+	int w, h;
+	StatePanel->GetClientSize(&w, &h);
+
+	states_active_index_ = w - 1 - event.GetX();
+	StatePanel->Refresh();
+
+	wostringstream out;
+	bool show_tool_tip = true;
+
+	{
+		shared_lock<shared_mutex> l(states_mutex_);
+
+		pinger::host_state state = get_state_by_offset(states_active_index_);
+
+		if (state == pinger::host_state::unknown)
+			show_tool_tip = false;
+		else
+			out << state.state() << endl
+				<< state.acknowledged() << endl
+				<< my::time::to_wstring(state.time(), L"%Y-%m-%d %H:%M:%S");
+
+	} /* shared_lock<shared_mutex> l(states_mutex_) */
+
+	StatePanel->SetToolTip(out.str());
 }
 
 void wx_Ping::OnPingPanelMouseMove(wxMouseEvent& event)
@@ -755,7 +803,7 @@ void wx_Ping::OnPingPanelMouseMove(wxMouseEvent& event)
 				<< my::time::to_wstring(iter->value().time(), L"%Y-%m-%d %H:%M:%S") << endl
 				<< L"icmp_seq=" << iter->key() << endl
 				<< L"time=" << iter->value().duration().total_milliseconds() << L" ms";
-	
+
 	} /* shared_lock<shared_mutex> l(pings_mutex_) */
 
 	PingPanel->SetToolTip(out.str());
@@ -771,4 +819,16 @@ void wx_Ping::OnPingPanelMouseLeave(wxMouseEvent& event)
 {
 	pings_active_index_ = -1;
 	PingPanel->Refresh();
+}
+
+void wx_Ping::OnStatePanelLeftDown(wxMouseEvent& event)
+{
+	states_resolution_ *= 2;
+	StatePanel->Refresh();
+}
+
+void wx_Ping::OnStatePanelRightDown(wxMouseEvent& event)
+{
+	states_resolution_ /= 2;
+	StatePanel->Refresh();
 }

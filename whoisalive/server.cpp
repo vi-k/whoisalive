@@ -29,9 +29,14 @@ namespace who {
 server::server(const xml::wptree &config)
 	: gdiplus_token_(0)
 	, io_service_()
+	, anim_handlers_counter_(0)
+	, anim_period_( posix_time::milliseconds(50) )  /* 20 40 50 100 200 */
+	, def_anim_steps_(4)                            /* 10  5  4   2   1 */
+	, flash_step_(1)
+	, flash_pause_(false)
+	, flash_alpha_(0)
+	, flash_new_alpha_(0)
 	, state_log_socket_(io_service_)
-	, anim_period_( posix_time::milliseconds(40) )  /* 20 40 200 */
-	, def_anim_steps_(5)                                  /* 10  5   1 */
 	, active_map_id_(1)
 	, tiler_(*this, 1000, boost::bind(&server::on_tiler_update, this))
 {
@@ -58,6 +63,11 @@ server::server(const xml::wptree &config)
     io_worker_ = new_worker("io_thread");
     boost::thread( boost::bind(
 		&server::io_thread_proc, this, io_worker_) );
+
+	/* Анимация */
+	anim_worker_ = new_worker("anim_thread");
+	boost::thread( boost::bind(
+		&server::anim_thread_proc, this, anim_worker_) );
 }
 
 server::~server()
@@ -67,6 +77,7 @@ server::~server()
 
 	/* "Увольняем" все ссылки на "работников" */
 	dismiss(io_worker_);
+	dismiss(anim_worker_);
 
     /* Ждём завершения */
    	#if 0
@@ -97,6 +108,79 @@ void server::io_thread_proc(my::worker::ptr worker)
 		/* Если нет задач, засыпаем */
 		sleep(worker);
 	}
+}
+
+void server::anim_thread_proc(my::worker::ptr this_worker)
+{
+	asio::io_service io_service;
+	asio::deadline_timer timer(io_service,
+		posix_time::microsec_clock::universal_time());
+	
+	while (!finish())
+	{
+		/* Мигание для "мигающих" объектов */
+		flash_alpha_ += (flash_new_alpha_ - flash_alpha_) / flash_step_;
+		if (--flash_step_ == 0)
+		{
+			flash_step_ = def_anim_steps_;
+			/* При выходе из паузы, меняем направление мигания */
+			if ((flash_pause_ = !flash_pause_) == false)
+				flash_new_alpha_ = (flash_new_alpha_ == 0 ? 1 : 0);
+		}
+
+		BOOST_FOREACH(window &win, windows_)
+			win.anim_handler();
+
+		{
+			/* Используем внутренний mutex worker'а для блокировки */
+			unique_lock<mutex> lock = this_worker->create_lock();
+
+			for (anim_handlers_list::iterator iter = anim_handlers_.begin();
+				iter != anim_handlers_.end(); ++iter)
+			{
+				iter->second();
+			}
+		}
+
+		boost::posix_time::ptime time = timer.expires_at() + anim_period_;
+		boost::posix_time::ptime now = posix_time::microsec_clock::universal_time();
+
+		/* Теоретически время следующей прорисовки должно быть относительным
+			от времени предыдущей, но на практике могут возникнуть торможения,
+			и, тогда, программа будет пытаться запустить прорисовку в прошлом.
+			В этом случае следующий запуск делаем относительно текущего времени */ 
+		timer.expires_at( now > time ? now : time );
+		timer.wait();
+	}
+}
+
+int server::add_anim_handler(anim_handler handler)
+{
+	/* Пока жива копия, жив и worker */
+	my::worker::ptr anim_worker_copy = anim_worker_;
+
+	if (!anim_worker_copy || finish())
+		return 0;
+	
+	/* Используем внутренний mutex worker'а для блокировки */
+	unique_lock<mutex> lock = anim_worker_copy->create_lock();
+	
+	/* Добавляем */
+	anim_handlers_[++anim_handlers_counter_] = handler;
+	
+	return anim_handlers_counter_;
+}
+
+void server::remove_anim_handler(int handler_index)
+{
+	/* Пока жива копия, жив и worker */
+	my::worker::ptr anim_worker_copy = anim_worker_;
+
+	if (!anim_worker_copy || finish())
+		return;
+
+	unique_lock<mutex> lock = anim_worker_copy->create_lock();
+	anim_handlers_.erase(handler_index);
 }
 
 void server::state_log_thread_proc(my::worker::ptr worker)
