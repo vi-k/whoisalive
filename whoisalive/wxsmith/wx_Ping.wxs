@@ -7,7 +7,7 @@
 		<style>wxDEFAULT_DIALOG_STYLE|wxFRAME_TOOL_WINDOW|wxFRAME_FLOAT_ON_PARENT</style>
 		<object class="wxFlexGridSizer" variable="FlexGridSizer1" member="no">
 			<cols>1</cols>
-			<rows>7</rows>
+			<rows>6</rows>
 			<growablecols>0</growablecols>
 			<growablerows>2</growablerows>
 			<object class="sizeritem">
@@ -15,10 +15,9 @@
 					<label>Изменение состояний</label>
 					<font>
 						<size>8</size>
-						<weight>bold</weight>
 					</font>
 				</object>
-				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+				<flag>wxTOP|wxLEFT|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>
@@ -41,10 +40,9 @@
 					<label>Пинги</label>
 					<font>
 						<size>8</size>
-						<weight>bold</weight>
 					</font>
 				</object>
-				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+				<flag>wxTOP|wxLEFT|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>
@@ -94,7 +92,6 @@
 			<object class="sizeritem">
 				<object class="wxTextCtrl" name="ID_PINGTEXTCTRL" variable="PingTextCtrl" member="yes">
 					<size>400,97</size>
-					<hidden>1</hidden>
 					<fg>#C0C0C0</fg>
 					<bg>#000000</bg>
 					<style>wxTE_AUTO_SCROLL|wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH2|wxTE_NOHIDESEL</style>

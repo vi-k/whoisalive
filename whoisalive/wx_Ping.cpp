@@ -71,19 +71,19 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	Create(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE|wxFRAME_TOOL_WINDOW|wxFRAME_FLOAT_ON_PARENT, _T("wxID_ANY"));
 	SetClientSize(wxSize(544,333));
 	SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
-	FlexGridSizer1 = new wxFlexGridSizer(7, 1, 0, 0);
+	FlexGridSizer1 = new wxFlexGridSizer(6, 1, 0, 0);
 	FlexGridSizer1->AddGrowableCol(0);
 	FlexGridSizer1->AddGrowableRow(2);
 	StaticText1 = new wxStaticText(this, ID_STATICTEXT5, _("Изменение состояний"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT5"));
-	wxFont StaticText1Font(8,wxDEFAULT,wxFONTSTYLE_NORMAL,wxBOLD,false,wxEmptyString,wxFONTENCODING_DEFAULT);
+	wxFont StaticText1Font(8,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
 	StaticText1->SetFont(StaticText1Font);
-	FlexGridSizer1->Add(StaticText1, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(StaticText1, 1, wxTOP|wxLEFT|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	StatePanel = new wxPanel(this, ID_STATEPANEL, wxDefaultPosition, wxSize(400,61), wxTAB_TRAVERSAL, _T("ID_STATEPANEL"));
 	FlexGridSizer1->Add(StatePanel, 1, wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	StaticText2 = new wxStaticText(this, ID_STATICTEXT1, _("Пинги"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT1"));
-	wxFont StaticText2Font(8,wxDEFAULT,wxFONTSTYLE_NORMAL,wxBOLD,false,wxEmptyString,wxFONTENCODING_DEFAULT);
+	wxFont StaticText2Font(8,wxDEFAULT,wxFONTSTYLE_NORMAL,wxNORMAL,false,wxEmptyString,wxFONTENCODING_DEFAULT);
 	StaticText2->SetFont(StaticText2Font);
-	FlexGridSizer1->Add(StaticText2, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(StaticText2, 1, wxTOP|wxLEFT|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	PingPanel = new wxPanel(this, ID_PINGPANEL, wxDefaultPosition, wxSize(400,61), wxTAB_TRAVERSAL, _T("ID_PINGPANEL"));
 	FlexGridSizer1->Add(PingPanel, 1, wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	BoxSizer2 = new wxBoxSizer(wxHORIZONTAL);
@@ -97,7 +97,6 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	BoxSizer2->Add(PingLastText, 1, wxLEFT|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer1->Add(BoxSizer2, 1, wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	PingTextCtrl = new wxTextCtrl(this, ID_PINGTEXTCTRL, wxEmptyString, wxDefaultPosition, wxSize(400,97), wxTE_AUTO_SCROLL|wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH2|wxTE_NOHIDESEL, wxDefaultValidator, _T("ID_PINGTEXTCTRL"));
-	PingTextCtrl->Hide();
 	PingTextCtrl->SetForegroundColour(wxColour(192,192,192));
 	PingTextCtrl->SetBackgroundColour(wxColour(0,0,0));
 	FlexGridSizer1->Add(PingTextCtrl, 1, wxALL|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
@@ -125,7 +124,6 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	wstring host = object->hosts().front();
 	wstring name = object->name() + L" / " + host;
 	SetLabel(name);
-
 
 	/* Асинхронное чтение состояний для хоста */
 	server_.get_header(states_socket_, states_reply_,
@@ -158,9 +156,9 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 		&wx_Ping::io_thread_proc, this, new_worker("io_thread") ) );
 
 	/* Анимация */
-	//anim_handler_index_ = server_.add_anim_handler(
-	//	boost::bind(&wx_Ping::anim_handler, this, new_worker("animator")) );
-	
+	anim_handler_index_ = server_.add_anim_handler(
+		boost::bind(&wx_Ping::anim_handler, this, new_worker("animator")) );
+
 	Show();
 }
 
@@ -171,7 +169,7 @@ wx_Ping::~wx_Ping()
 
 	/* "Увольняем" все ссылки на "работников" */
 	/* ... */
-	
+
 	server_.remove_anim_handler(anim_handler_index_);
 
 	/* Наши асинхронные "работники" активно задействуют контролы формы,
@@ -471,12 +469,12 @@ void wx_Ping::states_repaint()
 
 void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
 {
-	/*-
 	unique_lock<mutex> l(states_bitmap_mutex_);
 
 	if (states_bitmap_.IsOk())
 	{
-		scoped_ptr<wxGraphicsContext> gc( wxGraphicsContext::Create(StatePanel) );
+		wxPaintDC dc(StatePanel);
+		scoped_ptr<wxGraphicsContext> gc( wxGraphicsContext::Create(dc) );
 
 		int w, h;
 		StatePanel->GetClientSize(&w, &h);
@@ -491,7 +489,6 @@ void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
 			gc->StrokeLine(x, 0, x, h);
 		}
 	}
-	-*/
 
 	event.Skip(false);
 }
@@ -706,6 +703,8 @@ void wx_Ping::pings_repaint()
 
 void wx_Ping::OnPingPanelPaint(wxPaintEvent& event)
 {
+	wxPaintDC dc(PingPanel);
+
 	unique_lock<mutex> l(pings_bitmap_mutex_);
 
 	if (pings_bitmap_.IsOk())
@@ -724,6 +723,7 @@ void wx_Ping::OnPingPanelPaint(wxPaintEvent& event)
 			dc.DrawLine(x, 0, x, h);
 		}
 	}
+
 	event.Skip(false);
 }
 
