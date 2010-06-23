@@ -44,6 +44,9 @@ namespace boost {
 std::size_t hash_value(const posix_time::ptime &t);
 }
 
+double operator/(const posix_time::time_duration &td1,
+	const posix_time::time_duration &td2);
+
 namespace my { namespace time {
 
 /* hash для std::unordered_map */
@@ -63,8 +66,35 @@ struct ptime_hash : std::unary_function<posix_time::ptime, std::size_t>
 	}
 };
 
+/* UTC <-> local */
 posix_time::ptime utc_to_local(const posix_time::ptime &utc_time);
 posix_time::ptime local_to_utc(const posix_time::ptime &local_time);
+
+/* Округление времени с точностью до prec.
+	Возвращает значение, равное или меньшее заданному:
+		floor(00:00:03.500, 00:00:01) = 00:00:03 */
+posix_time::ptime floor(const posix_time::ptime &time,
+	const posix_time::time_duration &prec);
+posix_time::time_duration floor(const posix_time::time_duration &dur,
+	const posix_time::time_duration &prec);
+
+/* Округление времени с точностью до prec.
+	Возвращает значение, равное или большее заданному:
+		ceil(00:00:03.500, 00:00:01) = 00:00:04 */
+posix_time::ptime ceil(const posix_time::ptime &time,
+	const posix_time::time_duration &prec);
+posix_time::time_duration ceil(const posix_time::time_duration &dur,
+	const posix_time::time_duration &prec);
+
+/* Округление времени с точностью до prec.
+	Возвращает значение, равное или ближайшее заданному:
+		round(00:00:03.500, 00:00:01) = 00:00:04
+		round(00:00:03.499, 00:00:01) = 00:00:03 */
+posix_time::ptime round(const posix_time::ptime &time,
+	const posix_time::time_duration &prec);
+posix_time::time_duration round(const posix_time::time_duration &dur,
+	const posix_time::time_duration &prec);
+
 
 template<class Time>
 void throw_if_fail(const Time &time,

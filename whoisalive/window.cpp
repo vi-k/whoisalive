@@ -57,10 +57,6 @@ window::window(server &server, HWND parent)
 	RegisterClass(&wc);
 
 	set_link(parent);
-
-	anim_worker_ = new_worker("anim_thread");
-	boost::thread( boost::bind( &window::anim_thread_proc,
-		this, anim_worker_) );
 }
 
 window::~window()
@@ -69,7 +65,7 @@ window::~window()
 	lets_finish();
 	
 	/* "Увольняем" все ссылки на "работников" */
-	dismiss(anim_worker_);
+	/* ... */
 
     /* Ждём завершения */  	
 	#if 0
@@ -89,40 +85,22 @@ window::~window()
 
 void window::animate()
 {
-	if (anim_worker_)
-		wake_up(anim_worker_);
 }
 
 /* Анимация карты */
-void window::anim_thread_proc(my::worker::ptr worker)
+void window::anim_handler()
 {
-	asio::io_service io_service;
-	asio::deadline_timer timer(io_service,
-		posix_time::microsec_clock::universal_time());
-	
-	while (!finish())
+	anim_freq_sw_.start();
+
+	if (!finish())
 	{
 		/* Анимируются все карты */
-		bool anim = false;
+		/*bool anim = false;*/
 		BOOST_FOREACH(who::scheme &scheme, schemes_)
-			anim |= scheme.animate_calc();
+			/*anim |=*/ scheme.animate_calc();
 
 		/* ... но прорисовывается только одно - активное */
 		paint_();
-
-		boost::posix_time::ptime time = timer.expires_at() + server_.anim_period();
-		boost::posix_time::ptime now = posix_time::microsec_clock::universal_time();
-
-		/* Теоретически время следующей прорисовки должно быть относительным
-			от времени предыдущей, но на практике могут возникнуть торможения,
-			и, тогда, программа будет пытаться запустить прорисовку в прошлом.
-			В этом случае следующий запуск делаем относительно текущего времени */ 
-		timer.expires_at( now > time ? now : time );
-
-		if (anim)
-			timer.wait();
-		else
-			sleep(worker);
 	}
 }
 
@@ -439,6 +417,8 @@ void window::on_destroy()
 */
 void window::paint_()
 {
+	anim_fps_sw_.start();
+
 	unique_lock<recursive_mutex> l(canvas_mutex_);
 
 	if (canvas_.get())
@@ -507,8 +487,6 @@ void window::paint_()
 			Gdiplus::Font font(L"Tahoma", 12, 0, Gdiplus::UnitPixel);
 			Gdiplus::SolidBrush brush( Gdiplus::Color(255, 255, 255) );
 
-			static int count = 0;
-
 			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"hwnd: 0x%08X", hwnd_);
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 			pt.Y += 12;
@@ -517,6 +495,7 @@ void window::paint_()
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 			pt.Y += 12;
 
+			static int count = 0;
 			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"paint_count: %d", ++count);
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 			pt.Y += 12;
@@ -593,6 +572,36 @@ void window::paint_()
 			Gdiplus::SolidBrush brush(color2);
 			canvas_->FillRectangle(&brush, 1, 1, w_ - 2, 2);
 		}
+
+#ifdef _DEBUG
+		{
+			anim_fps_sw_.finish();
+			anim_freq_sw_.finish();
+			if (anim_fps_sw_.total.seconds() > 1)
+			{
+				anim_fps_ = (double)anim_fps_sw_.count
+					/ ((double)anim_fps_sw_.total.ticks()
+					/ (double)anim_fps_sw_.total.ticks_per_second());
+				anim_fps_sw_.reset();
+
+				posix_time::time_duration avg = anim_freq_sw_.avg();
+				anim_freq_ = (double)avg.ticks() / (double)avg.ticks_per_second() * 1000.0;
+			}
+			anim_freq_sw_.start();
+
+			Gdiplus::Font font(L"Tahoma", 12, 0, Gdiplus::UnitPixel);
+			Gdiplus::SolidBrush brush( Gdiplus::Color(255, 255, 255) );
+			Gdiplus::PointF pt( (float)w_ - 60, 8);
+			wchar_t buf[200];
+
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"%0.1f fps", anim_fps_);
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+
+			pt.Y += 12;
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"%0.1f ms", anim_freq_);
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+		}
+#endif
 
 		/* Переносим из буфера на экран */
 		Gdiplus::Graphics g(hwnd_, FALSE);

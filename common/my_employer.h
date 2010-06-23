@@ -231,7 +231,7 @@ public:
 private:
 	shared_lock<shared_mutex> lock_;
 	std::string name_;
-	mutex sleep_mutex_;
+	mutex mutex_;
 	condition_variable sleep_cond_;
 	boost::function<void ()> on_finish_;
 
@@ -249,6 +249,9 @@ public:
 		, on_finish_(on_finish)
 	{
 	}
+
+	inline unique_lock<mutex> create_lock()
+		{ return unique_lock<mutex>(mutex_); }
 };
 
 /* Класс "работодателя" */
@@ -289,7 +292,7 @@ public:
 	{
 		/* Блокировкой гарантируем атомарность операций:
 			сравнения и засыпания */
-		unique_lock<mutex> lock(ptr->sleep_mutex_);
+		unique_lock<mutex> lock(ptr->mutex_);
 			
 		if (!employer_finish_)
 		{
@@ -300,15 +303,33 @@ public:
 		return false;
 	}
 
-	/* Разбудить поток */
-	void wake_up(worker::ptr ptr)
+	/* Усыпить поток (но только, если не было команды завершить работу).
+		Блокировка обеспечена вызывающей стороной */
+	bool sleep(worker::ptr ptr, unique_lock<mutex> &lock)
 	{
-		/* Блокировкой гарантируем, что не окажемся
-			между if (!finish()) и wait(). Иначе мы
-			"разбудим" ещё не спящий поток, но который
-			тут же заснёт  */
-		unique_lock<mutex> l(ptr->sleep_mutex_);
-		ptr->sleep_cond_.notify_all();
+		if (!employer_finish_)
+		{
+			ptr->sleep_cond_.wait(lock);
+			return true;
+		}
+
+		return false;
+	}
+
+	/* Разбудить поток */
+	void wake_up(worker::ptr ptr, bool with_lock = true)
+	{
+		if (!with_lock)
+			/* Блокировка обеспечена вызывающей стороной */
+			ptr->sleep_cond_.notify_all();
+		else
+		{
+			/* Блокировкой гарантируем, что не окажемся между
+				if (!finish()) и wait(). Иначе мы "разбудим" ещё
+				не спящий поток, но который тут же заснёт  */
+			unique_lock<mutex> l(ptr->mutex_);
+			ptr->sleep_cond_.notify_all();
+		}
 	}
 
 	inline void dismiss(worker::ptr &ptr)
@@ -348,7 +369,7 @@ public:
 
 		/* Будим все потоки */
 		for_each(employer_workers_.begin(), employer_workers_.end(),
-			boost::bind(&employer::wake_up, this, _1));
+			boost::bind(&employer::wake_up, this, _1, true));
 
 		/* Вызываем обработчики завершения */
 		for_each(employer_workers_.begin(), employer_workers_.end(),

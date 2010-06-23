@@ -133,5 +133,31 @@ int main()
 	TEST_TD_F(0,0,0,0,"symbols test %% %Q%* %")
 	TEST_TD_F(0,0,0,123456,"big format <%f%f%f%f%f%f%f%f%f%f>")
 
+	cout << my::time::floor(posix_time::time_duration(0,0,3,500000),
+		posix_time::time_duration(0,0,1,000000)) << endl;
+	cout << my::time::ceil(posix_time::time_duration(0,0,3,500000),
+		posix_time::time_duration(0,0,1,000000)) << endl;
+	cout << my::time::round(posix_time::time_duration(0,0,3,500000),
+		posix_time::time_duration(0,0,1,000000)) << endl;
+	cout << my::time::round(posix_time::time_duration(0,0,3,499999),
+		posix_time::time_duration(0,0,1,000000)) << endl;
+
+	cout << my::time::floor(posix_time::ptime(
+			gregorian::date(2009,12,31),
+			posix_time::time_duration(23,59,59,500000)),
+		posix_time::time_duration(0,0,1,000000)) << endl;
+	cout << my::time::ceil(posix_time::ptime(
+			gregorian::date(2009,12,31),
+			posix_time::time_duration(23,59,59,500000)),
+		posix_time::time_duration(0,0,1,000000)) << endl;
+	cout << my::time::round(posix_time::ptime(
+			gregorian::date(2009,12,31),
+			posix_time::time_duration(23,59,59,500000)),
+		posix_time::time_duration(0,0,1,000000)) << endl;
+	cout << my::time::round(posix_time::ptime(
+			gregorian::date(2009,12,31),
+			posix_time::time_duration(23,59,59,499999)),
+		posix_time::time_duration(0,0,1,000000)) << endl;
+
 	return 0;
 }

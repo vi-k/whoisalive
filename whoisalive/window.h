@@ -9,6 +9,7 @@
 #include "../common/my_http.h"
 #include "../common/my_inet.h"
 #include "../common/my_employer.h"
+#include "../common/my_stopwatch.h"
 
 #include <memory>
 
@@ -32,7 +33,10 @@ namespace mousekeys
 class window : my::employer
 {
 private:
-	my::worker::ptr anim_worker_;
+	my::stopwatch anim_fps_sw_;
+	double anim_fps_;
+	my::stopwatch anim_freq_sw_;
+	double anim_freq_;
 
 	server &server_;
 	HWND hwnd_;
@@ -68,8 +72,6 @@ private:
 		
 	static int window::wparam_to_keys_(WPARAM wparam);
 
-	void anim_thread_proc(my::worker::ptr worker);
-
 public:
 	/* События */
 	boost::function<void (window*, int delta, int keys, int x, int y)> on_mouse_wheel;
@@ -88,6 +90,8 @@ public:
 
 	window(server &server, HWND parent);
 	~window();
+
+	void anim_handler();
 
 	inline HWND hwnd()
 		{ return hwnd_; }

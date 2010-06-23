@@ -32,10 +32,28 @@ class server : my::employer
 public:
 	typedef shared_ptr<server> ptr;
 	typedef boost::unordered_map<std::wstring, pinger::host_state> hosts_list;
+	typedef boost::function<void ()> anim_handler;
+	typedef std::map<int, anim_handler> anim_handlers_list;
 
 private:
+	/* io */
 	asio::io_service io_service_;
 	my::worker::ptr io_worker_;
+
+	void io_thread_proc(my::worker::ptr worker);
+
+	/* Анимация */
+	my::worker::ptr anim_worker_;
+	anim_handlers_list anim_handlers_;
+	int anim_handlers_counter_;
+
+	void anim_thread_proc(my::worker::ptr this_worker);
+
+	/* Мигание */
+	int flash_step_;
+	bool flash_pause_;
+	double flash_alpha_;
+	double flash_new_alpha_;
 
 	tcp::endpoint server_endpoint_;
 	tcp::socket state_log_socket_;
@@ -52,7 +70,6 @@ private:
 	void load_maps_();
 
 	void state_log_thread_proc(my::worker::ptr worker);
-	void io_thread_proc(my::worker::ptr worker);
 
 public:
 	server(const xml::wptree &config);
@@ -61,11 +78,17 @@ public:
 	inline void io_wake_up()
 		{ wake_up(io_worker_); }
 
+	int add_anim_handler(anim_handler handler);
+	void remove_anim_handler(int index);
+
 	inline int def_anim_steps()
 		{ return def_anim_steps_; }
 	inline posix_time::time_duration anim_period()
 		{ return anim_period_; }
 		
+	inline double flash_alpha()
+		{ return flash_alpha_; }
+
 	inline obj_class::ptr obj_class(const std::wstring &class_name)
 		{ return classes_[class_name]; }
 
