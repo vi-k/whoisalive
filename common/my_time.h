@@ -44,9 +44,6 @@ namespace boost {
 std::size_t hash_value(const posix_time::ptime &t);
 }
 
-double operator/(const posix_time::time_duration &td1,
-	const posix_time::time_duration &td2);
-
 namespace my { namespace time {
 
 /* hash для std::unordered_map */
@@ -65,6 +62,18 @@ struct ptime_hash : std::unary_function<posix_time::ptime, std::size_t>
 		return seed;
 	}
 };
+
+double div(
+	const posix_time::time_duration &time1,
+	const posix_time::time_duration &time2);
+
+posix_time::time_duration div(
+	const posix_time::time_duration &time,
+	double divisor);
+
+posix_time::time_duration mul(
+	const posix_time::time_duration &time,
+	double rhs);
 
 /* UTC <-> local */
 posix_time::ptime utc_to_local(const posix_time::ptime &utc_time);
