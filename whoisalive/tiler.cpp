@@ -1,4 +1,6 @@
-﻿#include "tiler.h"
+﻿#include "stdafx.h"
+
+#include "tiler.h"
 #include "server.h"
 
 //#include "log.h"

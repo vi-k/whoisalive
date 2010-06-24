@@ -7,6 +7,8 @@
  * License:
  **************************************************************/
 
+#include "stdafx.h"
+
 #include <boost/config/warning_disable.hpp> /* против unsafe */
 
 #include "ipgui.h"

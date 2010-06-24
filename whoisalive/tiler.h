@@ -7,13 +7,13 @@
 #include "../common/my_inet.h"
 #include "../common/my_mru.h"
 #include "../common/my_employer.h"
+#include "../common/my_ptr.h"
 
 #include <string>
 #include <list>
 #include <map>
 
 #include <boost/functional/hash.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 
 namespace who {
@@ -83,7 +83,7 @@ struct tile_id
 
 struct tile
 {
-	typedef boost::shared_ptr<tile> ptr;
+	typedef shared_ptr<tile> ptr;
 
 	bool loaded;
 	Gdiplus::Image image;

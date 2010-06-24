@@ -1,4 +1,6 @@
-﻿#include "scheme.h"
+﻿#include "stdafx.h"
+
+#include "scheme.h"
 
 #include <map>
 #include <string>

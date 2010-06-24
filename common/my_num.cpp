@@ -1,4 +1,6 @@
-﻿#include "my_num.h"
+﻿#include "stdafx.h"
+
+#include "my_num.h"
 #include "my_qi.h"
 #include "my_str.h"
 

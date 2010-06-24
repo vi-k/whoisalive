@@ -1,4 +1,6 @@
-﻿#include "ipgui.h"
+﻿#include "stdafx.h"
+
+#include "ipgui.h"
 
 using namespace std;
 

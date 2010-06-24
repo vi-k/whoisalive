@@ -1,10 +1,12 @@
-﻿#include <boost/config/warning_disable.hpp> /* против unsafe */
+﻿#include "stdafx.h"
+
+#include <boost/config/warning_disable.hpp> /* против unsafe */
 
 #include "my_str.h"
 
-#include <stdlib.h>
-#include <string.h> /* strlen */
-#include <wchar.h> /* wcslen */
+#include <cstdlib>
+#include <cstring> /* strlen */
+#include <cwchar> /* wcslen */
 
 #include <sstream>
 #include <locale>

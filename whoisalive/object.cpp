@@ -1,9 +1,12 @@
-﻿#include "object.h"
+﻿#include "stdafx.h"
+
+#include "object.h"
 #include "server.h"
 #include "obj_class.h"
 
-#include <math.h>
-#include <wchar.h>
+#include <cmath>
+#include <cwchar>
+using namespace std;
 
 #include <boost/foreach.hpp>
 //#include <boost/spirit/include/classic_core.hpp> /* boost::spirit */

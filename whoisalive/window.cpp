@@ -1,10 +1,12 @@
-﻿#include "window.h"
+﻿#include "stdafx.h"
+
+#include "window.h"
 #include "server.h"
 
 #include "../common/my_time.h"
 
-#include <math.h>
-#include <stdio.h>
+#include <cstdio>
+using namespace std;
 
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -95,12 +97,13 @@ void window::anim_handler()
 	if (!finish())
 	{
 		/* Анимируются все карты */
-		/*bool anim = false;*/
+		bool anim = false;
 		BOOST_FOREACH(who::scheme &scheme, schemes_)
-			/*anim |=*/ scheme.animate_calc();
+			anim |= scheme.animate_calc();
 
 		/* ... но прорисовывается только одно - активное */
-		paint_();
+		if (anim)
+			paint_();
 	}
 }
 

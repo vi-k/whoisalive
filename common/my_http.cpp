@@ -1,4 +1,6 @@
-﻿#include <boost/config/warning_disable.hpp> /* против unsafe */
+﻿#include "stdafx.h"
+
+#include <boost/config/warning_disable.hpp> /* против unsafe */
 
 #include "../common/my_http.h"
 #include "../common/my_utf8.h"

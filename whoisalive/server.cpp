@@ -1,4 +1,6 @@
-﻿#include "server.h"
+﻿#include "stdafx.h"
+
+#include "server.h"
 
 #include "../common/my_inet.h"
 #include "../common/my_http.h"
