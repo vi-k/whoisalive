@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "wx_Ping.h"
 #include "handle_exception.h"
 

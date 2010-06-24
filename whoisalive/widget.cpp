@@ -1,4 +1,6 @@
-﻿#include "widget.h"
+﻿#include "stdafx.h"
+
+#include "widget.h"
 #include "scheme.h"
 #include "window.h"
 #include "server.h"

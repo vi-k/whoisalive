@@ -1,4 +1,6 @@
-﻿#include "ipimage.h"
+﻿#include "stdafx.h"
+
+#include "ipimage.h"
 #include "scheme.h"
 #include "server.h"
 

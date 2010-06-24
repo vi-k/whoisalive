@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "my_time.h"
 
 #include <boost/io/ios_state.hpp>

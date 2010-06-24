@@ -1,4 +1,6 @@
-﻿#include "my_inet.h"
+﻿#include "stdafx.h"
+
+#include "my_inet.h"
 #include "my_str.h"
 #include "my_punycode.h"
 

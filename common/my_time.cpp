@@ -1,10 +1,12 @@
-﻿#include "my_time.h"
+﻿#include "stdafx.h"
+
+#include "my_time.h"
 #include "my_exception.h"
 
 using namespace std;
 
 #include <boost/date_time/time_parsing.hpp>
-#include "boost/date_time/c_local_time_adjustor.hpp"
+#include <boost/date_time/c_local_time_adjustor.hpp>
 
 namespace boost {
 std::size_t hash_value(const posix_time::ptime &t)

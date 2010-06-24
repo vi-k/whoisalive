@@ -1,4 +1,6 @@
-﻿#include "obj_class.h"
+﻿#include "stdafx.h"
+
+#include "obj_class.h"
 #include "server.h"
 
 #include "../common/my_http.h"

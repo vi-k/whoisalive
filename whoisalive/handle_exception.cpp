@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "handle_exception.h"
 
 using namespace std;
