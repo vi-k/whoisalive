@@ -12,6 +12,7 @@
 #include "../common/my_employer.h"
 
 #include <memory>
+#include <cmath>
 
 #include <boost/config/warning_disable.hpp> /* против unsafe */
 
@@ -51,17 +52,34 @@ private:
 	states_list states_;
 	tcp::socket states_socket_;
 	my::http::reply states_reply_;
-	posix_time::ptime states_start_;
-	posix_time::time_duration states_resolution_;
+	posix_time::ptime states_start_time_;
+	posix_time::ptime states_cursor_time_;
+	double states_z_;
+	double new_states_z_;
+	int states_z_step_;
+	//posix_time::time_duration states_resolution_;
+	//posix_time::time_duration new_states_resolution_;
+	//int states_resolution_step_;
 	shared_mutex states_mutex_;
 	wxBitmap states_bitmap_;
+	wxBitmap states_caption_bitmap_;
 	mutex states_bitmap_mutex_;
-	int states_active_index_;
 
 	posix_time::ptime states_start_time();
 	void states_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
 	void states_repaint();
+
+	static posix_time::time_duration states_resolution(double z)
+	{
+		int iz = (int)z; /* Отбрасываем дробную часть */
+
+		/* 250ms, 500ms, 1s, 2s, 4s, 8s, 16s, 32s, ... */
+		posix_time::time_duration res
+			= posix_time::milliseconds(250) * (2 << iz);
+
+		return res + my::time::mul(res, z - (double)iz);
+	}
 
 	pinger::host_state get_state_by_offset(int offset);
 
@@ -81,6 +99,21 @@ private:
 		const boost::system::error_code& error, size_t bytes_transferred );
 	void pings_repaint();
 
+
+	inline wxDouble time_to_x(
+		const posix_time::ptime &time,
+		const posix_time::ptime &start_time,
+		const posix_time::time_duration &resolution,
+		wxDouble width);
+
+	inline posix_time::ptime x_to_time(
+		wxDouble x,
+		const posix_time::ptime &start_time,
+		const posix_time::time_duration &resolution,
+		wxDouble width);
+
+	wxDouble states_time_to_x(const posix_time::ptime &time);
+	posix_time::ptime states_x_to_time(wxDouble x);
 
 	//(*Handlers(wx_Ping)
 	void OnStatePanelPaint(wxPaintEvent& event);

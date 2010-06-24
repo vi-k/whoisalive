@@ -14,7 +14,6 @@ using namespace std;
 #include <boost/bind.hpp>
 #include <boost/system/system_error.hpp>
 
-//#define wxUSE_GRAPHICS_CONTEXT 1
 #include <wx/graphics.h>
 #include <wx/app.h>
 #include <wx/msgdlg.h>
@@ -56,8 +55,9 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	, anim_handler_index_(0)
 	, states_socket_(io_service_)
 	, states_()
-	, states_resolution_(posix_time::milliseconds(1000))
-	, states_active_index_(-1)
+	, states_z_(2)
+	, new_states_z_(states_z_)
+	, states_z_step_(0)
 	, pings_socket_(io_service_)
 	, pings_(1000)
 	, pings_active_index_(-1)
@@ -214,7 +214,15 @@ void wx_Ping::io_thread_proc(my::worker::ptr this_worker)
 void wx_Ping::anim_handler(my::worker::ptr this_worker)
 {
 	if (!finish())
+	{
+		if (states_z_step_)
+		{
+			states_z_ += (new_states_z_ - states_z_) / states_z_step_;
+			--states_z_step_;
+		}
+
 		states_repaint();
+	}
 }
 
 void wx_Ping::Open(wxWindow* parent, who::server &server, who::object *object)
@@ -283,7 +291,6 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 				{
 					unique_lock<shared_mutex> l(states_mutex_);
 					states_[utc_time] = state;
-					states_active_index_ = -1;
 				}
 			} /* while (ss) */
 
@@ -309,10 +316,52 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 
 posix_time::ptime wx_Ping::states_start_time()
 {
+	return states_start_time_.is_special() ?
+		posix_time::microsec_clock::universal_time() : states_start_time_;
+	
+	/*-
 	return my::time::ceil(
-		states_start_.is_special() ?
-			posix_time::microsec_clock::universal_time() : states_start_,
-		states_resolution_);
+		states_start_time_.is_special() ?
+			posix_time::microsec_clock::universal_time() : states_start_time_,
+		states_resolution(states_z_));
+	-*/
+}
+
+wxDouble wx_Ping::time_to_x(
+	const posix_time::ptime &time,
+	const posix_time::ptime &start_time,
+	const posix_time::time_duration &resolution,
+	wxDouble width)
+{
+	return width - 1.0 - my::time::div(start_time - time, resolution);
+}
+
+posix_time::ptime wx_Ping::x_to_time(
+	wxDouble x,
+	const posix_time::ptime &start_time,
+	const posix_time::time_duration &resolution,
+	wxDouble width)
+{
+	return start_time - my::time::mul(resolution, width - 1.0 - x);
+}
+
+wxDouble wx_Ping::states_time_to_x(const posix_time::ptime &time)
+{
+	int w, h;
+	StatePanel->GetClientSize(&w, &h);
+
+	return (wxDouble)w - 1.0
+		- my::time::div(states_start_time() - time,
+			states_resolution(states_z_));
+}
+
+posix_time::ptime wx_Ping::states_x_to_time(wxDouble x)
+{
+	int w, h;
+	StatePanel->GetClientSize(&w, &h);
+
+	return states_start_time()
+		- my::time::mul(states_resolution(states_z_), (wxDouble)w - 1.0 - x);
 }
 
 /* Прорисовка состояний */
@@ -321,104 +370,163 @@ void wx_Ping::states_repaint()
 	{
 		unique_lock<mutex> l(states_bitmap_mutex_);
 
-		int w, h;
-		StatePanel->GetClientSize(&w, &h);
+		wxDouble w, h;
 
-		if (states_bitmap_.GetWidth() != w || states_bitmap_.GetHeight() != h)
-			states_bitmap_.Create(w, h);
+		/* Вычисляем размеры панели и подгоняем bitmap'у под эти размеры */
+		{
+			int iw, ih;
+			StatePanel->GetClientSize(&iw, &ih);
+			w = (wxDouble)iw;
+			h = (wxDouble)ih;
+
+			if (states_bitmap_.GetWidth() != iw || states_bitmap_.GetHeight() != ih)
+				states_bitmap_.Create(iw, ih);
+		}
 
 		wxMemoryDC dc(states_bitmap_);
 		scoped_ptr<wxGraphicsContext> gc( wxGraphicsContext::Create(dc) );
+		gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
 
-		int cy = h / 2;
-		int ok_sz = 1;
-		int warn_sz = cy / 3 * 1;
-		int fail_sz = cy / 3 * 2;
+		wxDouble ok_y = 8.0;
+		wxDouble warn_y = ok_y + 12.0;
+		wxDouble fail_y = warn_y + 12.0;
 
-		posix_time::ptime start = states_start_time();
+		posix_time::ptime start_time = states_start_time();
+		posix_time::ptime local_start_time = my::time::utc_to_local(start_time);
+		posix_time::time_duration states_res = states_resolution(states_z_);
 
 		/* Стираем */
 		gc->SetBrush(*wxBLACK_BRUSH);
-		gc->DrawRectangle(0, 0, w, h);
+		gc->DrawRectangle(0.0, 0.0, w, h);
 
-		/* Рисуем границы */
-		gc->SetPen(*wxGREY_PEN);
-		gc->StrokeLine(0, cy, w, cy);
-
-#if 0
 		/* Рисуем сетку */
 		{
-			static const long grid[]
-				= {1, 5, 15, 60, 5*60, 15*60, 60*60, 3*60*60, 12*60*60, 24*60*60};
-			static const unsigned char levels[]
-				= {96, 64, 32};
-
-			long min_grid = (states_resolution_ * 5).total_seconds();
-
-			int min_grid_index;
-			for (int i = 0; i < sizeof(grid)/sizeof(*grid); ++i)
+			static const long grids[] =
 			{
-				min_grid_index = i;
-				if (grid[i] >= min_grid)
-					break;
-			}
-
-			int max_grid_index = min(
-				sizeof(levels)/sizeof(*levels) + min_grid_index,
-				sizeof(grid)/sizeof(*grid));
+				1, 5, 10, 30, /* секунды */
+				1*60, 5*60, 10*60, 30*60, /* минуты */
+				1*3600, 6*3600, 12*3600, /* часы */
+				24*3600, /* дни */
+				7*24*3600, /* недели */
+				30*24*3600, /* месяцы */
+				365*24*3600  /* годы */
+			};
 
 			gc->SetFont( wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL,
-				wxFONTWEIGHT_NORMAL), wxColour(255, 255, 255));
+				wxFONTWEIGHT_NORMAL), wxColour(192, 192, 192));
 
-			for (int i = min_grid_index; i < max_grid_index; ++i)
+			wxDouble caption_width;
+			
 			{
-				unsigned char l = levels[ max_grid_index - 1 - i ];
+				wxDouble h, d;
+				wstring str(L"00-00-0000");
+				gc->GetTextExtent(str, &caption_width, &h, &d, 0);
 
-				posix_time::time_duration grid_resolution = posix_time::seconds(grid[i]);
-				posix_time::ptime grid_start = my::time::floor(start, grid_resolution);
+				/*-
+				if ( (double)states_caption_bitmap_.GetWidth() < caption_width
+					|| (double)states_caption_bitmap_.GetHeight() < caption_height)
+					states_bitmap_.Create(iw, ih);
+				-*/
+			}
 
-				int grid_size = (int)(grid_resolution / states_resolution_);
-				int x = w - (int)((start - grid_start) / states_resolution_) - 1;
+			bool guides_painted = false;
+			bool captions_painted = false;
 
-				gc->SetPen( wxPen(wxColour(l, l, l)) );
+			for (int i = 0; i < sizeof(grids)/sizeof(*grids); ++i)
+			{
+				posix_time::time_duration grid_resolution = posix_time::seconds(grids[i]);
 
-				while (x >= 0)
+				double cell_sz = my::time::div(grid_resolution, states_res);
+				if (cell_sz < 5.0) continue;
+
+				double alpha = cell_sz / 255.0 ;
+				if (alpha > 1.0) alpha = 1.0;
+
+				static const int max_a = 192;
+				static const int min_a = 32;
+				static const int guides_a = 64;
+
+				unsigned char a = (unsigned char)(alpha * (max_a - min_a) + min_a);
+				gc->SetPen( wxPen(wxColour(a, a, a)) );
+
+				posix_time::ptime grid_time
+					= my::time::floor(local_start_time, grid_resolution);
+
+				/* Рисуем направляющие */
+				if (!guides_painted && a >= guides_a)
 				{
-					gc->StrokeLine(x, 0, x, h);
+					guides_painted = true;
+					gc->SetPen( wxColour(guides_a, guides_a, guides_a) );
+					gc->StrokeLine(0, ok_y, w, ok_y);
+					gc->StrokeLine(0, warn_y, w, warn_y);
+					gc->StrokeLine(0, fail_y, w, fail_y);
+				}
 
-					if (i == max_grid_index - 1)
+				wxDouble x;
+				wxDouble ext = 4.0 * (a - min_a) / (max_a - min_a);
+
+				bool captions_paint = false;
+				int k;
+
+				/* Выводим подписи */
+				if (!captions_painted && cell_sz > caption_width * 0.75)
+				{
+					captions_paint = true;
+					k = (cell_sz > caption_width * 1.5 ? 1 : 2);
+				}
+
+				do
+				{
+					x = time_to_x(grid_time, local_start_time, states_res, w);
+					gc->StrokeLine(x, ok_y - ext, x, fail_y + ext);
+
+					/* Выводим подписи */
+					if (captions_paint && (k == 1 || k == 2
+						&& my::time::floor(grid_time, grid_resolution)
+							== my::time::floor(grid_time, grid_resolution * 2)))
 					{
-						wstring str = my::time::to_wstring(grid_start, L"%H:%M:%S");
-						wxDouble tw, th, descent, tx, ty;
-						gc->GetTextExtent(str, &tw, &th, &descent, 0);
-						tx = x - tw / 2;
-						ty = h - th;
-						gc->DrawText(str, tx, ty);
+						wxDouble str_w, str_h, str_x, str_y, d;
+
+						str_y = fail_y + 5.0;
+
+						wstring str = my::time::to_wstring(grid_time, L"%H:%M:%S");
+						gc->GetTextExtent(str, &str_w, &str_h, &d, 0);
+						str_x = x - str_w / 2.0;
+						gc->DrawText(str, str_x, str_y);
+
+						str_y += str_h - 2.0;
+
+						str = my::time::to_wstring(grid_time, L"%d-%m-%Y");
+						gc->GetTextExtent(str, &str_w, &str_h, &d, 0);
+						str_x = x - str_w / 2.0;
+						gc->DrawText(str, str_x, str_y);
 					}
 
-					grid_start -= grid_resolution;
-					x -= grid_size;
-				}
+					grid_time -= grid_resolution;
+
+				} while (x >= 0.0);
+
+				if (captions_paint)
+					captions_painted = true;
 			}
-		}
+		} /* Рисуем сетку */
 
-#endif
-
+		/* Рисуем состояния */
 		{
 			shared_lock<shared_mutex> l(states_mutex_);
 
 			states_list::reverse_iterator iter = states_.rbegin();
-			for (; iter != states_.rend() && iter->first > start; ++iter);
+			for (; iter != states_.rend() && iter->first > start_time; ++iter);
 
-			int prev_x = w - 1;
+			wxDouble prev_x = w - 1.0;
 
 			while (iter != states_.rend())
 			{
 				pinger::host_state state = iter->second;
 
-				int x = w - (start - iter->first) / states_resolution_ - 1;
+				wxDouble x = time_to_x(iter->first, start_time, states_res, w);
 				wxColour colors[4];
-				int sz = 0;
+				wxDouble y = 0.0;
 
 				unsigned char alpha = state.acknowledged() ?
 					255 : (unsigned char)(255 * server_.flash_alpha());
@@ -427,40 +535,40 @@ void wx_Ping::states_repaint()
 				{
 					case pinger::host_state::ok:
 						colors[0].Set(0, 255, 0, alpha);
-						colors[1].Set(0, 192, 0, alpha);
-						sz = ok_sz;
+						colors[1].Set(0, 160, 0, alpha);
+						y = ok_y;
 						break;
 
 					case pinger::host_state::warn:
 						colors[0].Set(255, 255, 0, alpha);
-						colors[1].Set(192, 192, 0, alpha);
-						sz = warn_sz;
+						colors[1].Set(160, 160, 0, alpha);
+						y = warn_y;
 						break;
 
 					case pinger::host_state::fail:
 						colors[0].Set(255, 0, 0, alpha);
-						colors[1].Set(192, 0, 0, alpha);
-						sz = fail_sz;
+						colors[1].Set(160, 0, 0, alpha);
+						y = fail_y;
 						break;
 				}
 
 				gc->SetPen( wxPen(colors[0]) );
 				gc->SetBrush( wxBrush(colors[1]) );
-				gc->DrawRectangle(x, cy - sz, prev_x - x - 1, 2 * sz);
+				gc->StrokeLine(x, y, prev_x, y);
 
-				if (x < 0)
-					break;
+				if (x < 0.0) break;
 
 				prev_x = x;
 				++iter;
 			}
 		} /* shared_lock<shared_mutex> l(states_mutex_) */
 
-		/*-
-		gc1->SetPen(*wxBLACK_PEN);
-		gc1->SetBrush(*wxTRANSPARENT_BRUSH);
-		gc1->DrawRectangle(0, 0, w, h);
-		-*/
+		if (!states_cursor_time_.is_special())
+		{
+			wxDouble x = time_to_x(states_cursor_time_, start_time, states_res, w);
+			gc->SetPen(*wxWHITE_PEN);
+			gc->StrokeLine(x, 0.0, x, h);
+		}
 
 		scoped_ptr<wxGraphicsContext> gc2( wxGraphicsContext::Create(StatePanel) );
 		gc2->DrawBitmap(states_bitmap_, 0, 0, w, h);
@@ -480,14 +588,6 @@ void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
 		StatePanel->GetClientSize(&w, &h);
 
 		gc->DrawBitmap(states_bitmap_, 0, 0, w, h);
-
-		if (states_active_index_ >= 0)
-		{
-			gc->SetPen(*wxWHITE_PEN);
-			int x = w - states_active_index_ - 1;
-
-			gc->StrokeLine(x, 0, x, h);
-		}
 	}
 
 	event.Skip(false);
@@ -734,11 +834,11 @@ void wx_Ping::OnPanelsEraseBackground(wxEraseEvent& event)
 
 pinger::host_state wx_Ping::get_state_by_offset(int offset)
 {
-	posix_time::ptime start = states_start_time()
-		- states_resolution_ * offset;
+	posix_time::ptime start_time = states_start_time()
+		- states_resolution(states_z_) * offset;
 
 	states_list::reverse_iterator iter = states_.rbegin();
-	for (; iter != states_.rend() && iter->first > start; ++iter);
+	for (; iter != states_.rend() && iter->first > start_time; ++iter);
 
 	if (iter == states_.rend())
 		return pinger::host_state();
@@ -748,11 +848,11 @@ pinger::host_state wx_Ping::get_state_by_offset(int offset)
 
 void wx_Ping::OnStatePanelMouseMove(wxMouseEvent& event)
 {
-	int w, h;
-	StatePanel->GetClientSize(&w, &h);
+	states_cursor_time_ = states_x_to_time( (wxDouble)event.GetX() );
 
-	states_active_index_ = w - 1 - event.GetX();
-	StatePanel->Refresh();
+	StatePanel->SetToolTip( my::time::to_wstring(states_cursor_time_) );
+
+#if 0
 
 	wostringstream out;
 	bool show_tool_tip = true;
@@ -772,6 +872,7 @@ void wx_Ping::OnStatePanelMouseMove(wxMouseEvent& event)
 	} /* shared_lock<shared_mutex> l(states_mutex_) */
 
 	StatePanel->SetToolTip(out.str());
+#endif
 }
 
 void wx_Ping::OnPingPanelMouseMove(wxMouseEvent& event)
@@ -811,8 +912,7 @@ void wx_Ping::OnPingPanelMouseMove(wxMouseEvent& event)
 
 void wx_Ping::OnStatePanelMouseLeave(wxMouseEvent& event)
 {
-	states_active_index_ = -1;
-	StatePanel->Refresh();
+	states_cursor_time_ = posix_time::not_a_date_time;
 }
 
 void wx_Ping::OnPingPanelMouseLeave(wxMouseEvent& event)
@@ -823,12 +923,16 @@ void wx_Ping::OnPingPanelMouseLeave(wxMouseEvent& event)
 
 void wx_Ping::OnStatePanelLeftDown(wxMouseEvent& event)
 {
-	states_resolution_ *= 2;
-	StatePanel->Refresh();
+	if (new_states_z_ > 0) {
+		--new_states_z_;
+		states_z_step_ = 4 * server_.def_anim_steps();
+	}
 }
 
 void wx_Ping::OnStatePanelRightDown(wxMouseEvent& event)
 {
-	states_resolution_ /= 2;
-	StatePanel->Refresh();
+	if (new_states_z_ < 20) {
+		++new_states_z_;
+		states_z_step_ = 4 * server_.def_anim_steps();
+	}
 }

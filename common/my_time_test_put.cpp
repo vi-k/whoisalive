@@ -159,5 +159,7 @@ int main()
 			posix_time::time_duration(23,59,59,499999)),
 		posix_time::time_duration(0,0,1,000000)) << endl;
 
+	cout << my::time::div( posix_time::time_duration(24,0,0), 48.0) << endl;
+
 	return 0;
 }
