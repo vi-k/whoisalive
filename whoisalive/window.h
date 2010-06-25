@@ -33,8 +33,8 @@ namespace mousekeys
 class window : my::employer
 {
 private:
-	my::stopwatch anim_fps_sw_;
-	double anim_fps_;
+	my::stopwatch anim_speed_sw_;
+	double anim_speed_;
 	my::stopwatch anim_freq_sw_;
 	double anim_freq_;
 
