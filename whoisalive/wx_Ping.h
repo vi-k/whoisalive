@@ -57,18 +57,20 @@ private:
 	double states_z_;
 	double new_states_z_;
 	int states_z_step_;
-	//posix_time::time_duration states_resolution_;
-	//posix_time::time_duration new_states_resolution_;
-	//int states_resolution_step_;
 	shared_mutex states_mutex_;
 	wxBitmap states_bitmap_;
+	wxBitmap states_background_;
 	wxBitmap states_caption_bitmap_;
 	mutex states_bitmap_mutex_;
+	std::size_t states_hash_;
+	wxCoord states_move_x_;
+	posix_time::ptime states_move_time_;
 
 	posix_time::ptime states_start_time();
 	void states_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
-	void states_repaint();
+	void states_paint();
+	void states_paint_background();
 
 	static posix_time::time_duration states_resolution(double z)
 	{
@@ -114,6 +116,9 @@ private:
 
 	wxDouble states_time_to_x(const posix_time::ptime &time);
 	posix_time::ptime states_x_to_time(wxDouble x);
+
+	void prepare_buffer(wxWindow *win, wxBitmap *bmp,
+		wxDouble *pw, wxDouble *ph);
 
 	//(*Handlers(wx_Ping)
 	void OnStatePanelPaint(wxPaintEvent& event);
