@@ -43,7 +43,6 @@ window::window(server &server, HWND parent)
 	, select_parent_(NULL)
 	, select_rect_(0.0f, 0.0f, 0.0f, 0.0f)
 	, anim_speed_(0)
-	, anim_freq_(0)
 {
 	/* Создание внутреннего окна для обработки сообщений от внешнего окна */
 	WNDCLASS wc;
@@ -102,8 +101,8 @@ void window::anim_handler()
 			anim |= scheme.animate_calc();
 
 		/* ... но прорисовывается только одно - активное */
-		if (anim)
-			paint_();
+		//if (anim)
+		paint_();
 	}
 }
 
@@ -432,6 +431,7 @@ void window::paint_()
 
 		if (active_scheme_)
 		{
+#if 0
 			/* Выделение - расчёт */
 			if (mouse_mode_ == mousemode::select)
 			{
@@ -479,8 +479,9 @@ void window::paint_()
 						select_parent_->tmp_select();
 				}
 			}
-
+#endif
 			active_scheme_->paint( canvas_.get() );
+			//active_scheme_->paint_self( canvas_.get() );
 
 #ifdef _DEBUG
 
@@ -590,31 +591,28 @@ void window::paint_()
 #ifdef _DEBUG
 		{
 			anim_speed_sw_.finish();
-			anim_freq_sw_.finish();
 
-			if (anim_speed_sw_.total.total_milliseconds() >= 500)
+			if (anim_speed_sw_.total().total_milliseconds() >= 500)
 			{
 				anim_speed_ = my::time::div(
 					anim_speed_sw_.avg(), posix_time::milliseconds(1) );
-				anim_freq_ = my::time::div(
-					anim_freq_sw_.avg(), posix_time::milliseconds(1) );
-
 				anim_speed_sw_.reset();
-				anim_freq_sw_.reset();
 			}
 			
-			anim_freq_sw_.start();
-
 			Gdiplus::Font font(L"Tahoma", 12, 0, Gdiplus::UnitPixel);
 			Gdiplus::SolidBrush brush( Gdiplus::Color(255, 255, 255) );
-			Gdiplus::PointF pt( (float)w_ - 100, 8);
+			Gdiplus::PointF pt( (float)w_ - 120, 8);
 			wchar_t buf[200];
 
-			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"speed: %0.1f ms", anim_speed_);
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"int speed: %0.1f ms", anim_speed_);
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 
 			pt.Y += 12;
-			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"freq: %0.1f ms", anim_freq_);
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"ext speed: %0.1f ms", server_.anim_speed());
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+
+			pt.Y += 12;
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"ext freq: %0.1f ms", server_.anim_freq());
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 		}
 #endif

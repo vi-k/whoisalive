@@ -405,13 +405,25 @@ void wx_Ping::states_repaint()
 		{
 			static const long grids[] =
 			{
-				1, 5, 10, 30, /* секунды */
-				1*60, 5*60, 10*60, 30*60, /* минуты */
-				1*3600, 6*3600, 12*3600, /* часы */
-				24*3600, /* дни */
-				7*24*3600, /* недели */
-				30*24*3600, /* мес€цы */
-				365*24*3600  /* годы */
+				/* секунды */
+				1
+				//, 5
+				, 10
+				//, 30
+				/* минуты */
+				, 1*60
+				//, 5*60
+				, 10*60
+				//, 30*60
+				/* часы */
+				, 1*3600
+				//, 6*3600
+				, 12*3600
+				/* дни */
+				, 1*24*3600
+				//, 7*24*3600 /* недели */
+				//, 30*24*3600 /* мес€цы */
+				//, 365*24*3600  /* годы */
 			};
 
 			gc->SetFont( wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL,
@@ -434,12 +446,20 @@ void wx_Ping::states_repaint()
 			bool guides_painted = false;
 			bool captions_painted = false;
 
+			size_t num_points;
+			wxPoint2DDouble begin_points[100];
+			wxPoint2DDouble end_points[100];
+
+			bool first = true;
+
 			for (int i = 0; i < sizeof(grids)/sizeof(*grids); ++i)
 			{
 				posix_time::time_duration grid_resolution = posix_time::seconds(grids[i]);
 
 				double cell_sz = my::time::div(grid_resolution, states_res);
-				if (cell_sz < 5.0) continue;
+				if (cell_sz < 10.0) continue;
+				if (!first) continue;
+				first = false;
 
 				double alpha = cell_sz / 255.0 ;
 				if (alpha > 1.0) alpha = 1.0;
@@ -477,9 +497,16 @@ void wx_Ping::states_repaint()
 					k = (cell_sz > caption_width * 1.5 ? 1 : 2);
 				}
 
+				num_points = 0;
+
 				do
 				{
 					x = time_to_x(grid_time, local_start_time, states_res, w);
+
+					begin_points[num_points] = wxPoint2DDouble(x, ok_y - ext);
+					end_points[num_points] = wxPoint2DDouble(x, fail_y + ext);
+					++num_points;
+
 					//gc->StrokeLine(x, ok_y - ext, x, fail_y + ext);
 
 					/* ¬ыводим подписи */
@@ -496,21 +523,35 @@ void wx_Ping::states_repaint()
 						str_x = x - str_w / 2.0;
 						gc->DrawText(str, str_x, str_y);
 
-						str_y += str_h - 2.0;
+						if (grid_time.date() != local_start_time.date())
+						{
+							str_y += str_h - 2.0;
 
-						str = my::time::to_wstring(grid_time, L"%d-%m-%Y");
-						gc->GetTextExtent(str, &str_w, &str_h, &d, 0);
-						str_x = x - str_w / 2.0;
-						gc->DrawText(str, str_x, str_y);
+							str = my::time::to_wstring(grid_time, L"%d-%m-%Y");
+							gc->GetTextExtent(str, &str_w, &str_h, &d, 0);
+							str_x = x - str_w / 2.0;
+							gc->DrawText(str, str_x, str_y);
+						}
 					}
 
 					grid_time -= grid_resolution;
 
 				} while (x >= 0.0);
 
+				gc->StrokeLines(num_points, begin_points, end_points);
+
 				if (captions_paint)
 					captions_painted = true;
 			}
+
+			wxPoint2DDouble points[4];
+			points[0] = wxPoint2DDouble(10, 10);
+			points[1] = wxPoint2DDouble(20, 10);
+			points[2] = wxPoint2DDouble(30, 20);
+			points[3] = wxPoint2DDouble(10, 20);
+
+			gc->StrokeLines(4, points);
+
 		} /* –исуем сетку */
 
 		/* –исуем состо€ни€ */

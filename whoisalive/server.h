@@ -15,6 +15,7 @@
 #include "../common/my_ptr.h"
 #include "../common/my_time.h"
 #include "../common/my_employer.h"
+#include "../common/my_stopwatch.h"
 
 #include <map>
 #include <memory>
@@ -46,6 +47,12 @@ private:
 	my::worker::ptr anim_worker_;
 	anim_handlers_list anim_handlers_;
 	int anim_handlers_counter_;
+	posix_time::time_duration anim_period_;
+	int def_anim_steps_;
+	my::stopwatch anim_speed_sw_;
+	double anim_speed_;
+	my::stopwatch anim_freq_sw_;
+	double anim_freq_;
 
 	void anim_thread_proc(my::worker::ptr this_worker);
 
@@ -60,8 +67,6 @@ private:
 	ULONG_PTR gdiplus_token_;
 	boost::unordered_map<std::wstring, obj_class::ptr> classes_;
 	boost::ptr_list<window> windows_;
-	posix_time::time_duration anim_period_;
-	int def_anim_steps_;
 	hosts_list hosts_;
 	tiler::server tiler_;
 	int active_map_id_;
@@ -85,7 +90,13 @@ public:
 		{ return def_anim_steps_; }
 	inline posix_time::time_duration anim_period()
 		{ return anim_period_; }
+
+	inline double anim_speed()
+		{ return anim_speed_; }
 		
+	inline double anim_freq()
+		{ return anim_freq_; }
+
 	inline double flash_alpha()
 		{ return flash_alpha_; }
 

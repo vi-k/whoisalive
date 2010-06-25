@@ -355,6 +355,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\common\my_stopwatch.h"
+				>
+			</File>
+			<File
 				RelativePath="..\common\my_str.h"
 				>
 			</File>
