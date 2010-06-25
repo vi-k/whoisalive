@@ -1,8 +1,21 @@
-﻿#ifndef MY_STOPWATCH_H
+﻿/*
+	Секундомер
+*/
+
+#ifndef MY_STOPWATCH_H
 #define MY_STOPWATCH_H
 
 #include <ostream>
 #include <string>
+#include <list>
+
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
 
 #include "my_time.h"
 
@@ -24,50 +37,140 @@ public:
 private:
 	posix_time::ptime start_;
 	int show_;
+	int count_;
+	posix_time::time_duration total_;
+	posix_time::time_duration min_;
+	posix_time::time_duration max_;
+
+	struct period
+	{
+		posix_time::time_duration total;
+		int count;
+	};
+
+	typedef std::vector<period> periods_list;
+	periods_list periods_;
 
 public:
-	int count;
-	posix_time::time_duration total;
-	posix_time::time_duration min;
-	posix_time::time_duration max;
 
 	stopwatch(int show = show_all)
-		: count(0)
-		, show_(show) {}
-
-	inline void reset()
+		: count_(0)
+		, show_(show)
 	{
-		*this = stopwatch(show_);
-	}
-
-	inline void restart()
-	{
-		reset();
 		start();
 	}
 
-	inline void start()
+	/* Сбросить секундомер */
+	inline void reset(bool keep_periods = false)
 	{
-		start_ = posix_time::microsec_clock::local_time();
+		count_ = 0;
+		total_ = max_ = min_ = posix_time::time_duration();
+
+		if (!keep_periods)
+			periods_.clear();
+
+		start();
 	}
 
+    /* Старт (после паузы) */
+	inline void start()
+	{
+		start_ = posix_time::microsec_clock::universal_time();
+	}
+
+    /* Остановка (пауза) */
 	inline void finish()
 	{
 		posix_time::time_duration time
-			= posix_time::microsec_clock::local_time() - start_;
+			= posix_time::microsec_clock::universal_time() - start_;
 
-		if (time < min || count == 0)
-			min = time;
-		if (time > max || count == 0)
-			max = time;
+		if (time < min_ || count_ == 0)
+			min_ = time;
+		if (time > max_ || count_ == 0)
+			max_ = time;
 
-		total += time;
-		count++;
+		total_ += time;
+		++count_;
 	}
 
+	/* Сохранить состояние в очереди */
+	void push()
+	{
+		period p;
+		p.total = total_;
+		p.count = count_;
+
+		periods_.insert(periods_.begin(), p);
+
+		reset(true);
+	}
+
+    /* Удалить самое раннее состояние из очереди */
+	void pop_back()
+	{
+		periods_.pop_back();
+	}
+
+
+    /* Итоговое время */
+	inline posix_time::time_duration total() const
+		{ return total_; }
+
+    /* Итоговое время с учётом сохранённых состояний */
+	posix_time::time_duration full_total() const
+	{
+		posix_time::time_duration full_total = total_;
+
+		for (periods_list::const_iterator iter = periods_.begin();
+			iter != periods_.end(); ++iter)
+		{
+			full_total += iter->total;
+		}
+
+		return full_total;
+	}
+
+	
+    /* Количество измеренных периодов */
+	inline int count() const
+		{ return count_; }
+
+    /* Итоговое время с учётом сохранённых состояний */
+	int full_count() const
+	{
+		int full_count = count_;
+
+		for (periods_list::const_iterator iter = periods_.begin();
+			iter != periods_.end(); ++iter)
+		{
+			full_count += iter->count;
+		}
+
+		return full_count;
+	}
+
+
+	/* Максимальное время между start() и stop() */
+	inline posix_time::time_duration max() const
+		{ return max_; }
+
+	/* Минимальное время между start() и stop() */
+	inline posix_time::time_duration min() const
+		{ return min_; }
+
+
+	/* Среднее время */
 	inline posix_time::time_duration avg() const
 	{
-		return count ? (total / count)
+		return count_ ? (total_ / count_)
+			: posix_time::time_duration();
+	}
+
+	/* Среднее время с учётом сохранённых состояний */
+	inline posix_time::time_duration full_avg() const
+	{
+		int n = full_count();
+		return n ? (full_total() / n)
 			: posix_time::time_duration();
 	}
 
@@ -75,23 +178,23 @@ public:
 	friend std::basic_ostream<Char>& operator <<(std::basic_ostream<Char>& out,
 		const stopwatch &sw)
 	{
-		if (sw.count == 0)
+		if (sw.count_ == 0)
 			out << "null";
-		else if (sw.count == 1 && (sw.show_ & show_total))
-			out << "total=" << sw.total;
+		else if (sw.count_ == 1 && (sw.show_ & show_total))
+			out << "total=" << sw.total_;
 		else
 		{
 			int index = 0;
 			if (sw.show_ & show_count)
-				out	<< (index++ ? " " : "") << "count=" << sw.count;
+				out	<< (index++ ? " " : "") << "count=" << sw.count_;
 			if (sw.show_ & show_total)
-				out << (index++ ? " " : "") << "total=" << sw.total;
+				out << (index++ ? " " : "") << "total=" << sw.total_;
 			if (sw.show_ & show_avg)
 				out << (index++ ? " " : "") << "avg=" << sw.avg();
 			if (sw.show_ & show_min)
-				out << (index++ ? " " : "") << "min=" << sw.min;
+				out << (index++ ? " " : "") << "min=" << sw.min_;
 			if (sw.show_ & show_max)
-				out << (index++ ? " " : "") << "max=" << sw.max;
+				out << (index++ ? " " : "") << "max=" << sw.max_;
 		}
 
 		return out;

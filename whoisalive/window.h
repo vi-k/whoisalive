@@ -35,8 +35,6 @@ class window : my::employer
 private:
 	my::stopwatch anim_speed_sw_;
 	double anim_speed_;
-	my::stopwatch anim_freq_sw_;
-	double anim_freq_;
 
 	server &server_;
 	HWND hwnd_;

@@ -11,8 +11,8 @@ extern my::log main_log;
 
 //#define MY_STOPWATCH_DEBUG
 #include "../common/my_debug.h"
-MY_STOPWATCH( __load_file_sw1(my::stopwatch::show_all & ~my::stopwatch::show_total) )
-MY_STOPWATCH( __load_file_sw2(my::stopwatch::show_all & ~my::stopwatch::show_total) )
+MY_STOPWATCH( __load_file_sw1(MY_SW_ALL & ~MY_SW_TOTAL) )
+MY_STOPWATCH( __load_file_sw2(MY_SW_ALL & ~MY_SW_TOTAL) )
 
 #include <sstream>
 #include <iostream>
@@ -32,8 +32,10 @@ server::server(const xml::wptree &config)
 	: gdiplus_token_(0)
 	, io_service_()
 	, anim_handlers_counter_(0)
-	, anim_period_( posix_time::milliseconds(50) )  /* 20 40 50 100 200 */
+	, anim_period_( posix_time::milliseconds(60) )  /* 20 40 50 100 200 */
 	, def_anim_steps_(4)                            /* 10  5  4   2   1 */
+	, anim_speed_(0)
+	, anim_freq_(0)
 	, flash_step_(1)
 	, flash_pause_(false)
 	, flash_alpha_(0)
@@ -67,6 +69,14 @@ server::server(const xml::wptree &config)
 		&server::io_thread_proc, this, io_worker_) );
 
 	/* Анимация */
+	
+	/* Чтобы скорость и частота анимации не скакали слишком быстро,
+		будем хранить 10 последних расчётов и вычислять общее среднее */
+	for (int i = 0; i < 10; i++)
+	{
+		anim_speed_sw_.push();
+		anim_freq_sw_.push();
+	}
 	anim_worker_ = new_worker("anim_thread");
 	boost::thread( boost::bind(
 		&server::anim_thread_proc, this, anim_worker_) );
@@ -120,6 +130,8 @@ void server::anim_thread_proc(my::worker::ptr this_worker)
 	
 	while (!finish())
 	{
+		anim_speed_sw_.start();
+
 		/* Мигание для "мигающих" объектов */
 		flash_alpha_ += (flash_new_alpha_ - flash_alpha_) / flash_step_;
 		if (--flash_step_ == 0)
@@ -143,6 +155,25 @@ void server::anim_thread_proc(my::worker::ptr this_worker)
 				iter->second();
 			}
 		}
+
+		anim_speed_sw_.finish();
+		anim_freq_sw_.finish();
+
+		if (anim_speed_sw_.total().total_milliseconds() >= 500)
+		{
+			anim_speed_sw_.push();
+			anim_speed_sw_.pop_back();
+
+			anim_freq_sw_.push();
+			anim_freq_sw_.pop_back();
+
+			anim_speed_ = my::time::div(
+				anim_speed_sw_.full_avg(), posix_time::milliseconds(1) );
+			anim_freq_ = my::time::div(
+				anim_freq_sw_.full_avg(), posix_time::milliseconds(1) );
+		}
+
+		anim_freq_sw_.start();
 
 		boost::posix_time::ptime time = timer.expires_at() + anim_period_;
 		boost::posix_time::ptime now = posix_time::microsec_clock::universal_time();
