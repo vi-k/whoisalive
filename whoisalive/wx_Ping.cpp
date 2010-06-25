@@ -57,12 +57,13 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 	, anim_handler_index_(0)
 	, states_socket_(io_service_)
 	, states_()
-	, states_z_(2)
+	, states_z_(8)
 	, new_states_z_(states_z_)
 	, states_z_step_(0)
 	, pings_socket_(io_service_)
 	, pings_(1000)
 	, pings_active_index_(-1)
+	, states_hash_(0)
 {
 	wxWindowID id = -1;
 
@@ -162,6 +163,8 @@ wx_Ping::wx_Ping(wxWindow* parent, who::server &server, who::object *object)
 		boost::bind(&wx_Ping::anim_handler, this, new_worker("animator")) );
 
 	Show();
+
+	states_start_time_ = posix_time::microsec_clock::universal_time();
 }
 
 wx_Ping::~wx_Ping()
@@ -223,7 +226,7 @@ void wx_Ping::anim_handler(my::worker::ptr this_worker)
 			--states_z_step_;
 		}
 
-		states_repaint();
+		states_paint();
 	}
 }
 
@@ -296,7 +299,7 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 				}
 			} /* while (ss) */
 
-			states_repaint();
+			states_paint();
 
 			asio::async_read_until(
 				states_socket_, states_reply_.buf_, "\r\n",
@@ -318,15 +321,11 @@ void wx_Ping::states_handle_read( my::worker::ptr worker,
 
 posix_time::ptime wx_Ping::states_start_time()
 {
-	return states_start_time_.is_special() ?
-		posix_time::microsec_clock::universal_time() : states_start_time_;
-	
-	/*-
+	/* Время самой правой точки панели (немного округлённое!) */
 	return my::time::ceil(
 		states_start_time_.is_special() ?
 			posix_time::microsec_clock::universal_time() : states_start_time_,
-		states_resolution(states_z_));
-	-*/
+		states_resolution(states_z_) / 2);
 }
 
 wxDouble wx_Ping::time_to_x(
@@ -366,256 +365,260 @@ posix_time::ptime wx_Ping::states_x_to_time(wxDouble x)
 		- my::time::mul(states_resolution(states_z_), (wxDouble)w - 1.0 - x);
 }
 
-/* Прорисовка состояний */
-void wx_Ping::states_repaint()
+/* Вычисляем размеры панели и подгоняем bitmap'у под эти размеры */
+void wx_Ping::prepare_buffer(wxWindow *win, wxBitmap *bmp,
+	wxDouble *pw, wxDouble *ph)
 {
+	int iw, ih;
+	win->GetClientSize(&iw, &ih);
+	*pw = (wxDouble)iw;
+	*ph = (wxDouble)ih;
+
+	if (bmp->GetWidth() != iw || bmp->GetHeight() != ih)
+		bmp->Create(iw, ih);
+}
+
+/* Прорисовка фона для состояний */
+void wx_Ping::states_paint_background()
+{
+	static const wxDouble ok_y = 8.0;
+	static const wxDouble warn_y = ok_y + 12.0;
+	static const wxDouble fail_y = warn_y + 12.0;
+
+	wxDouble w, h;
+	prepare_buffer(StatePanel, &states_background_, &w, &h);
+
+	wxMemoryDC dc(states_background_);
+	scoped_ptr<wxGraphicsContext> gc( wxGraphicsContext::Create(dc) );
+
+	posix_time::ptime start_time = my::time::utc_to_local(states_start_time());
+	posix_time::time_duration resolution = states_resolution(states_z_);
+
+	/* Стираем. Чёрный фон - для текущего времени,
+		тёмно синий - если сдвинули */
+	gc->SetBrush( states_start_time_.is_special() ?
+		*wxBLACK_BRUSH : wxBrush(wxColour(32, 32, 64)) );
+	gc->DrawRectangle(0, 0, w, h);
+
+	/* Рисуем сетку */
+	static const long grids[] =
 	{
-		unique_lock<mutex> l(states_bitmap_mutex_);
+		/* секунды */
+		1
+		, 5
+		, 10
+		, 30
+		/* минуты */
+		, 1*60
+		, 5*60
+		, 10*60
+		, 30*60
+		/* часы */
+		, 1*3600
+		, 3*3600
+		, 6*3600
+		, 12*3600
+		/* дни */
+		, 1*24*3600
+		//, 7*24*3600 /* недели */
+		//, 30*24*3600 /* месяцы */
+		//, 365*24*3600  /* годы */
+	};
 
-		wxDouble w, h;
+	gc->SetFont( wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL,
+		wxFONTWEIGHT_NORMAL), wxColour(192, 192, 192));
 
-		/* Вычисляем размеры панели и подгоняем bitmap'у под эти размеры */
+	wxDouble caption_width;
+	{
+		wxDouble h, d;
+		wstring str(L"00-00-0000");
+		gc->GetTextExtent(str, &caption_width, &h, &d, 0);
+	}
+
+	bool guides_painted = false;
+	bool captions_painted = false;
+
+	for (int i = 0; i < sizeof(grids)/sizeof(*grids); ++i)
+	{
+		posix_time::time_duration grid_resolution = posix_time::seconds(grids[i]);
+
+		double cell_sz = my::time::div(grid_resolution, resolution);
+		if (cell_sz < 10.0) continue;
+
+		double alpha = cell_sz / 255.0 ;
+		if (alpha > 1.0) alpha = 1.0;
+
+		static const int max_a = 192;
+		static const int min_a = 32;
+		static const int guides_a = 64;
+
+		unsigned char a = (unsigned char)(alpha * (max_a - min_a) + min_a);
+		gc->SetPen( wxPen(wxColour(a, a, a)) );
+
+		posix_time::ptime grid_time
+			= my::time::floor(start_time, grid_resolution);
+
+		/* Рисуем направляющие */
+		if (!guides_painted && a >= guides_a)
 		{
-			int iw, ih;
-			StatePanel->GetClientSize(&iw, &ih);
-			w = (wxDouble)iw;
-			h = (wxDouble)ih;
-
-			if (states_bitmap_.GetWidth() != iw || states_bitmap_.GetHeight() != ih)
-				states_bitmap_.Create(iw, ih);
+			guides_painted = true;
+			gc->SetPen( wxColour(guides_a, guides_a, guides_a) );
+			gc->StrokeLine(0, ok_y, w, ok_y);
+			gc->StrokeLine(0, warn_y, w, warn_y);
+			gc->StrokeLine(0, fail_y, w, fail_y);
 		}
 
-		wxMemoryDC dc(states_bitmap_);
-		scoped_ptr<wxGraphicsContext> gc( wxGraphicsContext::Create(dc) );
-		gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
+		wxDouble x;
+		wxDouble ext = 4.0 * (a - min_a) / (max_a - min_a);
 
-		wxDouble ok_y = 8.0;
-		wxDouble warn_y = ok_y + 12.0;
-		wxDouble fail_y = warn_y + 12.0;
+		bool captions_paint = false;
+		int k;
 
-		posix_time::ptime start_time = states_start_time();
-		posix_time::ptime local_start_time = my::time::utc_to_local(start_time);
-		posix_time::time_duration states_res = states_resolution(states_z_);
-
-		/* Стираем */
-		gc->SetBrush(*wxBLACK_BRUSH);
-		gc->DrawRectangle(0.0, 0.0, w, h);
-
-		/* Рисуем сетку */
+		/* Выводим подписи */
+		if (!captions_painted && cell_sz > caption_width * 0.75)
 		{
-			static const long grids[] =
-			{
-				/* секунды */
-				1
-				//, 5
-				, 10
-				//, 30
-				/* минуты */
-				, 1*60
-				//, 5*60
-				, 10*60
-				//, 30*60
-				/* часы */
-				, 1*3600
-				//, 6*3600
-				, 12*3600
-				/* дни */
-				, 1*24*3600
-				//, 7*24*3600 /* недели */
-				//, 30*24*3600 /* месяцы */
-				//, 365*24*3600  /* годы */
-			};
-
-			gc->SetFont( wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL,
-				wxFONTWEIGHT_NORMAL), wxColour(192, 192, 192));
-
-			wxDouble caption_width;
-			
-			{
-				wxDouble h, d;
-				wstring str(L"00-00-0000");
-				gc->GetTextExtent(str, &caption_width, &h, &d, 0);
-
-				/*-
-				if ( (double)states_caption_bitmap_.GetWidth() < caption_width
-					|| (double)states_caption_bitmap_.GetHeight() < caption_height)
-					states_bitmap_.Create(iw, ih);
-				-*/
-			}
-
-			bool guides_painted = false;
-			bool captions_painted = false;
-
-			size_t num_points;
-			wxPoint2DDouble begin_points[100];
-			wxPoint2DDouble end_points[100];
-
-			bool first = true;
-
-			for (int i = 0; i < sizeof(grids)/sizeof(*grids); ++i)
-			{
-				posix_time::time_duration grid_resolution = posix_time::seconds(grids[i]);
-
-				double cell_sz = my::time::div(grid_resolution, states_res);
-				if (cell_sz < 10.0) continue;
-				if (!first) continue;
-				first = false;
-
-				double alpha = cell_sz / 255.0 ;
-				if (alpha > 1.0) alpha = 1.0;
-
-				static const int max_a = 192;
-				static const int min_a = 32;
-				static const int guides_a = 64;
-
-				unsigned char a = (unsigned char)(alpha * (max_a - min_a) + min_a);
-				gc->SetPen( wxPen(wxColour(a, a, a)) );
-
-				posix_time::ptime grid_time
-					= my::time::floor(local_start_time, grid_resolution);
-
-				/* Рисуем направляющие */
-				if (!guides_painted && a >= guides_a)
-				{
-					guides_painted = true;
-					gc->SetPen( wxColour(guides_a, guides_a, guides_a) );
-					gc->StrokeLine(0, ok_y, w, ok_y);
-					gc->StrokeLine(0, warn_y, w, warn_y);
-					gc->StrokeLine(0, fail_y, w, fail_y);
-				}
-
-				wxDouble x;
-				wxDouble ext = 4.0 * (a - min_a) / (max_a - min_a);
-
-				bool captions_paint = false;
-				int k;
-
-				/* Выводим подписи */
-				if (!captions_painted && cell_sz > caption_width * 0.75)
-				{
-					captions_paint = true;
-					k = (cell_sz > caption_width * 1.5 ? 1 : 2);
-				}
-
-				num_points = 0;
-
-				do
-				{
-					x = time_to_x(grid_time, local_start_time, states_res, w);
-
-					begin_points[num_points] = wxPoint2DDouble(x, ok_y - ext);
-					end_points[num_points] = wxPoint2DDouble(x, fail_y + ext);
-					++num_points;
-
-					//gc->StrokeLine(x, ok_y - ext, x, fail_y + ext);
-
-					/* Выводим подписи */
-					if (captions_paint && (k == 1 || k == 2
-						&& my::time::floor(grid_time, grid_resolution)
-							== my::time::floor(grid_time, grid_resolution * 2)))
-					{
-						wxDouble str_w, str_h, str_x, str_y, d;
-
-						str_y = fail_y + 5.0;
-
-						wstring str = my::time::to_wstring(grid_time, L"%H:%M:%S");
-						gc->GetTextExtent(str, &str_w, &str_h, &d, 0);
-						str_x = x - str_w / 2.0;
-						gc->DrawText(str, str_x, str_y);
-
-						if (grid_time.date() != local_start_time.date())
-						{
-							str_y += str_h - 2.0;
-
-							str = my::time::to_wstring(grid_time, L"%d-%m-%Y");
-							gc->GetTextExtent(str, &str_w, &str_h, &d, 0);
-							str_x = x - str_w / 2.0;
-							gc->DrawText(str, str_x, str_y);
-						}
-					}
-
-					grid_time -= grid_resolution;
-
-				} while (x >= 0.0);
-
-				gc->StrokeLines(num_points, begin_points, end_points);
-
-				if (captions_paint)
-					captions_painted = true;
-			}
-
-			wxPoint2DDouble points[4];
-			points[0] = wxPoint2DDouble(10, 10);
-			points[1] = wxPoint2DDouble(20, 10);
-			points[2] = wxPoint2DDouble(30, 20);
-			points[3] = wxPoint2DDouble(10, 20);
-
-			gc->StrokeLines(4, points);
-
-		} /* Рисуем сетку */
-
-		/* Рисуем состояния */
-		{
-			shared_lock<shared_mutex> l(states_mutex_);
-
-			states_list::reverse_iterator iter = states_.rbegin();
-			for (; iter != states_.rend() && iter->first > start_time; ++iter);
-
-			wxDouble prev_x = w - 1.0;
-
-			while (iter != states_.rend())
-			{
-				pinger::host_state state = iter->second;
-
-				wxDouble x = time_to_x(iter->first, start_time, states_res, w);
-				wxColour colors[4];
-				wxDouble y = 0.0;
-
-				unsigned char alpha = state.acknowledged() ?
-					255 : (unsigned char)(255 * server_.flash_alpha());
-
-				switch (state.state())
-				{
-					case pinger::host_state::ok:
-						colors[0].Set(0, 255, 0, alpha);
-						colors[1].Set(0, 160, 0, alpha);
-						y = ok_y;
-						break;
-
-					case pinger::host_state::warn:
-						colors[0].Set(255, 255, 0, alpha);
-						colors[1].Set(160, 160, 0, alpha);
-						y = warn_y;
-						break;
-
-					case pinger::host_state::fail:
-						colors[0].Set(255, 0, 0, alpha);
-						colors[1].Set(160, 0, 0, alpha);
-						y = fail_y;
-						break;
-				}
-
-				gc->SetPen( wxPen(colors[0]) );
-				gc->SetBrush( wxBrush(colors[1]) );
-				gc->StrokeLine(x, y, prev_x, y);
-
-				if (x < 0.0) break;
-
-				prev_x = x;
-				++iter;
-			}
-		} /* shared_lock<shared_mutex> l(states_mutex_) */
-
-		if (!states_cursor_time_.is_special())
-		{
-			wxDouble x = time_to_x(states_cursor_time_, start_time, states_res, w);
-			gc->SetPen(*wxWHITE_PEN);
-			gc->StrokeLine(x, 0.0, x, h);
+			captions_paint = true;
+			k = (cell_sz > caption_width * 1.5 ? 1 : 2);
 		}
 
-		scoped_ptr<wxGraphicsContext> gc2( wxGraphicsContext::Create(StatePanel) );
-		gc2->DrawBitmap(states_bitmap_, 0, 0, w, h);
-	} /* unique_lock<mutex> l(states_bitmap_mutex_) */
+		do
+		{
+			x = time_to_x(grid_time, start_time, resolution, w);
+
+			gc->StrokeLine(x, ok_y - ext, x, fail_y + ext);
+
+			/* Выводим подписи */
+			if (captions_paint && (k == 1 || k == 2
+				&& my::time::floor(grid_time, grid_resolution)
+					== my::time::floor(grid_time, grid_resolution * 2)))
+			{
+				wxDouble str_w, str_h, str_x, str_y, d;
+
+				str_y = fail_y + 5.0;
+
+				wstring str = my::time::to_wstring(grid_time, L"%H:%M:%S");
+				gc->GetTextExtent(str, &str_w, &str_h, &d, 0);
+				str_x = x - str_w / 2.0;
+				gc->DrawText(str, str_x, str_y);
+
+				if (grid_time.date() != start_time.date())
+				{
+					str_y += str_h - 2.0;
+
+					str = my::time::to_wstring(grid_time, L"%d.%m.%Y");
+					gc->GetTextExtent(str, &str_w, &str_h, &d, 0);
+					str_x = x - str_w / 2.0;
+					gc->DrawText(str, str_x, str_y);
+				}
+			}
+
+			grid_time -= grid_resolution;
+
+		} while (x >= 0.0);
+
+		if (captions_paint)
+			captions_painted = true;
+	}
+}
+
+/* Прорисовка состояний */
+void wx_Ping::states_paint()
+{
+	static const wxDouble ok_y = 8.0;
+	static const wxDouble warn_y = ok_y + 12.0;
+	static const wxDouble fail_y = warn_y + 12.0;
+
+	unique_lock<mutex> l(states_bitmap_mutex_);
+
+	/* Готовим буфера для отрисовки */
+	wxDouble w, h;
+	prepare_buffer(StatePanel, &states_bitmap_, &w, &h);
+
+	wxMemoryDC dc(states_bitmap_);
+	scoped_ptr<wxGraphicsContext> gc( wxGraphicsContext::Create(dc) );
+
+	posix_time::ptime start_time = states_start_time();
+	posix_time::time_duration resolution = states_resolution(states_z_);
+
+	/* Узнаём, изменился ли фон */
+	size_t hash = 0;
+	boost::hash_combine(hash, boost::hash_value(start_time));
+	boost::hash_combine(hash, boost::hash_value(states_z_));
+	boost::hash_combine(hash, boost::hash_value(w));
+	boost::hash_combine(hash, boost::hash_value(h));
+
+	/* Если фон изменился, перерисовываем его */
+	if (hash != states_hash_)
+	{
+		states_paint_background();
+		states_hash_ = hash;
+	}
+
+	gc->DrawBitmap(states_background_, 0, 0, w, h);
+
+
+	/* Рисуем состояния */
+	{
+		shared_lock<shared_mutex> l(states_mutex_);
+
+		states_list::reverse_iterator iter = states_.rbegin();
+		for (; iter != states_.rend() && iter->first > start_time; ++iter);
+
+		wxDouble prev_x = w - 1.0;
+
+		while (iter != states_.rend())
+		{
+			pinger::host_state state = iter->second;
+
+			wxDouble x = time_to_x(iter->first, start_time, resolution, w);
+			wxColour colors[4];
+			wxDouble y = 0.0;
+
+			unsigned char alpha = state.acknowledged() ?
+				255 : (unsigned char)(255 * server_.flash_alpha());
+
+			switch (state.state())
+			{
+				case pinger::host_state::ok:
+					colors[0].Set(0, 255, 0, alpha);
+					colors[1].Set(0, 160, 0, alpha);
+					y = ok_y;
+					break;
+
+				case pinger::host_state::warn:
+					colors[0].Set(255, 255, 0, alpha);
+					colors[1].Set(160, 160, 0, alpha);
+					y = warn_y;
+					break;
+
+				case pinger::host_state::fail:
+					colors[0].Set(255, 0, 0, alpha);
+					colors[1].Set(160, 0, 0, alpha);
+					y = fail_y;
+					break;
+			}
+
+			gc->SetPen( wxPen(colors[0]) );
+			gc->SetBrush( wxBrush(colors[1]) );
+			gc->StrokeLine(x, y, prev_x, y);
+
+			if (x < 0.0)
+				break;
+
+			prev_x = x;
+			++iter;
+		}
+	} /* shared_lock<shared_mutex> l(states_mutex_) */
+
+	if (!states_cursor_time_.is_special())
+	{
+		wxDouble x = time_to_x(states_cursor_time_, start_time, resolution, w);
+		gc->SetPen(*wxWHITE_PEN);
+		gc->StrokeLine(x, 0.0, x, h);
+	}
+
+	scoped_ptr<wxGraphicsContext> gc_panel( wxGraphicsContext::Create(StatePanel) );
+	gc_panel->DrawBitmap(states_bitmap_, 0, 0, w, h);
 }
 
 void wx_Ping::OnStatePanelPaint(wxPaintEvent& event)
@@ -891,9 +894,25 @@ pinger::host_state wx_Ping::get_state_by_offset(int offset)
 
 void wx_Ping::OnStatePanelMouseMove(wxMouseEvent& event)
 {
+	unique_lock<mutex> l(states_bitmap_mutex_);
+
+	if (StatePanel->HasCapture())
+	{
+		states_start_time_ = states_move_time_
+			+ states_resolution(states_z_) * (states_move_x_ - event.GetX());
+		wstring str = my::time::to_wstring(states_start_time_);
+		str = str;
+
+		/*-
+		if (states_start_time_ >= posix_time::microsec_clock::universal_time())
+			states_start_time_ = posix_time::not_a_date_time;
+		-*/
+	}
+
 	states_cursor_time_ = states_x_to_time( (wxDouble)event.GetX() );
 
-	StatePanel->SetToolTip( my::time::to_wstring(states_cursor_time_) );
+	StatePanel->SetToolTip( my::time::to_wstring(
+		my::time::utc_to_local(states_cursor_time_) ) );
 
 #if 0
 
@@ -970,6 +989,10 @@ void wx_Ping::OnStatePanelLeftDown(wxMouseEvent& event)
 		--new_states_z_;
 		states_z_step_ = 4 * server_.def_anim_steps();
 	}
+
+	wxCoord states_move_x_ = event.GetX();
+	states_move_time_ = states_start_time();
+	StatePanel->CaptureMouse();
 }
 
 void wx_Ping::OnStatePanelRightDown(wxMouseEvent& event)
