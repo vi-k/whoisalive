@@ -7,6 +7,7 @@
 #include <sstream>
 #include <fstream>
 #include <utility> /* std::pair */
+using namespace std;
 
 #include <boost/foreach.hpp>
 
@@ -24,6 +25,7 @@ scheme::scheme(who::server &server, const xml::wptree *pt)
 	, max_scale_(0.0f)
 	, show_names_(true)
 	, show_map_(true)
+	, background_hash_(0)
 {
 	try
 	{
@@ -99,7 +101,7 @@ void scheme::scale__(float new_scale, float fix_x, float fix_y, int steps)
 		if (max_scale_ != 0.0f)
 			new_scale = min(new_scale, max_scale_);
 	
-		new_scale = max(new_scale, min_scale_);
+		new_scale = std::max(new_scale, min_scale_);
 
 		/* Выравниваем относительно главных величин: 1,2,4,8,16... */
 		{
@@ -238,69 +240,82 @@ widget* scheme::hittest(float x, float y)
 
 void scheme::paint_self(Gdiplus::Graphics *canvas)
 {
+	if (!show_map_)
+		return;
+
 	/* Прорисовка карты */
-	if (show_map_)
-	{
-		/* Суть - сначала закидываем тайлы в буфер в масштабе 1:1,
-			а затем буфер проецируем в окно уже с нужным масштабом.
-			Если делать это сразу, то из-за нецелочисленных размеров
-			между тайлами образуются светлые линии */
 
-		/* Размеры окна */
-		Gdiplus::Rect bounds;
-		canvas->GetVisibleClipBounds(&bounds);
+	/* Суть - сначала закидываем тайлы в буфер в масштабе 1:1,
+		а затем буфер проецируем в окно уже с нужным масштабом.
+		Если делать это сразу, то из-за нецелочисленных размеров
+		между тайлами образуются светлые линии */
 
-		/* Расчитываем zoom-Фактор для текущего масштаба:
-			1 (для 1x-2x), 2 (2x-4x), 3 (4x-8x), 4 (8x-16x) ... */
-		int z = scheme::z(scale_);
+	/* Размеры окна */
+	Gdiplus::Rect bounds;
+	canvas->GetVisibleClipBounds(&bounds);
 
-		/* Размер карты в тайлах. И по совместительству - масштаб
-			для рассчитанного zoom-фактора. Из-за округлений в расчётах z
-			он будет меньше либо равен текущему масштабу */
-		int sz = 1 << (z - 1);
+	/* Расчитываем zoom-Фактор для текущего масштаба:
+		1 (для 1x-2x), 2 (2x-4x), 3 (4x-8x), 4 (8x-16x) ... */
+	int z = scheme::z(scale_);
 
-		/* Коэффициент увеличения тайлов */
-		float k = scale_ / (float)sz;
+	/* Размер карты в тайлах. И по совместительству - масштаб
+		для рассчитанного zoom-фактора. Из-за округлений в расчётах z
+		он будет меньше либо равен текущему масштабу */
+	int sz = 1 << (z - 1);
 
-		/* Реальные размеры (и ширина, и высота) тайла при выводе в окно */
-		float w = 256.0f * k;
+	/* Коэффициент увеличения тайлов */
+	float k = scale_ / (float)sz;
 
-		/* Первый тайл, попавший в зону окна.
-			x_, y_ - смещение карты относительно верхнего левого угла окна,
-			если карта уходит за край окна, эти значения отрицательные */
-		int begin_x = - (int)ceil(x_ / w);
-		int begin_y = - (int)ceil(y_ / w);
+	/* Реальные размеры (и ширина, и высота) тайла при выводе в окно */
+	float w = 256.0f * k;
+
+	/* Первый тайл, попавший в зону окна.
+		x_, y_ - смещение карты относительно верхнего левого угла окна,
+		если карта уходит за край окна, эти значения отрицательные */
+	int begin_x = - (int)ceil(x_ / w);
+	int begin_y = - (int)ceil(y_ / w);
 		
-		// /* По x - карты бесконечна, по y - ограничена */
-		if (begin_x < 0) begin_x = 0;
-		if (begin_y < 0) begin_y = 0;
+	if (begin_x < 0) begin_x = 0;
+	if (begin_y < 0) begin_y = 0;
 
-		/* Кол-во тайлов, попавших в окно */
-		int count_x;
-		int count_y;
+	/* Кол-во тайлов, попавших в окно */
+	int count_x;
+	int count_y;
+	{
+		/* Размеры окна за вычетом первого тайла */
+		float W = bounds.Width - ( x_ + w * (begin_x + 1) );
+		float H = bounds.Height - ( y_ + w * (begin_y + 1) );
 
-		{
-			/* Размеры окна за вычетом первого тайла */
-			float W = bounds.Width - ( x_ + w * (begin_x + 1) );
-			float H = bounds.Height - ( y_ + w * (begin_y + 1) );
+		/* Округляем в большую сторону, т.е. включаем в окно тайлы,
+			частично попавшие в окно. Не забываем и про первый тайл,
+			который исключили */
+		count_x = (int)ceil(W / w) + 1;
+		count_y = (int)ceil(H / w) + 1;
 
-			/* Округляем в большую сторону, т.е. включаем в окно тайлы,
-				частично попавшие в окно. Не забываем и про первый тайл,
-				который исключили */
-			count_x = (int)ceil(W / w) + 1;
-			count_y = (int)ceil(H / w) + 1;
+		/* По x - карта бесконечна, по y - ограничена */
+		if (begin_x + count_x > sz)
+			count_x = sz - begin_x;
+		if (begin_y + count_y > sz)
+			count_y = sz - begin_y;
+	}
 
-			/* По x - карта бесконечна, по y - ограничена */
-			if (begin_x + count_x > sz)
-				count_x = sz - begin_x;
-			if (begin_y + count_y > sz)
-				count_y = sz - begin_y;
-		}
+	int bmp_w = count_x * 256;
+	int bmp_h = count_y * 256;
+
+	/* Если что-то изменилось, перерисовываем */
+	size_t hash = 0;
+	boost::hash_combine(hash, boost::hash_value(x_));
+	boost::hash_combine(hash, boost::hash_value(y_));
+	boost::hash_combine(hash, boost::hash_value(w));
+	boost::hash_combine(hash, boost::hash_value(bmp_w));
+	boost::hash_combine(hash, boost::hash_value(bmp_h));
+
+	if (hash != background_hash_)
+	{
+		background_hash_ = hash;
 
 		/* Если буфер маловат, увеличиваем */
-		int bmp_w = count_x * 256;
-		int bmp_h = count_y * 256;
-		if (!bitmap_.get() || (int)bitmap_->GetWidth() < bmp_w
+		if (!bitmap_ || (int)bitmap_->GetWidth() < bmp_w
 			|| (int)bitmap_->GetHeight() < bmp_h)
 		{
 			/* Параметры буфера такие же как у экрана ((HWND)0) */
@@ -319,19 +334,21 @@ void scheme::paint_self(Gdiplus::Graphics *canvas)
 		}
 
 		for (int ix = 0; ix < count_x; ix++)
+		{
 			for (int iy = 0; iy < count_y; iy++)
 			{
 				int x = ix + begin_x;
 				int y = iy + begin_y;
 				server_.paint_tile(&bmp_canvas, ix * 256, iy * 256, z, x, y);
 			}
-
-		Gdiplus::RectF rect( x_ + begin_x * w, y_ + begin_y * w,
-			bmp_w * k, bmp_h * k );
-		canvas->DrawImage( bitmap_.get(), rect,
-			0.0f, 0.0f, (float)bmp_w, (float)bmp_h,
-			Gdiplus::UnitPixel, NULL, NULL, NULL );
+		}
 	}
+	
+	Gdiplus::RectF rect( x_ + begin_x * w, y_ + begin_y * w,
+		bmp_w * k, bmp_h * k );
+	canvas->DrawImage( bitmap_.get(), rect,
+		0.0f, 0.0f, (float)bmp_w, (float)bmp_h,
+		Gdiplus::UnitPixel, NULL, NULL, NULL );
 }
 
 }

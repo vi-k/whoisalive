@@ -159,7 +159,7 @@ void server::anim_thread_proc(my::worker::ptr this_worker)
 		anim_speed_sw_.finish();
 		anim_freq_sw_.finish();
 
-		if (anim_speed_sw_.total().total_milliseconds() >= 500)
+		if (anim_speed_sw_.total().total_milliseconds() >= 300)
 		{
 			anim_speed_sw_.push();
 			anim_speed_sw_.pop_back();

@@ -112,7 +112,7 @@ public:
 	unsigned int load_file(const std::wstring &file,
 		const std::wstring &file_local, bool throw_if_fail = true);
 
-	bool cmd(const wstring &request);
+	bool cmd(const std::wstring &request);
 
 	/* Состояние ip-адресов, квитирование */
 	pinger::host_state host_state(const std::wstring &host)

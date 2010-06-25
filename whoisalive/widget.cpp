@@ -5,6 +5,9 @@
 #include "window.h"
 #include "server.h"
 
+#include <algorithm>
+using namespace std;
+
 #include <boost/foreach.hpp>
 
 namespace who {
@@ -208,7 +211,7 @@ bool widget::in_rect(Gdiplus::RectF in_r)
 		//(t>=T && t<B || b>T && b<=B || T>=t && B<=b);
 
 	/* Intersect rect существует (по результату аналогично предыдущему ) */
-	return max(l,L) < min(r,R) && max(t,T) < min(b,B);
+	return std::max(l,L) < std::min(r,R) && std::max(t,T) < std::min(b,B);
 }
 
 /******************************************************************************

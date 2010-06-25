@@ -2,6 +2,7 @@
 
 #include "ipgui.h"
 
+#include <algorithm>
 using namespace std;
 
 /* Оптимизация картинки для вывода на экран */
@@ -97,12 +98,12 @@ Gdiplus::RectF maxrect( const Gdiplus::RectF &rect1,
 	Gdiplus::RectF rect;
 
 	/* Правый нижний угол */
-	float right = max(
-			rect1.X + rect1.Width,
-			rect2.X + rect2.Width);
-	float bottom = max(
-			rect1.Y + rect1.Height,
-			rect2.Y + rect2.Height);
+	float right = std::max(
+		rect1.X + rect1.Width,
+		rect2.X + rect2.Width);
+	float bottom = std::max(
+		rect1.Y + rect1.Height,
+		rect2.Y + rect2.Height);
 
 	/* Левый верхний угол */
 	rect.X = min( rect1.X, rect2.X);

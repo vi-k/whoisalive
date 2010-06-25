@@ -8,13 +8,14 @@
 
 #include "../common/my_xml.h"
 #include "../common/my_thread.h"
+#include "../common/my_ptr.h"
 
+#include <cstddef>
 #include <map>
 #include <string>
 #include <sstream>
 #include <fstream>
 #include <memory>
-using namespace std;
 
 #include <boost/ptr_container/ptr_list.hpp>
 
@@ -26,14 +27,16 @@ class scheme : public widget
 {
 private:
 	window *window_;
-	wstring name_;
+	std::wstring name_;
 	bool first_activation_;
 	recursive_mutex scheme_mutex_;
 	float min_scale_;
 	float max_scale_;
-	std::auto_ptr<Gdiplus::Bitmap> bitmap_;
+	scoped_ptr<Gdiplus::Bitmap> bitmap_;
+	scoped_ptr<Gdiplus::Bitmap> background_;
 	bool show_names_;
 	bool show_map_;
+	std::size_t background_hash_;
 
 public:
 	scheme(server &server, const xml::wptree *pt = NULL);
@@ -66,6 +69,8 @@ public:
 		{ return this; }
 
 	virtual void animate();
+	void repaint()
+		{ background_hash_ = 0; }
 
 	inline void zoom(float ds, float fix_x, float fix_y, int steps = 2)
 		{ scale__(new_scale_ * ds, fix_x, fix_y, steps); }
