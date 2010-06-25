@@ -7,12 +7,19 @@
 #include <boost/asio.hpp>
 
 /* windows */
-#include <minmax.h>
+#include <minmax.h> /* Нужен для gdiplus.h */
 #include <windows.h>
 #undef GDIPVER 
 #define GDIPVER 0x0110
 #include <gdiplus.h>
 #include <windowsx.h>
+
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
 
 /* std */
 #include <cmath>

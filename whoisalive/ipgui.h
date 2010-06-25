@@ -4,7 +4,6 @@
 #include "../common/my_inet.h"
 #include "../common/my_exception.h"
 
-#include <minmax.h>
 #include <windows.h>
 #define GDIPVER 0x0110
 #include <gdiplus.h> /* Gdi+ */

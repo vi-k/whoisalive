@@ -9,14 +9,6 @@
 #include <string>
 #include <list>
 
-#ifdef max
-#undef max
-#endif
-
-#ifdef min
-#undef min
-#endif
-
 #include "my_time.h"
 
 #define MY_SW_COUNT my::stopwatch::show_count

@@ -299,7 +299,8 @@ LRESULT window::wndproc_(HWND hwnd, UINT uMsg, WPARAM wParam,
 			break;
 
 		case MY_WM_UPDATE:
-			animate();
+			if (active_scheme_)
+				active_scheme_->repaint();
 			break;
 
 		/*-
@@ -506,12 +507,11 @@ void window::paint_()
 
 			static posix_time::ptime begin
 				= posix_time::microsec_clock::universal_time();
-			posix_time::time_duration proshlo
+			posix_time::time_duration elapsed
 				= posix_time::microsec_clock::universal_time() - begin;
-			wstring str = my::time::to_wstring(proshlo, L"%H:%M:%S");
+			wstring str = my::time::to_wstring(elapsed, L"%H:%M:%S");
 			swprintf_s( buf, sizeof(buf)/sizeof(*buf),
-				L"Время работы: %s / paint_avg: %0.0fms",
-				str.c_str(), my::time::div(proshlo / count, posix_time::milliseconds(1)) );
+				L"elapsed: %s", str.c_str());
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 			pt.Y += 12;
 
