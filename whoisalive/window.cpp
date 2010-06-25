@@ -42,6 +42,8 @@ window::window(server &server, HWND parent)
 	, mouse_end_y_(0)
 	, select_parent_(NULL)
 	, select_rect_(0.0f, 0.0f, 0.0f, 0.0f)
+	, anim_speed_(0)
+	, anim_freq_(0)
 {
 	/* Создание внутреннего окна для обработки сообщений от внешнего окна */
 	WNDCLASS wc;
@@ -92,8 +94,6 @@ void window::animate()
 /* Анимация карты */
 void window::anim_handler()
 {
-	anim_freq_sw_.start();
-
 	if (!finish())
 	{
 		/* Анимируются все карты */
@@ -420,7 +420,7 @@ void window::on_destroy()
 */
 void window::paint_()
 {
-	anim_fps_sw_.start();
+	anim_speed_sw_.start();
 
 	unique_lock<recursive_mutex> l(canvas_mutex_);
 
@@ -503,6 +503,17 @@ void window::paint_()
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 			pt.Y += 12;
 
+			static posix_time::ptime begin
+				= posix_time::microsec_clock::universal_time();
+			posix_time::time_duration proshlo
+				= posix_time::microsec_clock::universal_time() - begin;
+			wstring str = my::time::to_wstring(proshlo, L"%H:%M:%S");
+			swprintf_s( buf, sizeof(buf)/sizeof(*buf),
+				L"Время работы: %s / paint_avg: %0.0fms",
+				str.c_str(), my::time::div(proshlo / count, posix_time::milliseconds(1)) );
+			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
+			pt.Y += 12;
+
 			swprintf_s( buf, sizeof(buf)/sizeof(*buf), L"scale=%.1f (%dx)",
 				active_scheme_->scale(),
 				scheme::z(active_scheme_->scale()));
@@ -578,30 +589,32 @@ void window::paint_()
 
 #ifdef _DEBUG
 		{
-			anim_fps_sw_.finish();
+			anim_speed_sw_.finish();
 			anim_freq_sw_.finish();
-			if (anim_fps_sw_.total.seconds() > 1)
-			{
-				anim_fps_ = (double)anim_fps_sw_.count
-					/ ((double)anim_fps_sw_.total.ticks()
-					/ (double)anim_fps_sw_.total.ticks_per_second());
-				anim_fps_sw_.reset();
 
-				posix_time::time_duration avg = anim_freq_sw_.avg();
-				anim_freq_ = (double)avg.ticks() / (double)avg.ticks_per_second() * 1000.0;
+			if (anim_speed_sw_.total.total_milliseconds() >= 500)
+			{
+				anim_speed_ = my::time::div(
+					anim_speed_sw_.avg(), posix_time::milliseconds(1) );
+				anim_freq_ = my::time::div(
+					anim_freq_sw_.avg(), posix_time::milliseconds(1) );
+
+				anim_speed_sw_.reset();
+				anim_freq_sw_.reset();
 			}
+			
 			anim_freq_sw_.start();
 
 			Gdiplus::Font font(L"Tahoma", 12, 0, Gdiplus::UnitPixel);
 			Gdiplus::SolidBrush brush( Gdiplus::Color(255, 255, 255) );
-			Gdiplus::PointF pt( (float)w_ - 60, 8);
+			Gdiplus::PointF pt( (float)w_ - 100, 8);
 			wchar_t buf[200];
 
-			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"%0.1f fps", anim_fps_);
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"speed: %0.1f ms", anim_speed_);
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 
 			pt.Y += 12;
-			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"%0.1f ms", anim_freq_);
+			swprintf_s(buf, sizeof(buf)/sizeof(*buf), L"freq: %0.1f ms", anim_freq_);
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 		}
 #endif

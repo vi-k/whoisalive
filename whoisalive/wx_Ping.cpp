@@ -480,7 +480,7 @@ void wx_Ping::states_repaint()
 				do
 				{
 					x = time_to_x(grid_time, local_start_time, states_res, w);
-					gc->StrokeLine(x, ok_y - ext, x, fail_y + ext);
+					//gc->StrokeLine(x, ok_y - ext, x, fail_y + ext);
 
 					/* Выводим подписи */
 					if (captions_paint && (k == 1 || k == 2
