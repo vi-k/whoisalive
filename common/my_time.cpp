@@ -25,6 +25,16 @@ std::size_t hash_value(const posix_time::ptime &t)
 
 namespace my { namespace time {
 
+posix_time::ptime utc_now()
+{
+	return posix_time::microsec_clock::universal_time();
+}
+
+posix_time::ptime local_now()
+{
+	return posix_time::microsec_clock::local_time();
+}
+
 double div(
 	const posix_time::time_duration &time1,
 	const posix_time::time_duration &time2)

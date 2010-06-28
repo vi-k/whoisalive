@@ -50,6 +50,7 @@ private:
 
 	/* Состояния */
 	states_list states_;
+	shared_mutex states_list_mutex_;
 	tcp::socket states_socket_;
 	my::http::reply states_reply_;
 	posix_time::ptime states_start_time_;
@@ -57,7 +58,6 @@ private:
 	double states_z_;
 	double new_states_z_;
 	int states_z_step_;
-	shared_mutex states_mutex_;
 	wxBitmap states_bitmap_;
 	wxBitmap states_background_;
 	wxBitmap states_caption_bitmap_;
@@ -65,8 +65,10 @@ private:
 	std::size_t states_hash_;
 	wxCoord states_move_x_;
 	posix_time::ptime states_move_time_;
+	shared_mutex states_params_mutex_;
 
 	posix_time::ptime states_start_time();
+	posix_time::ptime states_cursor_time();
 	void states_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
 	void states_paint();
@@ -127,9 +129,10 @@ private:
 	void OnPingPanelMouseMove(wxMouseEvent& event);
 	void OnPingPanelMouseLeave(wxMouseEvent& event);
 	void OnStatePanelMouseMove(wxMouseEvent& event);
-	void OnStatePanelMouseLeave(wxMouseEvent& event);
 	void OnStatePanelLeftDown(wxMouseEvent& event);
 	void OnStatePanelRightDown(wxMouseEvent& event);
+	void OnStatePanelLeftUp(wxMouseEvent& event);
+	void OnStatePanelMouseWheel(wxMouseEvent& event);
 	//*)
 
 	DECLARE_EVENT_TABLE()

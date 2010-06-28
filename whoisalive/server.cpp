@@ -125,8 +125,7 @@ void server::io_thread_proc(my::worker::ptr worker)
 void server::anim_thread_proc(my::worker::ptr this_worker)
 {
 	asio::io_service io_service;
-	asio::deadline_timer timer(io_service,
-		posix_time::microsec_clock::universal_time());
+	asio::deadline_timer timer(io_service, my::time::utc_now());
 	
 	while (!finish())
 	{
@@ -176,7 +175,7 @@ void server::anim_thread_proc(my::worker::ptr this_worker)
 		anim_freq_sw_.start();
 
 		boost::posix_time::ptime time = timer.expires_at() + anim_period_;
-		boost::posix_time::ptime now = posix_time::microsec_clock::universal_time();
+		boost::posix_time::ptime now = my::time::utc_now();
 
 		/* Теоретически время следующей прорисовки должно быть относительным
 			от времени предыдущей, но на практике могут возникнуть торможения,

@@ -63,6 +63,9 @@ struct ptime_hash : std::unary_function<posix_time::ptime, std::size_t>
 	}
 };
 
+posix_time::ptime utc_now();
+posix_time::ptime local_now();
+
 double div(
 	const posix_time::time_duration &time1,
 	const posix_time::time_duration &time2);
