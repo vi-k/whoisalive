@@ -505,10 +505,9 @@ void window::paint_()
 			canvas_->DrawString( buf, wcslen(buf), &font, pt, &brush);
 			pt.Y += 12;
 
-			static posix_time::ptime begin
-				= posix_time::microsec_clock::universal_time();
+			static posix_time::ptime begin = my::time::utc_now();
 			posix_time::time_duration elapsed
-				= posix_time::microsec_clock::universal_time() - begin;
+				= my::time::utc_now() - begin;
 			wstring str = my::time::to_wstring(elapsed, L"%H:%M:%S");
 			swprintf_s( buf, sizeof(buf)/sizeof(*buf),
 				L"elapsed: %s", str.c_str());
