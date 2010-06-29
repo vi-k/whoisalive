@@ -7,12 +7,12 @@
 		<style>wxDEFAULT_DIALOG_STYLE|wxFRAME_TOOL_WINDOW|wxFRAME_FLOAT_ON_PARENT</style>
 		<object class="wxFlexGridSizer" variable="FlexGridSizer1" member="no">
 			<cols>1</cols>
-			<rows>6</rows>
+			<rows>5</rows>
 			<growablecols>0</growablecols>
 			<growablerows>2</growablerows>
 			<object class="sizeritem">
 				<object class="wxStaticText" name="ID_STATICTEXT5" variable="StaticText1" member="yes">
-					<label>Изменение состояний</label>
+					<label>График изменения состояния</label>
 					<font>
 						<size>8</size>
 					</font>
@@ -24,14 +24,7 @@
 			<object class="sizeritem">
 				<object class="wxPanel" name="ID_STATEPANEL" variable="StatePanel" member="yes">
 					<size>400,61</size>
-					<handler function="OnStatePanelPaint" entry="EVT_PAINT" />
-					<handler function="OnPanelsEraseBackground" entry="EVT_ERASE_BACKGROUND" />
-					<handler function="OnStatePanelLeftDown" entry="EVT_LEFT_DOWN" />
-					<handler function="OnStatePanelLeftUp" entry="EVT_LEFT_UP" />
-					<handler function="OnStatePanelRightDown" entry="EVT_RIGHT_DOWN" />
-					<handler function="OnStatePanelLeftUp" entry="EVT_RIGHT_UP" />
-					<handler function="OnStatePanelMouseMove" entry="EVT_MOTION" />
-					<handler function="OnStatePanelMouseWheel" entry="EVT_MOUSEWHEEL" />
+					<handler function="OnStatePanelMouseEnter" entry="EVT_ENTER_WINDOW" />
 				</object>
 				<flag>wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
@@ -51,43 +44,9 @@
 			<object class="sizeritem">
 				<object class="wxPanel" name="ID_PINGPANEL" variable="PingPanel" member="yes">
 					<size>400,61</size>
-					<handler function="OnPingPanelPaint" entry="EVT_PAINT" />
-					<handler function="OnPanelsEraseBackground" entry="EVT_ERASE_BACKGROUND" />
-					<handler function="OnPingPanelMouseMove" entry="EVT_MOTION" />
-					<handler function="OnPingPanelMouseLeave" entry="EVT_LEAVE_WINDOW" />
+					<handler function="OnPingPanelMouseEnter" entry="EVT_ENTER_WINDOW" />
 				</object>
 				<flag>wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-				<border>5</border>
-				<option>1</option>
-			</object>
-			<object class="sizeritem">
-				<object class="wxBoxSizer" variable="BoxSizer2" member="no">
-					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT3" variable="PingFirstText" member="yes">
-							<label></label>
-							<font>
-								<size>6</size>
-							</font>
-							<style>wxALIGN_LEFT</style>
-						</object>
-						<flag>wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-						<border>5</border>
-						<option>1</option>
-					</object>
-					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT4" variable="PingLastText" member="yes">
-							<label></label>
-							<font>
-								<size>6</size>
-							</font>
-							<style>wxST_NO_AUTORESIZE|wxALIGN_RIGHT</style>
-						</object>
-						<flag>wxLEFT|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
-						<border>5</border>
-						<option>1</option>
-					</object>
-				</object>
-				<flag>wxBOTTOM|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>

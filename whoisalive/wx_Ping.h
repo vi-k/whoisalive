@@ -1,6 +1,8 @@
 #ifndef WX_PING_H
 #define WX_PING_H
 
+#include "time_grid.h"
+
 #include "server.h"
 #include "../pinger/ping_result.h"
 
@@ -24,7 +26,6 @@ class wxPanel;
 class wxTextCtrl;
 class wxStaticText;
 class wxFlexGridSizer;
-class wxBoxSizer;
 //*)
 
 #include <wx/textctrl.h>
@@ -34,7 +35,7 @@ class wx_Ping : public wxFrame, my::employer
 {
 private:
 
-	typedef my::mru::list<unsigned short, pinger::ping_result> pings_list;
+	typedef std::map<posix_time::ptime, pinger::ping_result> pings_list;
 	typedef std::map<posix_time::ptime, pinger::host_state> states_list;
 
 	who::server &server_;
@@ -44,7 +45,7 @@ private:
 	asio::io_service io_service_;
 	void io_thread_proc(my::worker::ptr this_worker);
 
-	/* Анимация состояний */
+	/* Анимация */
 	int anim_handler_index_;
 	void anim_handler(my::worker::ptr this_worker);
 
@@ -53,86 +54,45 @@ private:
 	shared_mutex states_list_mutex_;
 	tcp::socket states_socket_;
 	my::http::reply states_reply_;
-	posix_time::ptime states_start_time_;
-	posix_time::ptime states_cursor_time_;
-	double states_z_;
-	double new_states_z_;
-	int states_z_step_;
-	wxBitmap states_bitmap_;
-	wxBitmap states_background_;
-	wxBitmap states_caption_bitmap_;
-	mutex states_bitmap_mutex_;
-	std::size_t states_hash_;
-	wxCoord states_move_x_;
-	posix_time::ptime states_move_time_;
-	shared_mutex states_params_mutex_;
+	scoped_ptr<my::time_grid> states_grid_;
 
-	posix_time::ptime states_start_time();
-	posix_time::ptime states_cursor_time();
 	void states_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
-	void states_paint();
-	void states_paint_background();
 
-	static posix_time::time_duration states_resolution(double z)
-	{
-		int iz = (int)z; /* Отбрасываем дробную часть */
+	void states_on_before_paint(wxGraphicsContext *gc,
+		wxDouble width, wxDouble height, posix_time::ptime right_bound,
+		posix_time::time_duration resolution);
 
-		/* 250ms, 500ms, 1s, 2s, 4s, 8s, 16s, 32s, ... */
-		posix_time::time_duration res
-			= posix_time::milliseconds(250) * (2 << iz);
+	void states_on_after_paint(wxGraphicsContext *gc,
+		wxDouble width, wxDouble height, posix_time::ptime right_bound,
+		posix_time::time_duration resolution);
 
-		return res + my::time::mul(res, z - (double)iz);
-	}
-
-	pinger::host_state get_state_by_offset(int offset);
+	//pinger::host_state get_state_by_offset(int offset);
 
 
 	/* Пинги */
 	pings_list pings_;
+	shared_mutex pings_list_mutex_;
 	tcp::socket pings_socket_;
 	my::http::reply pings_reply_;
-	posix_time::ptime first_ping_time_;
-	posix_time::ptime last_ping_time_;
-	shared_mutex pings_mutex_;
-	wxBitmap pings_bitmap_;
-	mutex pings_bitmap_mutex_;
-	int pings_active_index_;
+	scoped_ptr<my::time_grid> pings_grid_;
 
 	void pings_handle_read( my::worker::ptr worker,
 		const boost::system::error_code& error, size_t bytes_transferred );
-	void pings_repaint();
 
+	void pings_on_before_paint(wxGraphicsContext *gc,
+		wxDouble width, wxDouble height, posix_time::ptime right_bound,
+		posix_time::time_duration resolution);
 
-	inline wxDouble time_to_x(
-		const posix_time::ptime &time,
-		const posix_time::ptime &start_time,
-		const posix_time::time_duration &resolution,
-		wxDouble width);
-
-	inline posix_time::ptime x_to_time(
-		wxDouble x,
-		const posix_time::ptime &start_time,
-		const posix_time::time_duration &resolution,
-		wxDouble width);
-
-	wxDouble states_time_to_x(const posix_time::ptime &time);
-	posix_time::ptime states_x_to_time(wxDouble x);
-
-	void prepare_buffer(wxWindow *win, wxBitmap *bmp,
-		wxDouble *pw, wxDouble *ph);
+	void pings_on_after_paint(wxGraphicsContext *gc,
+		wxDouble width, wxDouble height, posix_time::ptime right_bound,
+		posix_time::time_duration resolution);
 
 	//(*Handlers(wx_Ping)
-	void OnStatePanelPaint(wxPaintEvent& event);
-	void OnPingPanelPaint(wxPaintEvent& event);
-	void OnPanelsEraseBackground(wxEraseEvent& event);
-	void OnPingPanelMouseMove(wxMouseEvent& event);
-	void OnPingPanelMouseLeave(wxMouseEvent& event);
 	void OnStatePanelMouseMove(wxMouseEvent& event);
-	void OnStatePanelLeftDown(wxMouseEvent& event);
-	void OnStatePanelRightDown(wxMouseEvent& event);
-	void OnStatePanelLeftUp(wxMouseEvent& event);
-	void OnStatePanelMouseWheel(wxMouseEvent& event);
+	void OnPingPanelMouseMove(wxMouseEvent& event);
+	void OnStatePanelMouseEnter(wxMouseEvent& event);
+	void OnPingPanelMouseEnter(wxMouseEvent& event);
 	//*)
 
 	DECLARE_EVENT_TABLE()
@@ -144,8 +104,6 @@ protected:
 	static const long ID_STATEPANEL;
 	static const long ID_STATICTEXT1;
 	static const long ID_PINGPANEL;
-	static const long ID_STATICTEXT3;
-	static const long ID_STATICTEXT4;
 	static const long ID_PINGTEXTCTRL;
 	//*)
 
@@ -159,8 +117,6 @@ public:
 	wxStaticText* StaticText2;
 	wxPanel* StatePanel;
 	wxStaticText* StaticText1;
-	wxStaticText* PingFirstText;
-	wxStaticText* PingLastText;
 	wxTextCtrl* PingTextCtrl;
 	wxPanel* PingPanel;
 	//*)
