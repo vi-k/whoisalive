@@ -261,6 +261,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\time_grid.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\widget.cpp"
 				>
 			</File>
@@ -404,6 +408,10 @@
 			</File>
 			<File
 				RelativePath=".\tiler.h"
+				>
+			</File>
+			<File
+				RelativePath=".\time_grid.h"
 				>
 			</File>
 			<File
