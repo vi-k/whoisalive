@@ -61,36 +61,32 @@ void time_grid::animate(wxDouble width)
 	{
 		/* Запоминаем состояние графика */
 		posix_time::ptime _cursor = cursor();
-		posix_time::ptime old_right_bound = right_bound();
+		posix_time::ptime _right_bound = right_bound();
 		posix_time::time_duration old_resolution = resolution();
 		wxDouble old_pos = static_time_to_x(_cursor,
-			old_right_bound, old_resolution, width);
+			_right_bound, old_resolution, width);
 
 		/* Меняем масштаб */
 		z_ += (new_z_ - z_) / z_step_;
 
 		/* Новые (изменённые) параметры */
-		posix_time::ptime new_right_bound;
-		wxDouble delta;
-		
-		new_right_bound = right_bound_.is_special() ?
-			old_right_bound : right_bound_;
-		delta = (width / 2.0 - old_pos) / z_step_;
+		wxDouble delta = (width / 2.0 - old_pos) / z_step_;
 
 		posix_time::time_duration new_resolution = resolution();
 
 		/* new_pos - точка, куда бы переместился курсор при увеличении */
 		wxDouble new_pos = static_time_to_x(_cursor,
-			new_right_bound, new_resolution, width);
+			_right_bound, new_resolution, width);
 		
 		/* Сначала возвращаем курсор на место, а затем только
 			смещаем его к центру */
-		new_right_bound = old_right_bound - my::time::mul(
+		posix_time::ptime new_right_bound = _right_bound - my::time::mul(
 			new_resolution, old_pos - new_pos + delta);
-			
-		--z_step_;
+
 		right_bound_ = new_right_bound > my::time::utc_now() - new_resolution
 			? posix_time::not_a_date_time : new_right_bound;
+
+		--z_step_;
 	}
 }
 
@@ -140,6 +136,7 @@ void time_grid::paint()
 
 	/* Делаем копии основных параметров */
 	posix_time::ptime _right_bound = right_bound();
+	posix_time::ptime local_right_bound = my::time::utc_to_local(_right_bound);
 	posix_time::time_duration _resolution = resolution();
 
 	/* Узнаём, изменился ли фон */
@@ -196,7 +193,7 @@ void time_grid::paint()
 
 			unsigned char zac = (unsigned char)(255.0 * za);
 
-			if (z > 19)
+			if (z > 19/* || zac == 0*/)
 				break;
 
 			posix_time::time_duration grid_res[3];
@@ -204,10 +201,16 @@ void time_grid::paint()
 			grid_res[1] = posix_time::seconds( grids_for_z[z][1] );
 			grid_res[2] = posix_time::seconds( grids_for_z[z][2] );
 
+			/* Время всегда должно быть в UTC, чтобы не потерять
+				переходы с/на летнее время, но сетка и метки времени
+				должны быть относительно локального времени */
 			posix_time::ptime grid_time
-				= my::time::floor(_right_bound, grid_res[2]);
+				= my::time::floor( local_right_bound, grid_res[2])
+				- (local_right_bound - _right_bound);
 
 			wxDouble x;
+
+			gc->SetFont( font, wxColour(192, 192, 192, zac) );
 
 			do /* while (x >= 0.0) */
 			{
@@ -217,6 +220,7 @@ void time_grid::paint()
 				x = static_time_to_x(grid_time, _right_bound, _resolution, width);
 
 				/* Основная сетка (яркие линии) */
+				wstring str = my::time::to_wstring(t);
 				if ( z <= 11 && my::time::floor(t, grid_res[0]) == t
 					|| z >= 12 && z <= 14 && d.day_of_week() == 1
 					|| z >= 15 && z <= 16 && d.day() == 1
@@ -227,7 +231,9 @@ void time_grid::paint()
 					gc->StrokeLine(x, top_ - ext, x, bottom_ + ext);
 				}
 	            /* Простая сетка (минимальная ячейка) */
-				else if (z <= 14 || z >= 17 && d.day() == 1)
+				else if (z <= 14
+					|| z >= 15 && z <= 16 && d.day_of_week() == 1
+					|| z >= 17 && d.day() == 1)
 				{
 					gc->SetPen( wxPen( wxColour(64, 64, 64, zac) ) );
 					gc->StrokeLine(x, top_, x, bottom_);
@@ -241,8 +247,6 @@ void time_grid::paint()
 						|| z == 18 && (d.month() == 1 || d.month() == 7)
 						|| z == 19 && d.month() == 1) )
 				{
-					gc->SetFont( font, wxColour(192, 192, 192, zac) );
-
 					wxDouble str_w, str_h, str_x, str_y, descent;
 					wstring str;
 
@@ -395,7 +399,10 @@ void time_grid::on_mouse_wheel(wxMouseEvent& event)
 
 	double z = new_z_ - event.GetWheelRotation() / event.GetWheelDelta();
 
-	if (z >= min_z_ && z <= max_z_)
+	if (z < min_z_) z = min_z_;
+	if (z > max_z_) z = max_z_;
+
+	if (new_z_ != z)
 	{
 		new_z_ = z;
 		z_step_ = 4 * anim_steps_;
