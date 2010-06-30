@@ -215,7 +215,7 @@ void host_pinger::handle_timeout_(unsigned short sequence_number)
 
 	if (fails_ <= 4)
 		/* После первого таймаута сразу делаем 3 дополнительных
-			запроса, чтоб7ы удостовериться, что это сбой */
+			запроса, чтобы удостовериться, что это сбой */
 		timer_.expires_at(last_ping_time_ + timeout_ + posix_time::seconds(1));
 	else
 		/* После них торопиться уже некуда */
