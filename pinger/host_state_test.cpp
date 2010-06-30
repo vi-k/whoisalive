@@ -1,4 +1,6 @@
-﻿#include "host_state.h"
+﻿#include "stdafx.h"
+
+#include "host_state.h"
 
 #include "../common/my_mru.h"
 

@@ -1,4 +1,6 @@
-﻿#include "ping_result.h"
+﻿#include "stdafx.h"
+
+#include "ping_result.h"
 using namespace std;
 
 int main()

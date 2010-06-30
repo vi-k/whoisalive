@@ -1,4 +1,6 @@
-﻿#include "connection.h"
+﻿#include "stdafx.h"
+
+#include "connection.h"
 #include "acceptor.h"
 
 #include "../common/my_xml.h"

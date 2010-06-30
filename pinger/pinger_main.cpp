@@ -1,4 +1,6 @@
-﻿#include "config.h"
+﻿#include "stdafx.h"
+
+#include "config.h"
 
 #include "acceptor.h"
 
@@ -17,7 +19,7 @@ using namespace std;
 
 #include <boost/archive/detail/utf8_codecvt_facet.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string.hpp>
 
 BOOL __stdcall CtrlHandlerRoutine(DWORD dwCtrlType);
 
