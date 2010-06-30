@@ -523,7 +523,14 @@ void wx_Ping::pings_on_after_paint(wxGraphicsContext *gc,
 	shared_lock<shared_mutex> l(pings_list_mutex_);
 
 	pings_list::reverse_iterator iter = pings_.rbegin();
-	for (; iter != pings_.rend() && iter->first > right_bound; ++iter);
+
+	if (iter != pings_.rend())
+	{
+		pings_list::reverse_iterator prev_iter = iter++;
+		while (iter != pings_.rend() && iter->first > right_bound)
+			++iter, ++prev_iter;
+		iter = prev_iter;
+	}
 
 	wxDouble prev_x = width - 1.0;
 	wxDouble prev_y = -1.0;

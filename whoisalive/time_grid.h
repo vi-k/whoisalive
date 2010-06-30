@@ -23,6 +23,7 @@ private:
 	on_event on_after_paint_;
 	int anim_steps_;
 	posix_time::ptime right_bound_;
+	posix_time::ptime new_right_bound_;
 	posix_time::ptime cursor_;
 	double top_;
 	double bottom_;
