@@ -40,13 +40,15 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="-Zm200"
 				Optimization="0"
 				AdditionalIncludeDirectories="D:\Program Files\boost_1_43_0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				UsePrecompiledHeader="0"
+				UsePrecompiledHeader="2"
+				PrecompiledHeaderThrough="stdafx.h"
 				WarningLevel="3"
 				DebugInformationFormat="3"
 				DisableSpecificWarnings="4503"
@@ -228,6 +230,18 @@
 				RelativePath=".\pinger_main.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\stdafx.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -336,6 +350,10 @@
 			</File>
 			<File
 				RelativePath=".\pinger.h"
+				>
+			</File>
+			<File
+				RelativePath=".\stdafx.h"
 				>
 			</File>
 		</Filter>

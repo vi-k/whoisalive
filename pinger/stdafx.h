@@ -7,19 +7,7 @@
 #include <boost/asio.hpp>
 
 /* windows */
-#include <minmax.h> /* Нужен для gdiplus.h */
 #include <windows.h>
-#undef GDIPVER 
-#define GDIPVER 0x0110
-#include <gdiplus.h>
-#include <windowsx.h>
-
-#ifdef max
-#undef max
-#endif
-#ifdef min
-#undef min
-#endif
 
 /* std */
 #include <cmath>
@@ -85,29 +73,3 @@
 #include <boost/thread/locks.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/utility.hpp>
-
-/* wx */
-//#include <wx/msw/winundef.h>
-#include <wx/msw/setup.h>
-
-#include <wx/app.h>
-#include <wx/artprov.h>
-#include <wx/bitmap.h>
-#include <wx/dcclient.h>
-#include <wx/dcmemory.h>
-#include <wx/filename.h>
-#include <wx/frame.h>
-#include <wx/font.h>
-#include <wx/graphics.h>
-#include <wx/image.h>
-#include <wx/intl.h>
-#include <wx/menu.h>
-#include <wx/msgdlg.h>
-#include <wx/notebook.h>
-#include <wx/panel.h>
-#include <wx/settings.h>
-#include <wx/sizer.h>
-#include <wx/stattext.h>
-#include <wx/statusbr.h>
-#include <wx/string.h>
-#include <wx/textctrl.h>

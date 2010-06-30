@@ -1,4 +1,6 @@
-﻿#include "acceptor.h"
+﻿#include "stdafx.h"
+
+#include "acceptor.h"
 
 #include "../common/my_time.h"
 #include "../common/my_xml.h"

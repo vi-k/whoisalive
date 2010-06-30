@@ -1,4 +1,6 @@
-﻿#include "eventer.h"
+﻿#include "stdafx.h"
+
+#include "eventer.h"
 
 #include "../common/my_utf8.h"
 
