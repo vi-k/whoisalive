@@ -70,7 +70,10 @@ void time_grid::animate(wxDouble width)
 		z_ += (new_z_ - z_) / z_step_;
 
 		/* Новые (изменённые) параметры */
-		wxDouble delta = (width / 2.0 - old_pos) / z_step_;
+		wxDouble delta
+			= old_pos <= (width/3.0) ? (width/3.0-old_pos)/z_step_
+			: old_pos >= (width/3.0*2.0) ? (width/3.0*2.0-old_pos)/z_step_
+			: 0.0;
 
 		posix_time::time_duration new_resolution = resolution();
 
