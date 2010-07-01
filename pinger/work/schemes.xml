@@ -61,11 +61,12 @@
 		scale_min="5792.62">
 			<host>172.16.16.1</host>
 	</object>
-	<object name="ТМО-2С8-D(РП)"
+	<object name="ТМО-2С8-D(РП) Иртышский"
 		class="ТМО-2С8-D(РП)"
 		lon="135 6 18.11"
 		lat="48 24 58.71"
-		offs_x="48"
+		offs_x="30"
+		offs_y="20"
 		scale_min="5792.62"
 		link="172.16.16.1"
 		link_type="optics">
@@ -136,69 +137,71 @@
 		link_type="air">
 			<host>172.16.22.1</host>
 	</object>
-	<object name="ТМО-2С8-D(РП)"
+	<object name="ТМО-2С8-D(РП) Малиновка"
 		class="ТМО-2С8-D(РП)"
 		lon="135 16 01.26"
 		lat="48 28 51.88"
-		offs_x="30"
-		offs_y="-52"
+		offs_x="49.5"
+		offs_y="-49.5"
 		scale_min="5754.44"
 		link="172.16.22.1"
 		link_type="wire">
 			<host>172.16.19.33</host>
 	</object>
-	<object name="ТМО-2С8-КВ 1"
+	<object name="ТМО-2С8-КВ Малиновка 1"
 		class="ТМО-2С8-КВ"
 		lon="135 16 01.26"
 		lat="48 28 51.88"
-		offs_x="60"
+		offs_x="67.6"
+		offs_y="18.0"
 		scale_min="5754.44"
 		link="172.16.22.1"
 		link_type="wire">
 			<host>172.16.22.21</host>
 	</object>
-	<object name="ТМО-2С8-КВ 2"
+	<object name="ТМО-2С8-КВ Малиновка 2"
 		class="ТМО-2С8-КВ"
 		lon="135 16 01.26"
 		lat="48 28 51.88"
-		offs_x="30"
-		offs_y="52"
+		offs_x="18.0"
+		offs_y="67.6"
 		scale_min="5754.44"
 		link="172.16.22.1"
 		link_type="wire">
 			<host>172.16.22.22</host>
 	</object>
-	<object name="AC-7"
+	<object name="Agilent"
 		class="host"
 		lon="135 16 01.26"
 		lat="48 28 51.88"
-		offs_x="-30"
-		offs_y="-52"
+		offs_x="-49.5"
+		offs_y="49.5"
 		scale_min="5754.44"
 		link="172.16.22.1"
 		link_type="wire">
-			<host>172.16.22.111</host>
+			<host>172.16.22.113</host>
 	</object>
 	<object name="APM-M"
 		class="host"
 		lon="135 16 01.26"
 		lat="48 28 51.88"
-		offs_x="-60"
+		offs_x="-67.6"
+		offs_y="-18.0"
 		scale_min="5754.44"
 		link="172.16.22.1"
 		link_type="wire">
 			<host>172.16.22.112</host>
 	</object>
-	<object name="Agilent"
+	<object name="AC-7"
 		class="host"
 		lon="135 16 01.26"
 		lat="48 28 51.88"
-		offs_x="-30"
-		offs_y="52"
+		offs_x="-18.0"
+		offs_y="-67.6"
 		scale_min="5754.44"
 		link="172.16.22.1"
 		link_type="wire">
-			<host>172.16.22.113</host>
+			<host>172.16.22.111</host>
 	</object>
 	<object name="Малиновка"
 		class="Группа объектов"
@@ -241,17 +244,18 @@
 			<host>172.16.22.113</host>
 	</object>
 
-	<object name="Ростелеком"
+	<object name="Ростелеком ЕАО"
 		class="Ростелеком"
 		lon="132 56 23.00"
 		lat="48 46 48.00"
-		offs_x="48"
+		offs_x="60"
+		offs_y="-20"
 		scale_min="1448.16"
 		link="172.16.64.2"
 		link_type="wire">
 			<host>10.10.30.25</host>
 	</object>
-	<object name="ТМО-2С8-D(РП)"
+	<object name="ТМО-2С8-D(РП) ЕАО"
 		class="ТМО-2С8-D(РП)"
 		lon="132 56 23.00"
 		lat="48 46 48.00"
@@ -310,7 +314,7 @@
 			<host>172.27.82.3</host>
 	</object>
 
-	<object name="Ростелеком"
+	<object name="Ростелеком Амурская обл."
 		class="Ростелеком"
 		lon="127 31 39.91"
 		lat="50 16 4.87"
@@ -319,7 +323,7 @@
 		link_type="wire">
 			<host>10.10.30.17</host>
 	</object>
-	<object name="ТМО-2С8-D(РП) 1"
+	<object name="ТМО-2С8-D(РП) Амурская обл. 1"
 		class="ТМО-2С8-D(РП)"
 		lon="127 32 32.32"
 		lat="50 17 06.00"
@@ -328,7 +332,7 @@
 		link_type="wire">
 			<host>192.168.28.41</host>
 	</object>
-	<object name="ТМО-2С8-D(РП) 2"
+	<object name="ТМО-2С8-D(РП) Амурская обл. 2"
 		class="ТМО-2С8-D(РП)"
 		lon="127 33 32.23"
 		lat="50 14 46.00"
@@ -350,18 +354,18 @@
 			<host>192.168.28.42</host>
 	</object>
 
-	<object name="Ростелеком"
+	<object name="Ростелеком Сахалин"
 		class="Ростелеком"
 		lon="142 43 03.14"
 		lat="46 57 54.04"
-		offs_x="-48"
-		offs_y="-24"
+		offs_x="-70"
+		offs_y="-20"
 		scale_min="1448.16"
 		link="172.16.64.2"
 		link_type="air">
 			<host>10.10.30.29</host>
 	</object>
-	<object name="ТМО-2С8-D(РП)"
+	<object name="ТМО-2С8-D(РП) Сахалин"
 		class="ТМО-2С8-D(РП)"
 		lon="142 43 03.14"
 		lat="46 57 54.04"
@@ -382,7 +386,7 @@
 			<host>192.168.65.55</host>
 	</object>
 
-	<object name="Ростелеком"
+	<object name="Ростелеком Владивосток"
 		class="Ростелеком"
 		lon="131 54 33.44"
 		lat="43 6 53.90"
@@ -502,7 +506,7 @@
 			<host>192.168.1.9</host>
 	</object>
 
-	<object name="Ростелеком"
+	<object name="Ростелеком Якутия"
 		class="Ростелеком"
 		lon="129 42 23.94"
 		lat="62 1 11.90"
@@ -511,7 +515,7 @@
 		link_type="air">
 			<host>10.10.30.21</host>
 	</object>
-	<object name="ТМО-2С8-D(РП) 1"
+	<object name="ТМО-2С8-D(РП) Якутия 1"
 		class="ТМО-2С8-D(РП)"
 		lon="129 45 11.97"
 		lat="62 02 48.27"
@@ -520,7 +524,7 @@
 		link_type="air">
 			<host>192.168.14.210</host>
 	</object>
-	<object name="ТМО-2С8-D(РП) 2"
+	<object name="ТМО-2С8-D(РП) Якутия 2"
 		class="ТМО-2С8-D(РП)"
 		lon="129 38 38.13"
 		lat="62 02 39.85"
@@ -529,21 +533,21 @@
 		link_type="air">
 			<host>192.168.14.212</host>
 	</object>
-	<object name="ТМО-2С8-КВ 1"
+	<object name="ТМО-2С8-КВ Якутия 1"
 		class="ТМО-2С8-КВ"
 		lon="129 33 11.57"
 		lat="61 54 43.16"
-		offs_x="-24"
+		offs_x="-30"
 		scale_min="724.08"
 		link="10.10.30.21"
 		link_type="air">
 			<host>192.168.14.216</host>
 	</object>
-	<object name="ТМО-2С8-КВ 2"
+	<object name="ТМО-2С8-КВ Якутия 2"
 		class="ТМО-2С8-КВ"
 		lon="129 33 11.57"
 		lat="61 54 43.16"
-		offs_x="24"
+		offs_x="40"
 		offs_y="20"
 		scale_min="724.08"
 		link="10.10.30.21"
@@ -565,18 +569,18 @@
 			<host>192.168.14.217</host>
 	</object>
 
-	<object name="Ростелеком"
+	<object name="Ростелеком Магадан"
 		class="Ростелеком"
 		lon="150 48 29.00"
 		lat="59 33 15.00"
-		offs_x="-48"
-		offs_y="48"
+		offs_x="-40"
+		offs_y="60"
 		scale_min="1448.16"
 		link="172.16.64.2"
 		link_type="air">
 			<host>213.59.161.185</host>
 	</object>
-	<object name="ТМО-2С8-D(РП)"
+	<object name="ТМО-2С8-D(РП) Магадан"
 		class="ТМО-2С8-D(РП)"
 		lon="150 48 29.00"
 		lat="59 33 15.00"
@@ -585,7 +589,7 @@
 		link_type="wire">
 			<host>192.168.50.161</host>
 	</object>
-	<object name="ТМО-2С8-КВ 1"
+	<object name="ТМО-2С8-КВ Магадан 1"
 		class="ТМО-2С8-КВ"
 		lon="150 53 25.18"
 		lat="59 32 37.92"
@@ -595,11 +599,11 @@
 		link_type="wire">
 			<host>192.168.50.150</host>
 	</object>
-	<object name="ТМО-2С8-КВ 2"
+	<object name="ТМО-2С8-КВ Магадан 2"
 		class="ТМО-2С8-КВ"
 		lon="150 53 25.18"
 		lat="59 32 37.92"
-		offs_y="+48"
+		offs_y="+50"
 		scale_min="1448.16"
 		link="213.59.161.185"
 		link_type="wire">
@@ -619,7 +623,7 @@
 			<host>192.168.50.151</host>
 	</object>
 
-	<object name="Ростелеком"
+	<object name="Ростелеком Камчатка"
 		class="Ростелеком"
 		lon="158 34 53.28"
 		lat="53 7 32.00"
