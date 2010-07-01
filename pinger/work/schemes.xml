@@ -20,7 +20,7 @@
 		scale_min="5754.44"
 		link="172.16.16.1"
 		link_type="optics">
-			<host>10.10.30.6</host>
+			<host>172.16.64.2</host>
 	</object>
 	<object name="Ленина"
 		class="host"
@@ -49,7 +49,7 @@
 		scale_max="5754.44"
 		link="172.16.16.1"
 		link_type="optics">
-			<host>10.10.30.6</host>
+			<host>172.16.64.2</host>
 			<host>172.16.16.107</host>
 			<host>172.16.23.1</host>
 	</object>
@@ -117,7 +117,7 @@
 		scale_max="724.08"
 		link="0.0.0.1"
 		link_type="air">
-			<host>10.10.30.6</host>
+			<host>172.16.64.2</host>
 			<host>172.16.16.107</host>
 			<host>172.16.23.1</host>
 			<host>172.16.16.1</host>
@@ -224,7 +224,7 @@
 		scale_max="362.04"
 		link="0.0.0.1"
 		link_type="air">
-			<host>10.10.30.6</host>
+			<host>172.16.64.2</host>
 			<host>172.16.16.107</host>
 			<host>172.16.23.1</host>
 			<host>172.16.16.1</host>
@@ -247,7 +247,7 @@
 		lat="48 46 48.00"
 		offs_x="48"
 		scale_min="1448.16"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="wire">
 			<host>10.10.30.25</host>
 	</object>
@@ -266,7 +266,7 @@
 		lat="48 46 48.00"
 		scale_min="22.63"
 		scale_max="1448.16"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="wire">
 			<host>10.10.30.25</host>
 			<host>192.168.6.100</host>
@@ -290,7 +290,7 @@
 		scale_max="22.63"
 		link="0.0.0.1"
 		link_type="air">
-			<host>10.10.30.6</host>
+			<host>172.16.64.2</host>
 			<host>172.16.16.107</host>
 			<host>172.16.23.1</host>
 			<host>172.16.16.1</host>
@@ -315,7 +315,7 @@
 		lon="127 31 39.91"
 		lat="50 16 4.87"
 		scale_min="1448.16"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="wire">
 			<host>10.10.30.17</host>
 	</object>
@@ -343,7 +343,7 @@
 		lat="50 15 56.00"
 		scale_min="11.31"
 		scale_max="1448.16"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="wire">
 			<host>10.10.30.17</host>
 			<host>192.168.28.41</host>
@@ -357,7 +357,7 @@
 		offs_x="-48"
 		offs_y="-24"
 		scale_min="1448.16"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="air">
 			<host>10.10.30.29</host>
 	</object>
@@ -376,7 +376,7 @@
 		lat="46 57 54.04"
 		scale_min="11.31"
 		scale_max="1448.16"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="air">
 			<host>10.10.30.29</host>
 			<host>192.168.65.55</host>
@@ -387,7 +387,7 @@
 		lon="131 54 33.44"
 		lat="43 6 53.90"
 		scale_min="2896.31"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="wire">
 			<host>10.10.30.1</host>
 	</object>
@@ -451,7 +451,7 @@
 		lat="43 6 53.90"
 		scale_min="11.31"
 		scale_max="2896.31"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="wire">
 			<host>10.10.30.1</host>
 			<host>192.168.1.4</host>
@@ -470,7 +470,7 @@
 		scale_max="11.31"
 		link="0.0.0.1"
 		link_type="air">
-			<host>10.10.30.6</host>
+			<host>172.16.64.2</host>
 			<host>172.16.16.107</host>
 			<host>172.16.23.1</host>
 			<host>172.16.16.1</host>
@@ -507,7 +507,7 @@
 		lon="129 42 23.94"
 		lat="62 1 11.90"
 		scale_min="724.08"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="air">
 			<host>10.10.30.21</host>
 	</object>
@@ -556,7 +556,7 @@
 		lat="62 2 44.06"
 		scale_min="5.66"
 		scale_max="724.08"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="air">
 			<host>10.10.30.21</host>
 			<host>192.168.14.210</host>
@@ -572,7 +572,7 @@
 		offs_x="-48"
 		offs_y="48"
 		scale_min="1448.16"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="air">
 			<host>213.59.161.185</host>
 	</object>
@@ -611,7 +611,7 @@
 		lat="59 33 15.00"
 		scale_min="5.66"
 		scale_max="1448.16"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="air">
 			<host>213.59.161.185</host>
 			<host>192.168.50.161</host>
@@ -624,7 +624,7 @@
 		lon="158 34 53.28"
 		lat="53 7 32.00"
 		scale_min="362.04"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="air">
 			<host>10.10.30.33</host>
 	</object>
@@ -652,7 +652,7 @@
 		lat="53 3 20.74"
 		scale_min="5.66"
 		scale_max="362.04"
-		link="10.10.30.6"
+		link="172.16.64.2"
 		link_type="air">
 			<host>10.10.30.33</host>
 			<host>192.168.41.31</host>
@@ -664,7 +664,7 @@
 		lon="135 4 33.07"
 		lat="48 28 37.12"
 		scale_max="5.66">
-			<host>10.10.30.6</host>
+			<host>172.16.64.2</host>
 			<host>172.16.16.107</host>
 			<host>172.16.23.1</host>
 			<host>172.16.16.1</host>
@@ -1019,14 +1019,14 @@
 		x="-960"
 		y="400"
 		link="172.16.64.1">
-			<host>10.10.30.6</host>
+			<host>172.16.64.2</host>
 	</object>
 	<object
 		name="Kamchatka"
 		class="Ростелеком"
 		x="-720"
 		y="480"
-		link="10.10.30.6">
+		link="172.16.64.2">
 			<host>10.10.30.33</host>
 	</object>
 	<object
@@ -1058,7 +1058,7 @@
 		class="Ростелеком"
 		x="-890"
 		y="580"
-		link="10.10.30.6">
+		link="172.16.64.2">
 			<host>10.10.30.29</host>
 	</object>
 	<object
@@ -1082,7 +1082,7 @@
 		class="Ростелеком"
 		x="-1030"
 		y="580"
-		link="10.10.30.6">
+		link="172.16.64.2">
 			<host>10.10.30.25</host>
 	</object>
 	<object
@@ -1106,7 +1106,7 @@
 		class="Ростелеком"
 		x="-1200"
 		y="480"
-		link="10.10.30.6">
+		link="172.16.64.2">
 			<host>10.10.30.17</host>
 	</object>
 	<object
@@ -1138,7 +1138,7 @@
 		class="antena"
 		x="-1320"
 		y="400"
-		link="10.10.30.6">
+		link="172.16.64.2">
 			<host>213.59.161.185</host>
 	</object>
 	<object
@@ -1170,7 +1170,7 @@
 		class="Ростелеком"
 		x="-1140"
 		y="120"
-		link="10.10.30.6">
+		link="172.16.64.2">
 			<host>10.10.30.21</host>
 	</object>
 	<object
