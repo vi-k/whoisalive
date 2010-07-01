@@ -309,6 +309,7 @@ void scheme::paint_self(Gdiplus::Graphics *canvas)
 	boost::hash_combine(hash, boost::hash_value(w));
 	boost::hash_combine(hash, boost::hash_value(bmp_w));
 	boost::hash_combine(hash, boost::hash_value(bmp_h));
+	boost::hash_combine(hash, boost::hash_value(server_.active_map_id()));
 
 	if (hash != background_hash_)
 	{
