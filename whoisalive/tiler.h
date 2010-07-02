@@ -24,7 +24,7 @@ namespace tiler {
 
 struct map
 {
-	enum projection_t {wgs84, spheroid};
+	enum projection_t {spheroid, ellipsoid};
 
 	std::wstring id;
 	std::wstring name;
