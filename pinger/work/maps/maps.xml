@@ -4,21 +4,21 @@
 		<id>yasat</id>
 		<name>Яндекс.Спутник</name>
 		<layer>0</layer>
-		<projection>wgs84</projection>
+		<projection>ellipsoid</projection>
 		<tile-type>image/jpeg</tile-type>
 	</map>
 	<map>
 		<id>yamapng</id>
 		<name>Яндекс.Карта</name>
 		<layer>0</layer>
-		<projection>wgs84</projection>
+		<projection>ellipsoid</projection>
 		<tile-type>image/png</tile-type>
 	</map>
 	<map>
 		<id>ksmapnew</id>
 		<name>Яндекс.Карта</name>
 		<layer>0</layer>
-		<projection>wgs84</projection>
+		<projection>ellipsoid</projection>
 		<tile-type>image/png</tile-type>
 	</map>
 </maps>

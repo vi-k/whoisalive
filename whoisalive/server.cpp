@@ -347,13 +347,13 @@ void server::load_maps_()
 					<< my::param(L"tile-type", map.tile_type);
 
 			wstring projection = p.first->second.get<wstring>(L"projection");
-			if (projection == L"wgs84")
-				map.projection = tiler::map::wgs84;
-			else if (projection == L"spheroid")
+			if (projection == L"spheroid")
 				map.projection = tiler::map::spheroid;
+			else if (projection == L"ellipsoid")
+				map.projection = tiler::map::ellipsoid;
 			else
 				throw my::exception(L"Неизвестный тип проекции")
-					<< my::param(L"projection", map.projection);
+					<< my::param(L"projection", projection);
 
 			tiler_.add_map(map);
 			p.first++;
