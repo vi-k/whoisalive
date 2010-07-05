@@ -114,8 +114,10 @@ void connection::run()
 					<< L"/" << (y >> 10) << L"/y" << y
 					<< L"." << it->second.ext;
 
-				if (!send_file(filename.str(), my::str::to_string(it->second.tile_type)))
-						parsed = false;
+				//if (!send_file(filename.str(), my::str::to_string(it->second.tile_type)))
+				//	parsed = false;
+
+				send_file(filename.str(), my::str::to_string(it->second.tile_type));
 			}
 
 			else

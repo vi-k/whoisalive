@@ -1,1 +1,1 @@
-@start ..\pinger\Debug\pinger.exe standalone ..\work
+@start ..\pinger\Debug\pinger.exe ..\work
