@@ -1,4 +1,1 @@
-@echo off
-copy Debug\pinger.exe work
-cd work\
-pinger.exe %*
+@Debug\pinger.exe standalone ..\work

@@ -47,6 +47,27 @@ int wmain(int argc, wchar_t* argv[])
 	fs::wpath path(argv[0]);
 	path = fs::system_complete(path);
 
+	/* Сохраняем initial_path для будущих применений */
+	fs::initial_path<fs::wpath>();
+
+	/* Установка текущей директории туда же, где исходный файл */
+	fs::current_path( path.parent_path() );
+
+	/* Запуск лога */
+	{
+		path.replace_extension(L".log");
+
+		bool log_exists = fs::exists(path);
+		main_log_stream.open(path.string().c_str(), ios::app);
+		if (!log_exists)
+			main_log_stream << L"\xEF\xBB\xBF";
+		else
+			main_log_stream << wstring(78, L'-') << endl << endl;
+
+		main_log_stream.imbue( locale( main_log_stream.getloc(),
+			new boost::archive::detail::utf8_codecvt_facet) );
+	}
+
 	if (argc > 1)
 	{
 		wchar_t *service_name = argc < 3 ? L"pinger" : argv[2];
@@ -74,10 +95,13 @@ int wmain(int argc, wchar_t* argv[])
 		
 		else if ( wcscmp(argv[1], L"standalone") == 0 )
 		{
+			if (argc > 2)
+				fs::current_path( argv[2] );
+
 			wcout << L"Starting as standalone...\n";
 			return start(false);
 		}
-		
+
 		else if (argc == 2)
 			wcerr << argc << L"Unknown parameter: " << argv[1] << endl;
 		else if (argc > 2)
@@ -85,24 +109,6 @@ int wmain(int argc, wchar_t* argv[])
 				<< L" ..." << endl;
 		
 		return EXIT_FAILURE;
-	}
-
-	/* Установка текущей директории туда же, где исходный файл */
-	fs::current_path( path.parent_path() );
-
-	/* Запуск лога */
-	{
-		path.replace_extension(L".log");
-
-		bool log_exists = fs::exists(path);
-		main_log_stream.open(path.string().c_str(), ios::app);
-		if (!log_exists)
-			main_log_stream << L"\xEF\xBB\xBF";
-		else
-			main_log_stream << wstring(78, L'-') << endl << endl;
-
-		main_log_stream.imbue( locale( main_log_stream.getloc(),
-			new boost::archive::detail::utf8_codecvt_facet) );
 	}
 
 	wchar_t empty[1] = {0};
@@ -154,6 +160,7 @@ void WINAPI service_main(int argc, wchar_t** argv)
 	SetServiceStatus(g_status_handle, &g_service_status);
 
 	int ret = start(true);
+
 	if (ret != EXIT_SUCCESS)
 	{
 		g_service_status.dwCurrentState = SERVICE_STOPPED;
@@ -168,15 +175,20 @@ int start(bool as_service)
 		#ifdef _DEBUG
 		wcout << L"Debug: " << VERSION << L" " << BUILDNO
 			<< L" " << BUILDDATE L" " << BUILDTIME << endl;
+		wcout << L"Initial dir: " << fs::initial_path<fs::wpath>() << endl;
+		wcout << L"Work dir: " << fs::current_path<fs::wpath>() << endl;
 		main_log << L"Start as "
 			<< (as_service ? L"service" : L"standalone")
 			<< L"\nDebug: " VERSION L" " BUILDNO L" " BUILDDATE L" " BUILDTIME
+			<< L"\nInitial dir: " << fs::initial_path<fs::wpath>()
+			<< L"\nWork dir: " << fs::current_path<fs::wpath>()
 			<< main_log;
 		#else
 		wcout << L"Release: " << VERSION << endl;
 		main_log << L"Start as "
 			<< (as_service ? L"service" : L"standalone")
 			<< L"\nRelease: " VERSION
+			<< L"\nWork dir:" << fs::current_path<fs::wpath>()
 			<< main_log;
 		#endif
 
