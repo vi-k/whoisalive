@@ -14,6 +14,7 @@
 
 using namespace std;
 
+int start_as_service();
 void WINAPI service_main(int argc, wchar_t** argv);
 int start(bool as_service);
 int install_service(const wchar_t *path, const wchar_t *name);
@@ -53,20 +54,7 @@ int wmain(int argc, wchar_t* argv[])
 	/* Установка текущей директории туда же, где исходный файл */
 	fs::current_path( path.parent_path() );
 
-	/* Запуск лога */
-	{
-		path.replace_extension(L".log");
-
-		bool log_exists = fs::exists(path);
-		main_log_stream.open(path.string().c_str(), ios::app);
-		if (!log_exists)
-			main_log_stream << L"\xEF\xBB\xBF";
-		else
-			main_log_stream << wstring(78, L'-') << endl << endl;
-
-		main_log_stream.imbue( locale( main_log_stream.getloc(),
-			new boost::archive::detail::utf8_codecvt_facet) );
-	}
+	bool is_service = false;
 
 	if (argc > 1)
 	{
@@ -85,7 +73,10 @@ int wmain(int argc, wchar_t* argv[])
 		}
 		
 		else if ( wcscmp(argv[1], L"install") == 0 )
-			return install_service(path.file_string().c_str(), service_name);
+		{
+			std::wstring service_path = path.file_string() + L" service";
+			return install_service( service_path.c_str(), service_name);
+		}
 		
 		else if ( wcscmp(argv[1], L"remove") == 0 )
 			return remove_service(service_name);
@@ -93,24 +84,42 @@ int wmain(int argc, wchar_t* argv[])
 		else if ( wcscmp(argv[1], L"start") == 0 )
 			return start_service(service_name);
 		
-		else if ( wcscmp(argv[1], L"standalone") == 0 )
-		{
-			if (argc > 2)
-				fs::current_path( argv[2] );
+		else if ( wcscmp(argv[1], L"service") == 0 )
+			is_service = true;
 
-			wcout << L"Starting as standalone...\n";
-			return start(false);
-		}
-
-		else if (argc == 2)
-			wcerr << argc << L"Unknown parameter: " << argv[1] << endl;
 		else if (argc > 2)
+		{
 			wcerr << argc << L"Unknown parameters: " << argv[1]
 				<< L" ..." << endl;
-		
-		return EXIT_FAILURE;
+			return EXIT_FAILURE;
+		}
 	}
 
+	/* Открытие лога */
+	{
+		fs::wpath log_path = path;
+		log_path.replace_extension(L".log");
+
+		bool log_exists = fs::exists(log_path);
+		main_log_stream.open(log_path.string().c_str(), ios::app);
+		if (!log_exists)
+			main_log_stream << L"\xEF\xBB\xBF" << flush;
+		else
+			main_log_stream << wstring(78, L'-') << L"\n\n" << flush;
+
+		main_log_stream.imbue( locale( main_log_stream.getloc(),
+			new boost::archive::detail::utf8_codecvt_facet) );
+	}
+
+	/* Дополнительный параметр - рабочий каталог */
+	if ( argc == (2 + is_service) )
+		fs::current_path( argv[1 + is_service] );
+
+	return is_service ? start_as_service() : start(false);
+}
+
+int start_as_service()
+{
 	wchar_t empty[1] = {0};
 	SERVICE_TABLE_ENTRY service_table[1];
 	service_table[0].lpServiceName = empty;
