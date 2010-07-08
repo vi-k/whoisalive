@@ -280,7 +280,7 @@ int install_service(const wchar_t *path, const wchar_t *name)
 		name,
 		SERVICE_ALL_ACCESS,
 		SERVICE_WIN32_OWN_PROCESS,
-		SERVICE_DEMAND_START,
+		SERVICE_AUTO_START,
 		SERVICE_ERROR_NORMAL,
 		path,
 		NULL, NULL, NULL, NULL, NULL);
