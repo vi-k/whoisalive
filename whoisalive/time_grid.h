@@ -9,7 +9,7 @@
 
 namespace my {
 
-class time_grid : public wxFrame
+class time_grid //: public wxFrame
 {
 public:
 	typedef boost::function<void (wxGraphicsContext *gc,
