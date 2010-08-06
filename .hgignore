@@ -13,6 +13,7 @@ whoisalive/Debug
 whoisalive/Release
 whoisalive/work/*.log
 whoisalive/work/classes
+whoisalive/work/maps/sat
 whoisalive/work/maps/yasat
 whoisalive/work/maps/yamapng
 whoisalive/*.ncb

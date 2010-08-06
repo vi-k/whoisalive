@@ -27,6 +27,16 @@ time_grid::time_grid(wxWindow *window, bool animate, int top, int bottom,
 	, paint_hash_(0)
 	, move_x_(0)
 {
+	window->Bind(wxEVT_PAINT,&time_grid::on_paint,this);
+	window->Bind(wxEVT_ERASE_BACKGROUND,&time_grid::on_erase_background,this);
+	window->Bind(wxEVT_LEFT_DOWN,&time_grid::on_left_down,this);
+	window->Bind(wxEVT_LEFT_UP,&time_grid::on_left_up,this);
+	window->Bind(wxEVT_RIGHT_DOWN,&time_grid::on_right_down,this);
+	window->Bind(wxEVT_RIGHT_UP,&time_grid::on_left_up,this);
+	window->Bind(wxEVT_MOTION,&time_grid::on_mouse_move,this);
+	window->Bind(wxEVT_MOUSEWHEEL,&time_grid::on_mouse_wheel,this,window->GetId());
+
+	/*-
 	window->Connect(wxID_ANY,wxEVT_PAINT,(wxObjectEventFunction)&time_grid::on_paint,0,this);
 	window->Connect(wxID_ANY,wxEVT_ERASE_BACKGROUND,(wxObjectEventFunction)&time_grid::on_erase_background,0,this);
 	window->Connect(wxID_ANY,wxEVT_LEFT_DOWN,(wxObjectEventFunction)&time_grid::on_left_down,0,this);
@@ -35,6 +45,7 @@ time_grid::time_grid(wxWindow *window, bool animate, int top, int bottom,
 	window->Connect(wxID_ANY,wxEVT_RIGHT_UP,(wxObjectEventFunction)&time_grid::on_left_up,0,this);
 	window->Connect(wxID_ANY,wxEVT_MOTION,(wxObjectEventFunction)&time_grid::on_mouse_move,0,this);
 	window->Connect(window->GetId(),wxEVT_MOUSEWHEEL,(wxObjectEventFunction)&time_grid::on_mouse_wheel,0,this);
+	-*/
 }
 
 void time_grid::prepare_buffer(wxBitmap *buffer, wxDouble *pw, wxDouble *ph)
