@@ -251,14 +251,14 @@ int start(bool as_service)
 	return EXIT_SUCCESS;
 }
 
-void service_control_handler(DWORD request)
+void service_control_handler(DWORD control_code)
 {
-	main_log << L"Service stop" << main_log;
+	main_log << L"Service Control Handler (control code="
+		<< control_code << L')' << main_log;
 	g_service_status.dwWin32ExitCode = 0; 
-	g_service_status.dwCurrentState = SERVICE_STOPPED; 
+	g_service_status.dwCurrentState = SERVICE_RUNNING;
 	SetServiceStatus(g_status_handle, &g_service_status);
-	
-	exit(EXIT_FAILURE);
+	//exit(EXIT_FAILURE);
 }
 
 /* Обработчик нажатий Ctrl-Break */
